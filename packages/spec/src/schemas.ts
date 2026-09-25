@@ -125,6 +125,17 @@ export const capexItemSchema = z
 
 export const REGION_STATUSES = ["structure_only", "reference_partially_filled", "reference_filled"] as const;
 
+const parkingNormSchema = z
+  .object({
+    source_ids: idList,
+    rule: z.enum(["to_fill", "by_apartment_area"]),
+    values: z
+      .array(z.object({ max_area: z.number().positive().nullable(), per_apt: z.number().nonnegative() }).strict())
+      .nullable(),
+    status: z.enum(["to_fill", "needs_verification", "verified"]),
+  })
+  .strict();
+
 export const regionSchema = z
   .object({
     code: z.string().regex(/^\d{2}$/, "код субъекта — две цифры"),
@@ -144,13 +155,13 @@ export const regionSchema = z
         note: z.string().optional(),
       })
       .strict(),
-    parking_norm: z
+    parking_norm: parkingNormSchema,
+    /** Норматив машино-мест для объектов гостиничного назначения (апартаменты); единица — по акту региона. */
+    parking_norm_apart: z
       .object({
         source_ids: idList,
-        rule: z.enum(["to_fill", "by_apartment_area"]),
-        values: z
-          .array(z.object({ max_area: z.number().positive().nullable(), per_apt: z.number().nonnegative() }).strict())
-          .nullable(),
+        rule: z.enum(["to_fill", "per_unit", "per_m2"]),
+        values: z.array(z.record(z.string(), z.unknown())).nullable(),
         status: z.enum(["to_fill", "needs_verification", "verified"]),
       })
       .strict(),

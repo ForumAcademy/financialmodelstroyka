@@ -69,6 +69,7 @@ export type SpecRegion = Omit<
   | "land_rent_source_ids"
   | "vri_fee"
   | "parking_norm"
+  | "parking_norm_apart"
   | "ngp_source_ids"
 > & {
   code: RegionCode;
@@ -77,6 +78,7 @@ export type SpecRegion = Omit<
   land_rent_source_ids: SourceId[];
   vri_fee: Omit<Region["vri_fee"], "source_ids"> & { source_ids: SourceId[] };
   parking_norm: Omit<Region["parking_norm"], "source_ids"> & { source_ids: SourceId[] };
+  parking_norm_apart: Omit<Region["parking_norm_apart"], "source_ids"> & { source_ids: SourceId[] };
   ngp_source_ids: SourceId[];
 };
 

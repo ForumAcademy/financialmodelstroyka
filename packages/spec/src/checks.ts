@@ -68,6 +68,7 @@ export function checkSpec(spec: SpecData): SpecCheckResult {
     checkSources(owner, r.land_rent_source_ids);
     checkSources(owner, r.vri_fee.source_ids);
     checkSources(owner, r.parking_norm.source_ids);
+    checkSources(owner, r.parking_norm_apart.source_ids);
     checkSources(owner, r.ngp_source_ids);
     if (r.vri_fee.formula && !F.has(r.vri_fee.formula)) {
       warnings.push(`регион ${r.code}: vri_fee.formula ${r.vri_fee.formula} нет в formulas.yaml`);

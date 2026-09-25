@@ -1,5 +1,5 @@
 {
-  "specVersion": "07f6b82f887b",
+  "specVersion": "95bd6768c94d",
   "actualizedAt": "2026-09-25",
   "sources": [
     {
@@ -215,6 +215,29 @@
       "verified": true
     },
     {
+      "id": "S_GRK_40",
+      "level": 1,
+      "scope": "global",
+      "title": "ГрК РФ ст.40 «Отклонение от предельных параметров разрешенного строительства, реконструкции объектов капитального строительства»",
+      "issuer": "Федеральный закон от 29.12.2004 № 190-ФЗ",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_51040/91122874bbcf628c0e5c6bceb7fe613ee682fc73/",
+      "used_for": "снятие блокирующей ошибки F.CHECK.GPZU_LIMITS решением о разрешении на отклонение (GPZU.DEVIATION_PERMIT); ч.1.1 — однократное отклонение до 10% без публичных слушаний; ч.2 — в исторических поселениях отклонение по этажности и высоте не допускается",
+      "accessed": "2026-09-25",
+      "verified": false,
+      "note": "Содержание ч.1.1 и ч.2 указано владельцем продукта 25.09.2026; сверить формулировки с текстом статьи и отметить verified"
+    },
+    {
+      "id": "S_GRK_48_1",
+      "level": 1,
+      "scope": "global",
+      "title": "ГрК РФ ст.48.1 «Особо опасные, технически сложные и уникальные объекты»",
+      "issuer": "Федеральный закон от 29.12.2004 № 190-ФЗ",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_51040/020268898fa86a2e82a7b360986eb212b02482cf/",
+      "used_for": "ч.2 — уникальный объект, в т.ч. высотой более 100 м: группа высотности «свыше_100м» (BENCH.HEIGHT_BAND) с другими группами не смешивается",
+      "accessed": "2026-09-25",
+      "verified": true
+    },
+    {
       "id": "S_ZHK_15",
       "level": 1,
       "scope": "global",
@@ -257,6 +280,18 @@
       "used_for": "минимальный размер машино-места 5,3 × 2,5 м; с 28.10.2021 максимальный размер не ограничивается. Нижняя граница площади на одно машино-место",
       "accessed": "2026-09-25",
       "verified": true
+    },
+    {
+      "id": "S_ROSREESTR_P0412",
+      "level": 1,
+      "scope": "global",
+      "title": "Приказ Росреестра от 10.11.2020 № П/0412 «Об утверждении классификатора видов разрешенного использования земельных участков»",
+      "issuer": "Росреестр",
+      "url": "https://www.consultant.ru/document/cons_doc_LAW_371246/",
+      "used_for": "код ВРИ 4.7 «Гостиничное обслуживание» — условие для продукта «апартаменты» (LAND.VRI_CODES, F.TEP.APART_AREA)",
+      "accessed": "2026-09-25",
+      "verified": false,
+      "note": "URL и код 4.7 указаны владельцем продукта 25.09.2026; сверить с актуальной редакцией классификатора и отметить verified"
     },
     {
       "id": "S_NCS_2026_01",
@@ -985,6 +1020,28 @@
       ]
     },
     {
+      "id": "LAND.VRI_CODES",
+      "name": "Виды разрешённого использования участка (коды классификатора)",
+      "unit": "текст",
+      "kind": "table",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_ROSREESTR_P0412",
+        "S_NSPD",
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Коды ВРИ по классификатору (Приказ Росреестра от 10.11.2020 № П/0412) из ЕГРН/ГПЗУ. Код 4.7 «Гостиничное обслуживание» — условие для продукта «апартаменты» (F.CHECK.ALL → APART_ALLOWED)",
+      "how_to_fill": "Выписка ЕГРН / НСПД / ГПЗУ по кадастровому номеру; приложить документ",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "LAND.CADASTRAL_VALUE",
       "name": "Кадастровая стоимость участка (текущая)",
       "unit": "руб",
@@ -1303,8 +1360,8 @@
       ]
     },
     {
-      "id": "TEP.GPZU_GFA_MAX",
-      "name": "Максимальная суммарная поэтажная площадь по ГПЗУ/ПЗЗ",
+      "id": "GPZU.MAX_GFA_ABOVE",
+      "name": "ГПЗУ: максимальная суммарная поэтажная площадь наземной части",
       "unit": "м2",
       "kind": "scalar",
       "scope": "project",
@@ -1313,8 +1370,8 @@
         "S_GRK_38",
         "S_PROJECT_DOCS"
       ],
-      "basis": "Предельный параметр разрешённого строительства (ст.38 ГрК РФ), указывается в ГПЗУ или в градостроительном регламенте ПЗЗ. Стадия «Оценка участка»: ГНС наземная = это значение. Если в ГПЗУ суммарная поэтажная площадь не указана — поле пустое, ГНС считается как пятно застройки × средняя этажность",
-      "how_to_fill": "ГПЗУ участка (предельные параметры) или ПЗЗ (регламент территориальной зоны); приложить документ",
+      "basis": "Предельный параметр разрешённого строительства (ст.38 ГрК РФ), указывается в ГПЗУ или в градостроительном регламенте ПЗЗ. Стадия «Оценка участка»: ГНС наземная = это значение. На любой стадии — предел для проверки F.CHECK.GPZU_LIMITS. Если в ГПЗУ не указана — поле пустое, ГНС на стадии оценки считается как пятно застройки × средняя этажность",
+      "how_to_fill": "ГПЗУ участка (предельные параметры) или ПЗЗ (регламент территориальной зоны); уровень 4, вложение обязательно",
       "status": "project_input",
       "legacy": [
         {
@@ -1324,8 +1381,8 @@
       ]
     },
     {
-      "id": "TEP.GPZU_COVERAGE_MAX",
-      "name": "Максимальный процент застройки участка по ГПЗУ/ПЗЗ",
+      "id": "GPZU.MAX_BUILT_SHARE",
+      "name": "ГПЗУ: максимальный процент застройки участка",
       "unit": "доля",
       "kind": "scalar",
       "scope": "project",
@@ -1338,8 +1395,97 @@
         "S_GRK_38",
         "S_PROJECT_DOCS"
       ],
-      "basis": "Предельный параметр (ст.38 ГрК РФ): доля площади участка, которую можно застроить. Ограничивает пятно застройки: TEP.FOOTPRINT_AREA ≤ LAND.AREA × это значение, иначе ошибка",
-      "how_to_fill": "ГПЗУ участка или ПЗЗ; хранится долей (40% → 0,4)",
+      "basis": "Предельный параметр (ст.38 ГрК РФ): доля площади участка, которую можно застроить. Проверка F.CHECK.GPZU_LIMITS: TEP.FOOTPRINT_AREA / LAND.AREA ≤ это значение",
+      "how_to_fill": "ГПЗУ участка или ПЗЗ; хранится долей (40% → 0,4); уровень 4, вложение обязательно",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "GPZU.MAX_FLOORS",
+      "name": "ГПЗУ: предельное количество этажей",
+      "unit": "шт",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_GRK_38",
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Предельный параметр (ч.1 ст.38 ГрК РФ). Проверка F.CHECK.GPZU_LIMITS: TEP.MAX_FLOORS ≤ это значение",
+      "how_to_fill": "ГПЗУ участка; уровень 4, вложение обязательно",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "GPZU.MAX_HEIGHT_M",
+      "name": "ГПЗУ: предельная высота зданий, м",
+      "unit": "м",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_GRK_38",
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Предельный параметр (ч.1 ст.38 ГрК РФ). Проверка F.CHECK.GPZU_LIMITS: TEP.BUILDING_HEIGHT_M ≤ это значение",
+      "how_to_fill": "ГПЗУ участка; уровень 4, вложение обязательно",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "GPZU.DEVIATION_PERMIT",
+      "name": "Разрешение на отклонение от предельных параметров",
+      "unit": "table",
+      "kind": "table",
+      "scope": "project",
+      "default": null,
+      "columns": [
+        {
+          "key": "limit",
+          "unit": "enum",
+          "options": [
+            "GPZU.MAX_GFA_ABOVE",
+            "GPZU.MAX_FLOORS",
+            "GPZU.MAX_HEIGHT_M",
+            "GPZU.MAX_BUILT_SHARE"
+          ]
+        },
+        {
+          "key": "permitted_value",
+          "unit": "в единицах предела"
+        },
+        {
+          "key": "decision",
+          "unit": "текст",
+          "note": "реквизиты решения органа местного самоуправления / исполнительной власти"
+        },
+        {
+          "key": "attachment_id",
+          "unit": "текст",
+          "note": "вложение решения обязательно"
+        }
+      ],
+      "source_ids": [
+        "S_GRK_40",
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Единственный способ снять блокирующую ошибку F.CHECK.GPZU_LIMITS: решение о предоставлении разрешения на отклонение от предельных параметров (ст.40 ГрК РФ) с вложением. Проверка сравнивает проект с permitted_value вместо предела ГПЗУ",
+      "how_to_fill": "Приложить решение о разрешении на отклонение (обязательно)",
       "status": "project_input",
       "legacy": [
         {
@@ -1360,8 +1506,8 @@
         "S_COMPANY_ACTUALS",
         "S_EXPERT"
       ],
-      "basis": "Стадия «Оценка участка», если суммарная поэтажная площадь в ГПЗУ не указана: ГНС наземная = пятно × средняя этажность. Пятно не больше LAND.AREA × TEP.GPZU_COVERAGE_MAX",
-      "how_to_fill": "Эскиз посадки / градостроительный анализ (уровень 4) или экспертная оценка (уровень 5: автор, обоснование, диапазон min–max)",
+      "basis": "Стадия «Концепция» — из ТЭП архитектора. Стадия «Оценка участка», если суммарная поэтажная площадь в ГПЗУ не указана: ГНС наземная = пятно × средняя этажность. На любой стадии проверка F.CHECK.GPZU_LIMITS: пятно / LAND.AREA ≤ GPZU.MAX_BUILT_SHARE",
+      "how_to_fill": "ТЭП концепции; до концепции — эскиз посадки (уровень 4) или экспертная оценка (уровень 5: автор, обоснование, диапазон min–max)",
       "status": "expert_allowed",
       "legacy": [
         {
@@ -1385,6 +1531,47 @@
       "basis": "Стадия «Оценка участка», если суммарная поэтажная площадь в ГПЗУ не указана. Не выше предельной этажности/высоты из ГПЗУ (ст.38 ГрК РФ)",
       "how_to_fill": "Эскиз посадки (уровень 4) или экспертная оценка (уровень 5: автор, обоснование, диапазон min–max)",
       "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.MAX_FLOORS",
+      "name": "Максимальная этажность здания проекта",
+      "unit": "шт",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Стадия «Концепция» — из ТЭП архитектора. Используется в проверке F.CHECK.GPZU_LIMITS (≤ GPZU.MAX_FLOORS) и для группы высотности F.BENCH.HEIGHT_BAND. На стадии «Оценка участка», если не задана, проверка ведётся по TEP.AVG_FLOORS",
+      "how_to_fill": "ТЭП концепции; приложить документ",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.BUILDING_HEIGHT_M",
+      "name": "Высота здания проекта, м",
+      "unit": "м",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_PROJECT_DOCS",
+        "S_GRK_48_1"
+      ],
+      "basis": "Из ТЭП архитектора. Проверка F.CHECK.GPZU_LIMITS (≤ GPZU.MAX_HEIGHT_M); высота более 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ), группа высотности «свыше_100м» (F.BENCH.HEIGHT_BAND)",
+      "how_to_fill": "ТЭП концепции; приложить документ",
+      "status": "project_input",
       "legacy": [
         {
           "cell": null,
@@ -1482,6 +1669,52 @@
       ]
     },
     {
+      "id": "TEP.APART_GFA",
+      "name": "ГНС апартаментной части по ГПЗУ / ППТ / ТЭП архитектора",
+      "unit": "м2",
+      "kind": "scalar",
+      "scope": "project",
+      "default": 0,
+      "source_ids": [
+        "S_PROJECT_DOCS",
+        "S_ROSREESTR_P0412"
+      ],
+      "basis": "Апартаменты разрешены, только если ВРИ участка включает код 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412; LAND.VRI_CODES), иначе продукт недоступен (F.CHECK.ALL → APART_ALLOWED). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — из ГПЗУ/ППТ, а если там не задано — долей TEP.APART_GFA_SHARE (F.TEP.GFA_SPLIT). 0 — апартаментов нет",
+      "how_to_fill": "ТЭП концепции / ГПЗУ / ППТ; приложить документ",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.APART_GFA_SHARE",
+      "name": "Доля апартаментной части в ГНС наземной части",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "project",
+      "default": 0,
+      "range": [
+        0,
+        1
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS",
+        "S_EXPERT"
+      ],
+      "basis": "Только стадия «Оценка участка», если ГПЗУ/ППТ не выделяют апартаментную часть и ВРИ включает код 4.7. TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE ≤ 1, остаток — нежилая (коммерческая) часть",
+      "how_to_fill": "Уровень 4 — концепции и факт компании (ссылка на проект); уровень 5 — эксперт (автор, обоснование, диапазон min–max)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "TEP.APT_EFFICIENCY",
       "name": "Коэффициент продаваемой площади квартир к ГНС жилой части",
       "unit": "доля",
@@ -1530,6 +1763,27 @@
       ]
     },
     {
+      "id": "TEP.APART_EFFICIENCY",
+      "name": "Коэффициент продаваемой площади апартаментов к ГНС апартаментной части",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_COMPANY_ACTUALS",
+        "S_EXPERT"
+      ],
+      "basis": "Только стадия «Оценка участка»: площадь апартаментов = ГНС апартаментной части × коэффициент (F.TEP.APART_AREA). Значения по умолчанию нет; диапазон min–max обязателен",
+      "how_to_fill": "Уровень 4 — факт компании по реализованным проектам и концепциям (ссылка на проект); уровень 5 — эксперт (автор, обоснование, диапазон min–max)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "TEP.APT_AREA",
       "name": "Площадь квартир по ТЭП архитектора (для продажи, по ДДУ)",
       "unit": "м2",
@@ -1564,9 +1818,9 @@
         "S_PROJECT_DOCS",
         "S_ROSREESTR_P0393"
       ],
-      "basis": "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA). Стадия «Концепция»: из ТЭП архитектора (уровень 4); обмер — Приказ Росреестра № П/0393 (приложение 2). 0 — апартаментов в проекте нет. Правило оценки площади апартаментов на стадии «Оценка участка» не задано — до решения владельца продукта только ручной ввод по документу",
+      "basis": "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA). Обмер — Приказ Росреестра № П/0393 (приложение 2). Стадия «Концепция» — из ТЭП архитектора (уровень 4). Стадия «Оценка участка» — не вводится: F.TEP.APART_AREA = ГНС апартаментной части × TEP.APART_EFFICIENCY. Цена — по аналогам-апартаментам (F.BENCH.APART_PRICE), НДС — облагается (TAX.VAT_REGIME), своя структура оплат (SALES.PAYMENT_MIX, продукт «апартаменты»)",
       "how_to_fill": "ТЭП концепции; приложить документ",
-      "status": "needs_verification",
+      "status": "project_input",
       "legacy": [
         {
           "cell": null,
@@ -1619,9 +1873,50 @@
         "S_PROJECT_DOCS",
         "S_ROSREESTR_P0393"
       ],
-      "basis": "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA). Стадия «Концепция»: из ТЭП архитектора (уровень 4); обмер — Приказ Росреестра № П/0393 (приложение 2). 0 — кладовых нет. Правило оценки на стадии «Оценка участка» не задано — до решения владельца продукта только ручной ввод по документу",
+      "basis": "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA) и в площадь подземной части (TEP.GFA_BELOW), сверх неё не добавляется. Обмер — Приказ Росреестра № П/0393 (приложение 2). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — не вводится, F.TEP.STORAGE = количество × TEP.STORAGE_AVG_AREA",
       "how_to_fill": "ТЭП концепции; приложить документ",
-      "status": "needs_verification",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.STORAGE_PER_APT",
+      "name": "Обеспеченность кладовыми на квартиру",
+      "unit": "коэф",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_COMPANY_ACTUALS"
+      ],
+      "basis": "Только стадия «Оценка участка»: количество кладовых = FLOOR(Σ квартир × коэффициент) (F.TEP.STORAGE). Уровень 4 — концепции компании; диапазон min–max обязателен",
+      "how_to_fill": "Концепции компании по сопоставимым проектам (ссылка на проект), с диапазоном min–max",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.STORAGE_AVG_AREA",
+      "name": "Средняя площадь кладовой",
+      "unit": "м2",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_COMPANY_ACTUALS",
+        "S_ROSREESTR_P0393"
+      ],
+      "basis": "Только стадия «Оценка участка»: площадь кладовых = количество × средняя площадь (F.TEP.STORAGE). Уровень 4 — концепции компании; диапазон min–max обязателен",
+      "how_to_fill": "Концепции компании по сопоставимым проектам (ссылка на проект), с диапазоном min–max",
+      "status": "expert_allowed",
       "legacy": [
         {
           "cell": null,
@@ -1651,7 +1946,7 @@
     },
     {
       "id": "TEP.STORAGE_COUNT",
-      "name": "Количество кладовых",
+      "name": "Количество кладовых по ТЭП архитектора",
       "unit": "шт",
       "kind": "scalar",
       "scope": "project",
@@ -1659,7 +1954,7 @@
       "source_ids": [
         "S_PROJECT_DOCS"
       ],
-      "basis": "По концепции",
+      "basis": "Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — не вводится, F.TEP.STORAGE. Цена кладовой — руб/шт по аналогам (SALES.PRODUCTS)",
       "status": "project_input",
       "legacy": [
         {
@@ -1963,6 +2258,27 @@
           ],
           "verdict": "keep",
           "note": "совпадает с 2118-ПП; источник в исходнике не указан"
+        }
+      ]
+    },
+    {
+      "id": "TEP.PARKING_NORM_APART",
+      "name": "Норматив машино-мест для апартаментов (объекты гостиничного назначения)",
+      "unit": "table",
+      "kind": "table",
+      "scope": "region",
+      "default": null,
+      "source_ids": [
+        "S_SP_42_2026",
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "По региональным НГП для объектов гостиничного назначения (regions.yaml → parking_norm_apart; единица — как в акте региона: на апартамент или на м²). Пока значение региона null — обязательный ручной ввод с документом",
+      "how_to_fill": "Региональные НГП (раздел о гостиницах); приложить документ",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
         }
       ]
     },
@@ -2457,7 +2773,7 @@
         "S_EISZHS_SALES",
         "S_COMPANY_ACTUALS"
       ],
-      "basis": "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — нормированный темп аналогов F.BENCH.MARKET_PACE (доля от экспозиции в месяц, медиана по BENCH.MARKET_SAMPLE); такое значение имеет уровень 3",
+      "basis": "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — нормированный темп аналогов F.BENCH.MARKET_PACE по трём фазам (старт, активная фаза, хвост; доля от экспозиции в месяц, медиана по BENCH.MARKET_SAMPLE); такое значение имеет уровень 3. Кладовые — отдельный темп, с долей продаж после РНВ",
       "status": "project_input",
       "legacy": [
         {
@@ -2577,6 +2893,18 @@
       "default": null,
       "columns": [
         {
+          "key": "product",
+          "unit": "enum",
+          "options": [
+            "квартиры",
+            "апартаменты",
+            "ПСН",
+            "машино-места",
+            "кладовые"
+          ],
+          "note": "структура оплат задаётся по продуктам"
+        },
+        {
           "key": "mortgage_share",
           "unit": "доля"
         },
@@ -2601,7 +2929,7 @@
         "S_CBR_MORTGAGE",
         "S_EISZHS_SALES"
       ],
-      "basis": "Сумма долей = 1. Ипотека и 100% поступают на эскроу в месяц сделки; рассрочка — по графику. Доли — статистика ЦБ по доле ипотеки в ДДУ региона",
+      "basis": "Задаётся по продуктам. Апартаменты — отдельной строкой: семейная ипотека на апартаменты не распространяется, доля ипотеки — по данным аналогов-апартаментов. Сумма долей = 1. Ипотека и 100% поступают на эскроу в месяц сделки; рассрочка — по графику. Доли — статистика ЦБ по доле ипотеки в ДДУ региона",
       "status": "project_input",
       "legacy": [
         {
@@ -3314,6 +3642,63 @@
       ]
     },
     {
+      "id": "BENCH.PACE_START_M",
+      "name": "Стартовая фаза продаж аналога, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 3,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Стартовая фаза — первые 3 месяца с первого зарегистрированного ДДУ аналога; темп старта считается отдельно (F.BENCH.COMP_PACE)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PACE_ACTIVE_END_SHARE",
+      "name": "Распроданность, на которой заканчивается активная фаза",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 0.85,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Активная фаза заканчивается при распроданности 85% площади или на дате РНВ — что раньше. Последние 10–20% — неликвидные лоты со скидками, искажают темп; после РНВ продажи идут по ДКП и не видны в ЕИСЖС. Отклонено: 0,90 — в выборку попадает часть хвоста",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PACE_MIN_ACTIVE_M",
+      "name": "Минимальная длительность активной фазы аналога, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 6,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Если активная фаза аналога короче 6 месяцев, аналог не используется для темпа (для цены — используется): короткий ряд даёт случайный темп",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "BENCH.START_PHASE_M",
       "name": "Начальная фаза продаж аналога для стартовой цены, месяцев",
       "unit": "мес",
@@ -3486,6 +3871,154 @@
       ]
     },
     {
+      "id": "BENCH.GPZU_UNDERUSE_SHARE",
+      "name": "Порог сообщения «резерв площади по ГПЗУ»",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 0.9,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Если ГНС наземная проекта меньше 90% разрешённой по ГПЗУ, выводится информационное сообщение «резерв площади по ГПЗУ» (F.CHECK.GPZU_LIMITS) — не ошибка",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.STRUCT_SYSTEM",
+      "name": "Классификатор несущих систем",
+      "unit": "enum",
+      "kind": "enum",
+      "scope": "template",
+      "default": null,
+      "options": [
+        "монолитный_жб",
+        "сборно_монолитный",
+        "сборный_жб",
+        "кирпич_каменная"
+      ],
+      "source_ids": [
+        "S_EXPERT",
+        "S_NCS_2026_01"
+      ],
+      "basis": "Жёсткий фильтр сопоставимости аналогов рынка и расценок компании. сборный_жб — панель или сборный каркас. «Монолит-кирпич» отдельной несущей системой не является: это монолитный_жб + кирпичная_облицовка (BENCH.FACADE_TYPE) или кирпичное заполнение. Задача на сверку: привести перечень в соответствие с разделами таблиц НЦС 81-02-01-2026, чтобы бенчмарк компании сопоставлялся с НЦС один к одному",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.FACADE_TYPE",
+      "name": "Классификатор типов фасада",
+      "unit": "enum",
+      "kind": "enum",
+      "scope": "template",
+      "default": null,
+      "options": [
+        "вентфасад",
+        "СФТК_штукатурный",
+        "кирпичная_облицовка",
+        "светопрозрачный"
+      ],
+      "source_ids": [
+        "S_EXPERT",
+        "S_NCS_2026_01"
+      ],
+      "basis": "Не фильтр, а основание для корректировки: цена аналога (BENCH.PRICE_ADJUSTMENTS, фактор «фасад»), расценка проекта-аналога (BENCH.COST_SAMPLE, adj_value с обоснованием). Задача на сверку — с разделами таблиц НЦС 81-02-01-2026",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.HEIGHT_BAND",
+      "name": "Классификатор групп высотности",
+      "unit": "table",
+      "kind": "table",
+      "scope": "template",
+      "default": [
+        {
+          "band": "до_9",
+          "floors_min": 1,
+          "floors_max": 9,
+          "height_max_m": null
+        },
+        {
+          "band": "10_17",
+          "floors_min": 10,
+          "floors_max": 17,
+          "height_max_m": null
+        },
+        {
+          "band": "18_25",
+          "floors_min": 18,
+          "floors_max": 25,
+          "height_max_m": null
+        },
+        {
+          "band": "26_плюс_до_100м",
+          "floors_min": 26,
+          "floors_max": null,
+          "height_max_m": 100
+        },
+        {
+          "band": "свыше_100м",
+          "floors_min": null,
+          "floors_max": null,
+          "height_max_m": null
+        }
+      ],
+      "columns": [
+        {
+          "key": "band",
+          "unit": "enum",
+          "options": [
+            "до_9",
+            "10_17",
+            "18_25",
+            "26_плюс_до_100м",
+            "свыше_100м"
+          ]
+        },
+        {
+          "key": "floors_min",
+          "unit": "шт"
+        },
+        {
+          "key": "floors_max",
+          "unit": "шт"
+        },
+        {
+          "key": "height_max_m",
+          "unit": "м"
+        }
+      ],
+      "source_ids": [
+        "S_EXPERT",
+        "S_GRK_48_1",
+        "S_NCS_2026_01"
+      ],
+      "basis": "Жёсткий фильтр сопоставимости (F.BENCH.HEIGHT_BAND). Группа определяется по максимальной этажности; здание высотой более 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ) и с другими группами не смешивается. Границы по этажности — методологические (автор — методолог компании); задача на сверку — с разделами таблиц НЦС 81-02-01-2026",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "BENCH.DDU_PRICE_INDEX",
       "name": "Индекс цен ДДУ региона (помесячный ряд)",
       "unit": "коэф",
@@ -3548,6 +4081,36 @@
           ]
         },
         {
+          "key": "product",
+          "unit": "enum",
+          "options": [
+            "квартиры",
+            "апартаменты",
+            "ПСН",
+            "машино-места",
+            "кладовые"
+          ],
+          "note": "фильтр: продукт аналога = продукт проекта"
+        },
+        {
+          "key": "struct_system",
+          "unit": "enum",
+          "note": "BENCH.STRUCT_SYSTEM — жёсткий фильтр"
+        },
+        {
+          "key": "facade_type",
+          "unit": "enum",
+          "note": "BENCH.FACADE_TYPE — основание корректировки"
+        },
+        {
+          "key": "max_floors",
+          "unit": "шт"
+        },
+        {
+          "key": "height_m",
+          "unit": "м"
+        },
+        {
           "key": "deals",
           "unit": "таблица",
           "note": "сделки за окно: дата, стоимость, руб; площадь, м² (ЕИСЖС или другой источник)"
@@ -3558,8 +4121,19 @@
           "note": "площадь в экспозиции на начало каждого месяца, м²"
         },
         {
-          "key": "sales_start",
-          "unit": "дата"
+          "key": "first_ddu_date",
+          "unit": "дата",
+          "note": "первый зарегистрированный ДДУ — начало стартовой фазы"
+        },
+        {
+          "key": "rnv_date",
+          "unit": "дата",
+          "note": "после РНВ продажи по ДКП не видны в ЕИСЖС"
+        },
+        {
+          "key": "total_saleable_m2",
+          "unit": "м2",
+          "note": "для распроданности (конец активной фазы)"
         },
         {
           "key": "excluded",
@@ -3613,7 +4187,8 @@
             "локация",
             "класс",
             "отделка",
-            "стадия готовности"
+            "стадия готовности",
+            "фасад"
           ]
         },
         {
@@ -3685,11 +4260,32 @@
         },
         {
           "key": "floors",
-          "unit": "шт"
+          "unit": "шт",
+          "note": "максимальная этажность"
+        },
+        {
+          "key": "height_m",
+          "unit": "м"
         },
         {
           "key": "structural_system",
-          "unit": "текст"
+          "unit": "enum",
+          "note": "BENCH.STRUCT_SYSTEM — жёсткий фильтр"
+        },
+        {
+          "key": "facade_type",
+          "unit": "enum",
+          "note": "BENCH.FACADE_TYPE"
+        },
+        {
+          "key": "adj_value",
+          "unit": "доля",
+          "note": "корректировка ставки на отличие фасада и т.п.; со знаком"
+        },
+        {
+          "key": "adj_rationale",
+          "unit": "текст",
+          "note": "обязательна при adj_value ≠ 0"
         },
         {
           "key": "completed",
@@ -3724,18 +4320,101 @@
       ]
     },
     {
-      "id": "TEP.STRUCTURAL_SYSTEM",
-      "name": "Конструктивная схема здания",
-      "unit": "текст",
-      "kind": "text",
+      "id": "BENCH.APART_PAIRS_SAMPLE",
+      "name": "Пары «квартиры / апартаменты» в одной локации",
+      "unit": "table",
+      "kind": "table",
       "scope": "project",
       "default": null,
+      "columns": [
+        {
+          "key": "location",
+          "unit": "текст"
+        },
+        {
+          "key": "flat_comp_id",
+          "unit": "текст"
+        },
+        {
+          "key": "apart_comp_id",
+          "unit": "текст"
+        },
+        {
+          "key": "flat_price_m2",
+          "unit": "руб/м2",
+          "note": "по F.BENCH.COMP_PRICE → PRICE_INDEXED"
+        },
+        {
+          "key": "apart_price_m2",
+          "unit": "руб/м2"
+        },
+        {
+          "key": "source_id",
+          "unit": "текст"
+        },
+        {
+          "key": "url",
+          "unit": "текст"
+        }
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES"
+      ],
+      "basis": "Используется, только если аналогов-апартаментов меньше BENCH.MARKET_MIN_COMPS: дисконт апартаментов к квартирам считается по парам в одной локации (уровень 3, F.BENCH.APART_PRICE), значение помечается. Фиксированный процент дисконта без выборки запрещён",
+      "how_to_fill": "Подобрать ЖК с квартирами и апартаменты в той же локации; сервис подтянет цены",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.STRUCTURAL_SYSTEM",
+      "name": "Несущая система здания проекта",
+      "unit": "enum",
+      "kind": "enum",
+      "scope": "project",
+      "default": null,
+      "options": [
+        "монолитный_жб",
+        "сборно_монолитный",
+        "сборный_жб",
+        "кирпич_каменная"
+      ],
       "source_ids": [
         "S_PROJECT_DOCS"
       ],
-      "basis": "Фильтр сопоставимости проектов-аналогов по затратам (F.BENCH.COST_BENCH). Перечень значений утверждает методолог",
+      "basis": "Значение из классификатора BENCH.STRUCT_SYSTEM. Жёсткий фильтр сопоставимости аналогов рынка и расценок компании. «Монолит-кирпич» = монолитный_жб + кирпичная облицовка (TEP.FACADE_TYPE) или кирпичное заполнение",
       "how_to_fill": "По концепции / эскизу",
-      "status": "needs_verification",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.FACADE_TYPE",
+      "name": "Тип фасада здания проекта",
+      "unit": "enum",
+      "kind": "enum",
+      "scope": "project",
+      "default": null,
+      "options": [
+        "вентфасад",
+        "СФТК_штукатурный",
+        "кирпичная_облицовка",
+        "светопрозрачный"
+      ],
+      "source_ids": [
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Значение из классификатора BENCH.FACADE_TYPE. Не фильтр, а основание для корректировки цены аналога (BENCH.PRICE_ADJUSTMENTS, фактор «фасад») и расценки проекта-аналога (BENCH.COST_SAMPLE)",
+      "how_to_fill": "По концепции / эскизу",
+      "status": "project_input",
       "legacy": [
         {
           "cell": null,
@@ -4464,6 +5143,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4488,6 +5173,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4522,6 +5213,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4546,6 +5243,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4580,6 +5283,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4604,6 +5313,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4638,6 +5353,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4662,6 +5383,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4696,6 +5423,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4720,6 +5453,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4754,6 +5493,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4778,6 +5523,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4812,6 +5563,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4836,6 +5593,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4870,6 +5633,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4894,6 +5663,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4928,6 +5703,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -4952,6 +5733,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -4986,6 +5773,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5010,6 +5803,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5044,6 +5843,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5068,6 +5873,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5102,6 +5913,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5126,6 +5943,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5160,6 +5983,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5184,6 +6013,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5218,6 +6053,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5242,6 +6083,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5276,6 +6123,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5300,6 +6153,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5334,6 +6193,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5358,6 +6223,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5392,6 +6263,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5416,6 +6293,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5450,6 +6333,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5474,6 +6363,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5508,6 +6403,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5532,6 +6433,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5566,6 +6473,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5590,6 +6503,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5624,6 +6543,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5648,6 +6573,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5682,6 +6613,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5706,6 +6643,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5740,6 +6683,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5764,6 +6713,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5798,6 +6753,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5822,6 +6783,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5856,6 +6823,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5880,6 +6853,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5914,6 +6893,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5938,6 +6923,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -5972,6 +6963,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -5996,6 +6993,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6030,6 +7033,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6054,6 +7063,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6088,6 +7103,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6112,6 +7133,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6146,6 +7173,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6170,6 +7203,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6204,6 +7243,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6228,6 +7273,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6262,6 +7313,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6286,6 +7343,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6320,6 +7383,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6344,6 +7413,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6378,6 +7453,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6402,6 +7483,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6436,6 +7523,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6460,6 +7553,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6494,6 +7593,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6518,6 +7623,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6552,6 +7663,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6576,6 +7693,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6610,6 +7733,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6634,6 +7763,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6688,6 +7823,12 @@
         ],
         "status": "verified"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [
         "S_MSK_NGP_TRANSPORT_945PP"
       ],
@@ -6725,6 +7866,12 @@
         "values": null,
         "status": "needs_verification"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [
         "S_SPB_NGP_257"
       ],
@@ -6751,6 +7898,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6785,6 +7938,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6809,6 +7968,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6843,6 +8008,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6867,6 +8038,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6901,6 +8078,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6925,6 +8108,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -6959,6 +8148,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -6983,6 +8178,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -7017,6 +8218,12 @@
         "values": null,
         "status": "to_fill"
       },
+      "parking_norm_apart": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
       "ngp_source_ids": [],
       "status": "structure_only"
     },
@@ -7041,6 +8248,12 @@
         "formula": null
       },
       "parking_norm": {
+        "source_ids": [],
+        "rule": "to_fill",
+        "values": null,
+        "status": "to_fill"
+      },
+      "parking_norm_apart": {
         "source_ids": [],
         "rule": "to_fill",
         "values": null,
@@ -7216,20 +8429,18 @@
       "name": "ГНС наземной части в модели",
       "unit": "м2",
       "dims": [],
-      "expr": "стадия «концепция»:      gfa_above = TEP.GFA_ABOVE\nстадия «оценка участка»: gfa_above = TEP.GPZU_GFA_MAX, если суммарная поэтажная площадь указана в ГПЗУ/ПЗЗ;\n                         иначе gfa_above = TEP.FOOTPRINT_AREA × TEP.AVG_FLOORS\nошибка, если TEP.FOOTPRINT_AREA > LAND.AREA × TEP.GPZU_COVERAGE_MAX\n",
+      "expr": "стадия «концепция»:      gfa_above = TEP.GFA_ABOVE\nстадия «оценка участка»: gfa_above = GPZU.MAX_GFA_ABOVE, если суммарная поэтажная площадь указана в ГПЗУ/ПЗЗ;\n                         иначе gfa_above = TEP.FOOTPRINT_AREA × TEP.AVG_FLOORS\nсоответствие пределам ГПЗУ проверяет F.CHECK.GPZU_LIMITS (на стадии оценки — автоматически)\n",
       "depends_on": [
         "GEN.PROJECT_STAGE",
         "TEP.GFA_ABOVE",
-        "TEP.GPZU_GFA_MAX",
+        "GPZU.MAX_GFA_ABOVE",
         "TEP.FOOTPRINT_AREA",
-        "TEP.AVG_FLOORS",
-        "LAND.AREA",
-        "TEP.GPZU_COVERAGE_MAX"
+        "TEP.AVG_FLOORS"
       ],
-      "rationale": "До концепции объём застройки ограничен предельными параметрами разрешённого строительства (ст.38 ГрК РФ): суммарная поэтажная площадь из ГПЗУ/ПЗЗ — прямой предел; если её нет — пятно застройки × средняя этажность, где пятно не больше участка × максимальный процент застройки. После концепции — ТЭП архитектора, который уже учитывает эти пределы",
+      "rationale": "До концепции объём застройки ограничен предельными параметрами разрешённого строительства (ст.38 ГрК РФ): суммарная поэтажная площадь из ГПЗУ/ПЗЗ — прямой предел; если её нет — пятно застройки × средняя этажность, где пятно не больше участка × максимальный процент застройки. После концепции — ТЭП архитектора, который сверяется с пределами ГПЗУ",
       "rejected": [
         "Ввод ГНС числом на стадии оценки без документа — не проверяется по ГПЗУ",
-        "Молча ограничивать пятно MIN(пятно, участок × % застройки) — скрывает ошибку ввода; вместо этого ошибка с указанием превышения",
+        "Молча ограничивать пятно MIN(пятно, участок × % застройки) — скрывает ошибку ввода; вместо этого блокирующая ошибка F.CHECK.GPZU_LIMITS",
         "Одна «СПП (ГНС)» без указания стадии и документа (исходник ТЭПы!C19)"
       ],
       "source_ids": [
@@ -7246,25 +8457,29 @@
     {
       "id": "F.TEP.GFA_SPLIT",
       "module": "TEP",
-      "name": "ГНС жилой и нежилой части в модели",
+      "name": "ГНС жилой, апартаментной и нежилой части в модели",
       "unit": "м2",
       "dims": [],
-      "expr": "стадия «концепция»: res_gfa = TEP.RES_GFA;  nonres_gfa = TEP.NONRES_GFA\nстадия «оценка участка»:\n  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA и TEP.NONRES_GFA заполнены) — они же;\n  иначе res_gfa = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE;  nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE)\n",
+      "expr": "стадия «концепция»: res_gfa = TEP.RES_GFA;  apart_gfa = TEP.APART_GFA;  nonres_gfa = TEP.NONRES_GFA\nстадия «оценка участка»:\n  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA, TEP.NONRES_GFA, при апартаментах — TEP.APART_GFA) — они же;\n  иначе res_gfa    = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE\n        apart_gfa  = F.TEP.GFA_ABOVE × TEP.APART_GFA_SHARE\n        nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE − TEP.APART_GFA_SHARE)\n  ошибка, если TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE > 1\napart_gfa > 0 допускается, только если ВРИ участка включает код 4.7 (F.CHECK.ALL → APART_ALLOWED)\n",
       "depends_on": [
         "GEN.PROJECT_STAGE",
         "TEP.RES_GFA",
+        "TEP.APART_GFA",
         "TEP.NONRES_GFA",
         "F.TEP.GFA_ABOVE",
-        "TEP.RES_GFA_SHARE"
+        "TEP.RES_GFA_SHARE",
+        "TEP.APART_GFA_SHARE"
       ],
-      "rationale": "Жилая и нежилая части имеют разные коэффициенты продаваемой площади, разные продукты и разный НДС. Разделение берётся из документа, а при его отсутствии — одной долей, чтобы части в сумме давали ГНС наземную",
+      "rationale": "Жилая, апартаментная и нежилая части имеют разные коэффициенты продаваемой площади, разные продукты, цены и НДС. Разделение берётся из документа, а при его отсутствии — долями, чтобы части в сумме давали ГНС наземную",
       "rejected": [
-        "Одну часть из документа, а вторую — долей: смешение документа и допущения, сумма может не совпасть с ГНС"
+        "Одну часть из документа, а другую — долей: смешение документа и допущения, сумма может не совпасть с ГНС",
+        "Считать апартаменты частью жилой ГНС: апартаменты — нежилые помещения с другим ВРИ, НДС и ипотекой"
       ],
       "source_ids": [
         "S_GRK_38",
         "S_PROJECT_DOCS",
-        "S_COMPANY_ACTUALS"
+        "S_COMPANY_ACTUALS",
+        "S_ROSREESTR_P0412"
       ],
       "legacy": {
         "cells": "ТЭПы!C20:C21",
@@ -7331,6 +8546,69 @@
       "legacy": {
         "cells": "ТЭПы!C23",
         "verdict": "keep"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.TEP.APART_AREA",
+      "module": "TEP",
+      "name": "Площадь апартаментов в модели",
+      "unit": "м2",
+      "dims": [],
+      "expr": "стадия «концепция»:      apart_area = TEP.APART_AREA\nстадия «оценка участка»: apart_area = apart_gfa × TEP.APART_EFFICIENCY   (apart_gfa — из F.TEP.GFA_SPLIT)\napart_area = 0, если «4.7» ∉ LAND.VRI_CODES\n",
+      "depends_on": [
+        "GEN.PROJECT_STAGE",
+        "TEP.APART_AREA",
+        "F.TEP.GFA_SPLIT",
+        "TEP.APART_EFFICIENCY",
+        "LAND.VRI_CODES"
+      ],
+      "rationale": "Апартаменты — нежилые помещения гостиничного назначения: допустимы только при ВРИ 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412). Площадь — по той же логике, что квартиры, со своим коэффициентом; обмер — П/0393",
+      "rejected": [
+        "Разрешать апартаменты без проверки ВРИ — продукт может оказаться недопустимым на участке",
+        "Применять к апартаментам коэффициент квартир — другая планировочная эффективность"
+      ],
+      "source_ids": [
+        "S_ROSREESTR_P0412",
+        "S_ROSREESTR_P0393",
+        "S_PROJECT_DOCS",
+        "S_COMPANY_ACTUALS"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "needs_verification"
+    },
+    {
+      "id": "F.TEP.STORAGE",
+      "module": "TEP",
+      "name": "Кладовые: количество и площадь в модели",
+      "unit": "шт",
+      "dims": [],
+      "expr": "стадия «концепция»:      storage_count = TEP.STORAGE_COUNT;  storage_area = TEP.STORAGE_AREA\nстадия «оценка участка»: storage_count = FLOOR( Σ_k F.TEP.APT_COUNT[k] × TEP.STORAGE_PER_APT );\n                         storage_area  = storage_count × TEP.STORAGE_AVG_AREA\nплощадь кладовых входит в подземную часть (F.TEP.GFA_BELOW), сверх неё не добавляется\n",
+      "depends_on": [
+        "GEN.PROJECT_STAGE",
+        "TEP.STORAGE_COUNT",
+        "TEP.STORAGE_AREA",
+        "F.TEP.APT_COUNT",
+        "TEP.STORAGE_PER_APT",
+        "TEP.STORAGE_AVG_AREA"
+      ],
+      "rationale": "Кладовые продаются поштучно и размещаются в подземной части. До концепции количество определяется обеспеченностью на квартиру по концепциям компании (уровень 4), округление вниз — нельзя продать больше, чем построено",
+      "rejected": [
+        "Добавлять площадь кладовых к ГНС сверх подземной части — двойной счёт",
+        "Фиксированное количество без привязки к числу квартир"
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS",
+        "S_PROJECT_DOCS",
+        "S_ROSREESTR_P0393"
+      ],
+      "legacy": {
+        "cells": "ТЭПы!E50",
+        "verdict": "fix",
+        "issue": "«Прочие помещения» = 0"
       },
       "status": "verified"
     },
@@ -7459,11 +8737,13 @@
       "name": "Требуемое количество машино-мест по нормативу региона",
       "unit": "шт",
       "dims": [],
-      "expr": "parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017)",
+      "expr": "parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA",
       "depends_on": [
         "F.TEP.APT_COUNT",
         "TEP.APT_MIX",
-        "TEP.PARKING_NORM"
+        "TEP.PARKING_NORM",
+        "TEP.PARKING_NORM_APART",
+        "F.TEP.APART_AREA"
       ],
       "rationale": "Нормативы обеспеченности — обязательное требование РНГП; число мест определяет подземную часть и выручку",
       "rejected": [
@@ -7558,16 +8838,17 @@
     {
       "id": "F.TEP.GFA_BELOW_EST",
       "module": "TEP",
-      "name": "Оценка подземной площади по числу машино-мест",
+      "name": "Оценка подземной площади по числу машино-мест и кладовым",
       "unit": "м2",
       "dims": [],
-      "expr": "gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE;  ошибка, если TEP.PARKING_AREA_PER_SPACE < F.TEP.PARKING_SPACE_MIN_AREA",
+      "expr": "gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE + storage_area (F.TEP.STORAGE);  ошибка, если TEP.PARKING_AREA_PER_SPACE < F.TEP.PARKING_SPACE_MIN_AREA",
       "depends_on": [
         "F.TEP.PARKING_COUNT",
         "TEP.PARKING_AREA_PER_SPACE",
-        "F.TEP.PARKING_SPACE_MIN_AREA"
+        "F.TEP.PARKING_SPACE_MIN_AREA",
+        "F.TEP.STORAGE"
       ],
-      "rationale": "Только стадия «Оценка участка»: подземной концепции ещё нет. Площадь на место с проездами — факт компании (уровень 4) или эксперт (уровень 5) с обоснованием и диапазоном; меньше минимальной площади самого места быть не может",
+      "rationale": "Только стадия «Оценка участка»: подземной концепции ещё нет. Площадь на место с проездами — факт компании (уровень 4) или эксперт (уровень 5) с обоснованием и диапазоном; меньше минимальной площади самого места быть не может. Кладовые размещаются в подземной части и входят в её площадь",
       "rejected": [],
       "source_ids": [
         "S_COMPANY_ACTUALS",
@@ -7643,12 +8924,12 @@
       "name": "Продаваемая площадь (м²)",
       "unit": "м2",
       "dims": [],
-      "expr": "saleable = Σ_k apt_area[k] + TEP.APART_AREA + comm_area + TEP.STORAGE_AREA;  машино-места — отдельно, в штуках (F.TEP.PARKING_COUNT), в м² не суммируются;  МОП, техпомещения и проезды паркинга не входят",
+      "expr": "saleable = Σ_k apt_area[k] + apart_area (F.TEP.APART_AREA) + comm_area + storage_area (F.TEP.STORAGE);  машино-места — отдельно, в штуках (F.TEP.PARKING_COUNT), в м² не суммируются;  МОП, техпомещения и проезды паркинга не входят",
       "depends_on": [
         "F.TEP.APT_TYPE_AREA",
-        "TEP.APART_AREA",
+        "F.TEP.APART_AREA",
         "F.TEP.COMM_AREA",
-        "TEP.STORAGE_AREA"
+        "F.TEP.STORAGE"
       ],
       "rationale": "Единое определение для всех проектов: продаваемая площадь = квартиры + апартаменты + ПСН + кладовые, каждая — по правилам обмера Росреестра (П/0393, приложение 2), квартиры — по ДДУ. Итоговым числом не вводится (параметра нет): сумма всегда раскладывается по продуктам и сходится с планом продаж",
       "rejected": [
@@ -9058,8 +10339,10 @@
       "name": "Свод проверок",
       "unit": "bool",
       "dims": [],
-      "expr": "PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9\nSCHEDULE_SUM      : для каждой статьи |Σ_t w − 1| < 1e-9\nSOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]\nUNSOLD_AT_END     : остаток > 0 в последнем месяце → предупреждение\nREVENUE_EQ_CF     : Σ план продаж = Σ поступления (эскроу + ДКП) + дебиторка на конец\nBUDGET_EQ_CF      : Σ бюджет по статьям = Σ затрат в CF\nESCROW_NONNEG     : esc_bal >= 0\nDEBT_LE_LIMIT     : Σ draw <= limit\nDEBT_REPAID       : debt[T] + accrued[T] = 0\nCASH_NONNEG       : cash[t] >= 0 (иначе cash gap)\nSOURCES_PRESENT   : у каждого параметра и формулы есть source_ids, у level 5 — автор и диапазон\nPARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) или override с вложенным документом\nNCS_DEVIATION     : |deviation| <= tolerance или есть обоснование\nAPT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE (иначе предупреждение с разницей в м² и %)\nSTAGE_INPUTS      : для стадии GEN.PROJECT_STAGE заполнены обязательные входы раздела TEP с документом\nFOOTPRINT_LIMIT   : TEP.FOOTPRINT_AREA <= LAND.AREA × TEP.GPZU_COVERAGE_MAX\nAPT_MIX_SHARE_SUM : стадия «оценка участка»: |Σ_k area_share[k] − 1| < 1e-9\nPARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA\n",
-      "depends_on": [],
+      "expr": "PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9\nSCHEDULE_SUM      : для каждой статьи |Σ_t w − 1| < 1e-9\nSOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]\nUNSOLD_AT_END     : остаток > 0 в последнем месяце → предупреждение\nREVENUE_EQ_CF     : Σ план продаж = Σ поступления (эскроу + ДКП) + дебиторка на конец\nBUDGET_EQ_CF      : Σ бюджет по статьям = Σ затрат в CF\nESCROW_NONNEG     : esc_bal >= 0\nDEBT_LE_LIMIT     : Σ draw <= limit\nDEBT_REPAID       : debt[T] + accrued[T] = 0\nCASH_NONNEG       : cash[t] >= 0 (иначе cash gap)\nSOURCES_PRESENT   : у каждого параметра и формулы есть source_ids, у level 5 — автор и диапазон\nPARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) или override с вложенным документом\nNCS_DEVIATION     : |deviation| <= tolerance или есть обоснование\nAPT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE (иначе предупреждение с разницей в м² и %)\nSTAGE_INPUTS      : для стадии GEN.PROJECT_STAGE заполнены обязательные входы раздела TEP с документом\nGPZU_LIMITS       : F.CHECK.GPZU_LIMITS — превышение пределов ГПЗУ без решения об отклонении блокирует отчёт\nAPART_ALLOWED     : F.TEP.APART_AREA > 0 → «4.7» ∈ LAND.VRI_CODES (иначе продукт «апартаменты» недоступен)\nGFA_SHARES_SUM    : стадия «оценка участка»: TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1\nSTORAGE_FIT       : storage_area + F.TEP.PARKING_COUNT × F.TEP.PARKING_SPACE_MIN_AREA <= F.TEP.GFA_BELOW\nBENCH_MIN_COMPS   : выборки аналогов и пар — не меньше BENCH.MARKET_MIN_COMPS или есть экспертное обоснование\nAPT_MIX_SHARE_SUM : стадия «оценка участка»: |Σ_k area_share[k] − 1| < 1e-9\nPARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA\n",
+      "depends_on": [
+        "F.CHECK.GPZU_LIMITS"
+      ],
       "rationale": "Ни одна из этих ошибок исходника не должна повториться незаметно",
       "rejected": [],
       "source_ids": [
@@ -9072,16 +10355,56 @@
       "status": "verified"
     },
     {
+      "id": "F.CHECK.GPZU_LIMITS",
+      "module": "CHECK",
+      "name": "Проверка проекта по предельным параметрам ГПЗУ",
+      "unit": "bool",
+      "dims": [],
+      "expr": "предел[x] = GPZU.DEVIATION_PERMIT.permitted_value по x, если есть решение об отклонении; иначе значение из ГПЗУ\nF.TEP.GFA_ABOVE (наземная)                <= предел[GPZU.MAX_GFA_ABOVE]\nTEP.MAX_FLOORS (если нет — TEP.AVG_FLOORS) <= предел[GPZU.MAX_FLOORS]\nTEP.BUILDING_HEIGHT_M                     <= предел[GPZU.MAX_HEIGHT_M]\nTEP.FOOTPRINT_AREA / LAND.AREA            <= предел[GPZU.MAX_BUILT_SHARE]\nпревышение любого → БЛОКИРУЮЩАЯ ошибка, отчёт не выпускается\nF.TEP.GFA_ABOVE < BENCH.GPZU_UNDERUSE_SHARE × GPZU.MAX_GFA_ABOVE → информационное сообщение «резерв площади по ГПЗУ»\nпустой предел в ГПЗУ — сравнение по нему не выполняется\n",
+      "depends_on": [
+        "F.TEP.GFA_ABOVE",
+        "TEP.MAX_FLOORS",
+        "TEP.AVG_FLOORS",
+        "TEP.BUILDING_HEIGHT_M",
+        "TEP.FOOTPRINT_AREA",
+        "LAND.AREA",
+        "GPZU.MAX_GFA_ABOVE",
+        "GPZU.MAX_FLOORS",
+        "GPZU.MAX_HEIGHT_M",
+        "GPZU.MAX_BUILT_SHARE",
+        "GPZU.DEVIATION_PERMIT",
+        "BENCH.GPZU_UNDERUSE_SHARE"
+      ],
+      "rationale": "Предельные параметры ГПЗУ (ст.38 ГрК РФ) обязательны: проект сверх них не получит разрешение на строительство, а финмодель на его основе завышает выручку. Сравнивается только сопоставимое: наземная ГНС с наземным пределом, этажность, высота, доля застройки. Снять ошибку можно только решением о разрешении на отклонение от предельных параметров (ст.40 ГрК РФ): однократное отклонение не более 10% — упрощённая процедура без публичных слушаний (ч.1.1); отклонение по этажности и высоте в границах исторических поселений не допускается (ч.2). На стадии «Оценка участка» ГНС берётся из ГПЗУ, поэтому проверка выполняется автоматически. Недоиспользование пределов — не ошибка, но резерв площади показывается",
+      "rejected": [
+        "Предупреждение вместо блокирующей ошибки — модель с превышением ГПЗУ ушла бы в банк",
+        "Сравнивать общую ГНС (с подземной частью) с пределом наземной — несопоставимые величины",
+        "Автоматически обрезать ГНС до предела — скрывает расхождение ТЭП и ГПЗУ"
+      ],
+      "source_ids": [
+        "S_GRK_38",
+        "S_GRK_40",
+        "S_PROJECT_DOCS"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
       "id": "F.BENCH.WINDOW_FILTER",
       "module": "BENCH",
-      "name": "Отбор данных аналогов по датам",
+      "name": "Отбор аналогов: сопоставимость, даты, фазы продаж",
       "unit": "bool",
       "dims": [
         "i"
       ],
-      "expr": "break  = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)\noldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)\nцены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break );\n        если аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:\n          from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_EXT_M), oldest, break )\n        сделка входит, если from <= дата <= GEN.VALUATION_DATE\nстартовая цена: дополнительно дата сделки < EDATE(sales_start аналога, BENCH.START_PHASE_M)\nтемп:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break ); только месяцы активной фазы продаж аналога\nаналоги с excluded = true не входят (исключение — только вручную с причиной)\n",
+      "expr": "сопоставимость (жёсткие фильтры): product = продукт проекта; struct_system = TEP.STRUCTURAL_SYSTEM;\n  F.BENCH.HEIGHT_BAND аналога = F.BENCH.HEIGHT_BAND проекта; excluded = false (исключение — только вручную с причиной)\nbreak  = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)\noldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)\nцены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break );\n        если аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:\n          from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_EXT_M), oldest, break )\n        сделка входит, если from <= дата <= GEN.VALUATION_DATE\nстартовая цена: дополнительно дата сделки < EDATE(first_ddu_date аналога, BENCH.START_PHASE_M)\nфазы продаж аналога (для темпа):\n  старт    — первые BENCH.PACE_START_M месяцев с first_ddu_date\n  активная — после старта до MIN( даты распроданности BENCH.PACE_ACTIVE_END_SHARE × total_saleable_m2, rnv_date )\n  хвост    — после активной фазы, пока продажи видны в ЕИСЖС (до rnv_date)\n  аналог не используется для темпа, если активная фаза короче BENCH.PACE_MIN_ACTIVE_M месяцев (для цены — используется)\nтемп:   месяцы фазы в окне from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break )\n",
       "depends_on": [
         "BENCH.MARKET_SAMPLE",
+        "TEP.STRUCTURAL_SYSTEM",
+        "F.BENCH.HEIGHT_BAND",
         "GEN.VALUATION_DATE",
         "BENCH.STRUCTURAL_BREAK_DATES",
         "BENCH.PRICE_MAX_AGE_M",
@@ -9089,13 +10412,18 @@
         "BENCH.PRICE_WINDOW_EXT_M",
         "BENCH.MARKET_MEDIAN_MIN_COMPS",
         "BENCH.START_PHASE_M",
-        "BENCH.PACE_WINDOW_M"
+        "BENCH.PACE_WINDOW_M",
+        "BENCH.PACE_START_M",
+        "BENCH.PACE_ACTIVE_END_SHARE",
+        "BENCH.PACE_MIN_ACTIVE_M"
       ],
-      "rationale": "В расчёт попадает только сопоставимый с текущим рынок: свежие сделки, после последнего структурного сдвига (завершение массовой льготной ипотеки 01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Стартовая цена берётся по сделкам на старте продаж аналогов, темп — в активной фазе",
+      "rationale": "В расчёт попадает только сопоставимый рынок: тот же продукт, несущая система и группа высотности; свежие сделки после последнего структурного сдвига (01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Темп считается по фазам: на старте спрос отложенный, в активной фазе — основной, хвост — неликвидные лоты со скидками; после РНВ продажи идут по ДКП и в ЕИСЖС не видны",
       "rejected": [
         "Все доступные сделки без окна — смешивает рынки с разной ипотекой и ценами",
         "Сделки до 01.07.2024 с индексацией — индекс не компенсирует смену условий ипотеки",
-        "Стартовая цена по текущим ценам аналогов на поздней стадии — завышает старт"
+        "Стартовая цена по текущим ценам аналогов на поздней стадии — завышает старт",
+        "Один темп на весь срок продаж — смешивает старт, основную фазу и хвост",
+        "Конец активной фазы на 90% распроданности — в выборку попадает часть хвоста"
       ],
       "source_ids": [
         "S_EISZHS_SALES",
@@ -9248,20 +10576,22 @@
     {
       "id": "F.BENCH.COMP_PACE",
       "module": "BENCH",
-      "name": "Нормированный темп продаж аналога",
+      "name": "Нормированный темп продаж аналога по фазам",
       "unit": "доля",
       "dims": [
-        "i"
+        "i",
+        "phase"
       ],
-      "expr": "pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i] = СРЕДНЕЕ_m(pace_norm[i,m]) за месяцы окна F.BENCH.WINDOW_FILTER (BENCH.PACE_WINDOW_M)",
+      "expr": "pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i,phase] = СРЕДНЕЕ_m(pace_norm[i,m]) по месяцам фазы (старт, активная, хвост), прошедшим F.BENCH.WINDOW_FILTER",
       "depends_on": [
         "F.BENCH.WINDOW_FILTER",
         "BENCH.MARKET_SAMPLE",
         "BENCH.PACE_WINDOW_M"
       ],
-      "rationale": "Темп в доле от предложения сравним между ЖК разного масштаба; среднее за 12 месяцев сглаживает сезонность",
+      "rationale": "Темп в доле от предложения сравним между ЖК разного масштаба; по фазам — потому что старт, основная фаза и хвост продаются с разной скоростью; среднее по месяцам сглаживает сезонность",
       "rejected": [
-        "Абсолютный темп м²/мес — у крупного ЖК он выше просто из-за объёма предложения"
+        "Абсолютный темп м²/мес — у крупного ЖК он выше просто из-за объёма предложения",
+        "Один темп на весь срок — хвост со скидками занижает темп основной фазы"
       ],
       "source_ids": [
         "S_EISZHS_SALES"
@@ -9275,15 +10605,17 @@
     {
       "id": "F.BENCH.MARKET_PACE",
       "module": "BENCH",
-      "name": "Рыночный темп продаж по выборке аналогов",
+      "name": "Рыночный темп продаж по фазам",
       "unit": "доля",
-      "dims": [],
-      "expr": "market_pace = MEDIAN(comp_pace);  ошибка, если аналогов < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)",
+      "dims": [
+        "phase"
+      ],
+      "expr": "market_pace[phase] = MEDIAN_i(comp_pace[i,phase]) отдельно для фаз старт, активная, хвост;  ошибка по фазе, если аналогов с данными по ней < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)",
       "depends_on": [
         "F.BENCH.COMP_PACE",
         "BENCH.MARKET_MIN_COMPS"
       ],
-      "rationale": "Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. Результат подставляется в SALES.PACE (способ «доля от остатка в месяц») как значение уровня 3",
+      "rationale": "Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. SALES.PACE проекта может ссылаться на все три фазы (способ «доля от остатка в месяц»), значение — уровень 3",
       "rejected": [
         "Сравнение абсолютных м²/мес между ЖК разного масштаба",
         "Среднее — чувствительно к одному аномальному ЖК"
@@ -9330,8 +10662,9 @@
       "dims": [
         "i"
       ],
-      "expr": "cost_idx[i] = cost_unit[i] × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС)",
+      "expr": "cost_idx[i] = cost_unit[i] × (1 + adj_value[i]) × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС); adj_value — корректировка на отличие фасада и т.п. (BENCH.COST_SAMPLE), только с обоснованием",
       "depends_on": [
+        "BENCH.COST_SAMPLE",
         "F.BENCH.COST_UNIT",
         "BENCH.COST_INDEX_HIST",
         "GEN.VALUATION_DATE",
@@ -9360,13 +10693,14 @@
       "dims": [
         "item"
       ],
-      "expr": "сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  |floors / TEP.AVG_FLOORS − 1| <= BENCH.COST_FLOORS_TOLERANCE;\n                      structural_system = TEP.STRUCTURAL_SYSTEM;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false\nn >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)\nn <  BENCH.COST_MIN_PROJECTS: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)\nнезавершённые проекты (completed = false) — только по сумме договора, с пометкой\n",
+      "expr": "сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  |floors / TEP.AVG_FLOORS − 1| <= BENCH.COST_FLOORS_TOLERANCE;\n                      structural_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = группа проекта;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false\nn >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)\nn <  BENCH.COST_MIN_PROJECTS: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)\nнезавершённые проекты (completed = false) — только по сумме договора, с пометкой\n",
       "depends_on": [
         "F.BENCH.COST_INDEXED",
         "BENCH.COST_SAMPLE",
         "GEN.HOUSING_CLASS",
         "TEP.AVG_FLOORS",
         "TEP.STRUCTURAL_SYSTEM",
+        "F.BENCH.HEIGHT_BAND",
         "BENCH.COST_FLOORS_TOLERANCE",
         "BENCH.COST_MAX_AGE_Y",
         "BENCH.COST_MIN_PROJECTS",
@@ -9410,6 +10744,58 @@
       ],
       "source_ids": [
         "S_EXPERT"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.HEIGHT_BAND",
+      "module": "BENCH",
+      "name": "Группа высотности здания",
+      "unit": "enum",
+      "dims": [],
+      "expr": "band = «свыше_100м», если высота > height_max_m группы «26_плюс_до_100м» (100 м);\nиначе band — строка BENCH.HEIGHT_BAND, где floors_min <= этажность <= floors_max (floors_max = null — без верхней границы)\nэтажность = TEP.MAX_FLOORS (для аналога — max_floors), высота = TEP.BUILDING_HEIGHT_M (для аналога — height_m)\n",
+      "depends_on": [
+        "BENCH.HEIGHT_BAND",
+        "TEP.MAX_FLOORS",
+        "TEP.BUILDING_HEIGHT_M"
+      ],
+      "rationale": "Стоимость и цена зависят от высотности скачками (конструктив, лифты, пожарные требования). Здание выше 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ) и с другими группами не смешивается",
+      "rejected": [
+        "Сравнение по средней этажности — у комплекса с башней и малоэтажной частью среднее скрывает башню"
+      ],
+      "source_ids": [
+        "S_GRK_48_1",
+        "S_EXPERT",
+        "S_NCS_2026_01"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "needs_verification"
+    },
+    {
+      "id": "F.BENCH.APART_PRICE",
+      "module": "BENCH",
+      "name": "Цена апартаментов",
+      "unit": "руб/м2",
+      "dims": [],
+      "expr": "аналогов-апартаментов (продукт = апартаменты) >= BENCH.MARKET_MIN_COMPS: apart_price = F.BENCH.MARKET_PRICE по этим аналогам\nиначе: discount = MEDIAN_j( apart_price_m2[j] / flat_price_m2[j] − 1 ) по парам BENCH.APART_PAIRS_SAMPLE в одной локации;\n       apart_price = F.BENCH.MARKET_PRICE (квартиры) × (1 + discount), пометка «дисконт по парам»;\n       ошибка, если пар < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)\n",
+      "depends_on": [
+        "F.BENCH.MARKET_PRICE",
+        "BENCH.APART_PAIRS_SAMPLE",
+        "BENCH.MARKET_MIN_COMPS"
+      ],
+      "rationale": "Апартаменты — отдельный продукт: без семейной ипотеки, с НДС, с другим спросом. Цена — по прямым аналогам; если их мало — по наблюдаемому соотношению цен квартир и апартаментов в одной локации (уровень 3), а не по допущению",
+      "rejected": [
+        "Фиксированный процент дисконта к квартирам без выборки — непроверяемое допущение"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES"
       ],
       "legacy": {
         "cells": null,

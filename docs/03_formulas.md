@@ -101,39 +101,44 @@ flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
 стадия «концепция»:      gfa_above = TEP.GFA_ABOVE
-стадия «оценка участка»: gfa_above = TEP.GPZU_GFA_MAX, если суммарная поэтажная площадь указана в ГПЗУ/ПЗЗ;
+стадия «оценка участка»: gfa_above = GPZU.MAX_GFA_ABOVE, если суммарная поэтажная площадь указана в ГПЗУ/ПЗЗ;
                          иначе gfa_above = TEP.FOOTPRINT_AREA × TEP.AVG_FLOORS
-ошибка, если TEP.FOOTPRINT_AREA > LAND.AREA × TEP.GPZU_COVERAGE_MAX
+соответствие пределам ГПЗУ проверяет F.CHECK.GPZU_LIMITS (на стадии оценки — автоматически)
 ```
-**Зависит от:** `GEN.PROJECT_STAGE`, `TEP.GFA_ABOVE`, `TEP.GPZU_GFA_MAX`, `TEP.FOOTPRINT_AREA`, `TEP.AVG_FLOORS`, `LAND.AREA`, `TEP.GPZU_COVERAGE_MAX`
+**Зависит от:** `GEN.PROJECT_STAGE`, `TEP.GFA_ABOVE`, `GPZU.MAX_GFA_ABOVE`, `TEP.FOOTPRINT_AREA`, `TEP.AVG_FLOORS`
 
-**Почему так:** До концепции объём застройки ограничен предельными параметрами разрешённого строительства (ст.38 ГрК РФ): суммарная поэтажная площадь из ГПЗУ/ПЗЗ — прямой предел; если её нет — пятно застройки × средняя этажность, где пятно не больше участка × максимальный процент застройки. После концепции — ТЭП архитектора, который уже учитывает эти пределы
+**Почему так:** До концепции объём застройки ограничен предельными параметрами разрешённого строительства (ст.38 ГрК РФ): суммарная поэтажная площадь из ГПЗУ/ПЗЗ — прямой предел; если её нет — пятно застройки × средняя этажность, где пятно не больше участка × максимальный процент застройки. После концепции — ТЭП архитектора, который сверяется с пределами ГПЗУ
 
 **Отклонённые варианты:**
 - Ввод ГНС числом на стадии оценки без документа — не проверяется по ГПЗУ
-- Молча ограничивать пятно MIN(пятно, участок × % застройки) — скрывает ошибку ввода; вместо этого ошибка с указанием превышения
+- Молча ограничивать пятно MIN(пятно, участок × % застройки) — скрывает ошибку ввода; вместо этого блокирующая ошибка F.CHECK.GPZU_LIMITS
 - Одна «СПП (ГНС)» без указания стадии и документа (исходник ТЭПы!C19)
 
 **Источники:** [S_GRK_38](https://www.consultant.ru/document/cons_doc_LAW_51040/312302f37ac9299771d2bf4f9b4bb797fb476948/), `S_PROJECT_DOCS`
 
 **Исходный Excel:** `ТЭПы!C19` → fix — вводилось числом без указания, из ГПЗУ или из концепции
 
-### `F.TEP.GFA_SPLIT` — ГНС жилой и нежилой части в модели
+### `F.TEP.GFA_SPLIT` — ГНС жилой, апартаментной и нежилой части в модели
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»: res_gfa = TEP.RES_GFA;  nonres_gfa = TEP.NONRES_GFA
+стадия «концепция»: res_gfa = TEP.RES_GFA;  apart_gfa = TEP.APART_GFA;  nonres_gfa = TEP.NONRES_GFA
 стадия «оценка участка»:
-  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA и TEP.NONRES_GFA заполнены) — они же;
-  иначе res_gfa = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE;  nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE)
+  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA, TEP.NONRES_GFA, при апартаментах — TEP.APART_GFA) — они же;
+  иначе res_gfa    = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE
+        apart_gfa  = F.TEP.GFA_ABOVE × TEP.APART_GFA_SHARE
+        nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE − TEP.APART_GFA_SHARE)
+  ошибка, если TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE > 1
+apart_gfa > 0 допускается, только если ВРИ участка включает код 4.7 (F.CHECK.ALL → APART_ALLOWED)
 ```
-**Зависит от:** `GEN.PROJECT_STAGE`, `TEP.RES_GFA`, `TEP.NONRES_GFA`, `F.TEP.GFA_ABOVE`, `TEP.RES_GFA_SHARE`
+**Зависит от:** `GEN.PROJECT_STAGE`, `TEP.RES_GFA`, `TEP.APART_GFA`, `TEP.NONRES_GFA`, `F.TEP.GFA_ABOVE`, `TEP.RES_GFA_SHARE`, `TEP.APART_GFA_SHARE`
 
-**Почему так:** Жилая и нежилая части имеют разные коэффициенты продаваемой площади, разные продукты и разный НДС. Разделение берётся из документа, а при его отсутствии — одной долей, чтобы части в сумме давали ГНС наземную
+**Почему так:** Жилая, апартаментная и нежилая части имеют разные коэффициенты продаваемой площади, разные продукты, цены и НДС. Разделение берётся из документа, а при его отсутствии — долями, чтобы части в сумме давали ГНС наземную
 
 **Отклонённые варианты:**
-- Одну часть из документа, а вторую — долей: смешение документа и допущения, сумма может не совпасть с ГНС
+- Одну часть из документа, а другую — долей: смешение документа и допущения, сумма может не совпасть с ГНС
+- Считать апартаменты частью жилой ГНС: апартаменты — нежилые помещения с другим ВРИ, НДС и ипотекой
 
-**Источники:** [S_GRK_38](https://www.consultant.ru/document/cons_doc_LAW_51040/312302f37ac9299771d2bf4f9b4bb797fb476948/), `S_PROJECT_DOCS`, `S_COMPANY_ACTUALS`
+**Источники:** [S_GRK_38](https://www.consultant.ru/document/cons_doc_LAW_51040/312302f37ac9299771d2bf4f9b4bb797fb476948/), `S_PROJECT_DOCS`, `S_COMPANY_ACTUALS`, [S_ROSREESTR_P0412](https://www.consultant.ru/document/cons_doc_LAW_371246/)
 
 **Исходный Excel:** `ТЭПы!C20:C21` → keep
 
@@ -173,6 +178,43 @@ flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M
 **Источники:** [S_ROSREESTR_P0393](https://www.consultant.ru/document/cons_doc_LAW_368160/), `S_PROJECT_DOCS`, `S_COMPANY_ACTUALS`
 
 **Исходный Excel:** `ТЭПы!C23` → keep
+
+### `F.TEP.APART_AREA` — Площадь апартаментов в модели
+**Единица:** м2 · **Размерность:** скаляр · **Статус:** needs_verification
+```
+стадия «концепция»:      apart_area = TEP.APART_AREA
+стадия «оценка участка»: apart_area = apart_gfa × TEP.APART_EFFICIENCY   (apart_gfa — из F.TEP.GFA_SPLIT)
+apart_area = 0, если «4.7» ∉ LAND.VRI_CODES
+```
+**Зависит от:** `GEN.PROJECT_STAGE`, `TEP.APART_AREA`, `F.TEP.GFA_SPLIT`, `TEP.APART_EFFICIENCY`, `LAND.VRI_CODES`
+
+**Почему так:** Апартаменты — нежилые помещения гостиничного назначения: допустимы только при ВРИ 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412). Площадь — по той же логике, что квартиры, со своим коэффициентом; обмер — П/0393
+
+**Отклонённые варианты:**
+- Разрешать апартаменты без проверки ВРИ — продукт может оказаться недопустимым на участке
+- Применять к апартаментам коэффициент квартир — другая планировочная эффективность
+
+**Источники:** [S_ROSREESTR_P0412](https://www.consultant.ru/document/cons_doc_LAW_371246/), [S_ROSREESTR_P0393](https://www.consultant.ru/document/cons_doc_LAW_368160/), `S_PROJECT_DOCS`, `S_COMPANY_ACTUALS`
+
+### `F.TEP.STORAGE` — Кладовые: количество и площадь в модели
+**Единица:** шт · **Размерность:** скаляр · **Статус:** verified
+```
+стадия «концепция»:      storage_count = TEP.STORAGE_COUNT;  storage_area = TEP.STORAGE_AREA
+стадия «оценка участка»: storage_count = FLOOR( Σ_k F.TEP.APT_COUNT[k] × TEP.STORAGE_PER_APT );
+                         storage_area  = storage_count × TEP.STORAGE_AVG_AREA
+площадь кладовых входит в подземную часть (F.TEP.GFA_BELOW), сверх неё не добавляется
+```
+**Зависит от:** `GEN.PROJECT_STAGE`, `TEP.STORAGE_COUNT`, `TEP.STORAGE_AREA`, `F.TEP.APT_COUNT`, `TEP.STORAGE_PER_APT`, `TEP.STORAGE_AVG_AREA`
+
+**Почему так:** Кладовые продаются поштучно и размещаются в подземной части. До концепции количество определяется обеспеченностью на квартиру по концепциям компании (уровень 4), округление вниз — нельзя продать больше, чем построено
+
+**Отклонённые варианты:**
+- Добавлять площадь кладовых к ГНС сверх подземной части — двойной счёт
+- Фиксированное количество без привязки к числу квартир
+
+**Источники:** `S_COMPANY_ACTUALS`, `S_PROJECT_DOCS`, [S_ROSREESTR_P0393](https://www.consultant.ru/document/cons_doc_LAW_368160/)
+
+**Исходный Excel:** `ТЭПы!E50` → fix — «Прочие помещения» = 0
 
 ### `F.TEP.APT_COUNT` — Количество квартир по типу
 **Единица:** шт · **Размерность:** k · **Статус:** verified
@@ -246,9 +288,9 @@ apt_diff_m2 = Σ_k apt_area[k] − apt_area_total;  apt_check = apt_diff_m2 / ap
 ### `F.TEP.PARKING_REQUIRED` — Требуемое количество машино-мест по нормативу региона
 **Единица:** шт · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017)
+parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA
 ```
-**Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`, `TEP.PARKING_NORM`
+**Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`, `TEP.PARKING_NORM`, `TEP.PARKING_NORM_APART`, `F.TEP.APART_AREA`
 
 **Почему так:** Нормативы обеспеченности — обязательное требование РНГП; число мест определяет подземную часть и выручку
 
@@ -296,14 +338,14 @@ parking_space_min = TEP.PARKING_SPACE_MIN_LENGTH × TEP.PARKING_SPACE_MIN_WIDTH
 
 **Контрольный пример:** `{'input': {'length': 5.3, 'width': 2.5}, 'output': 13.25}`
 
-### `F.TEP.GFA_BELOW_EST` — Оценка подземной площади по числу машино-мест
+### `F.TEP.GFA_BELOW_EST` — Оценка подземной площади по числу машино-мест и кладовым
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE;  ошибка, если TEP.PARKING_AREA_PER_SPACE < F.TEP.PARKING_SPACE_MIN_AREA
+gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE + storage_area (F.TEP.STORAGE);  ошибка, если TEP.PARKING_AREA_PER_SPACE < F.TEP.PARKING_SPACE_MIN_AREA
 ```
-**Зависит от:** `F.TEP.PARKING_COUNT`, `TEP.PARKING_AREA_PER_SPACE`, `F.TEP.PARKING_SPACE_MIN_AREA`
+**Зависит от:** `F.TEP.PARKING_COUNT`, `TEP.PARKING_AREA_PER_SPACE`, `F.TEP.PARKING_SPACE_MIN_AREA`, `F.TEP.STORAGE`
 
-**Почему так:** Только стадия «Оценка участка»: подземной концепции ещё нет. Площадь на место с проездами — факт компании (уровень 4) или эксперт (уровень 5) с обоснованием и диапазоном; меньше минимальной площади самого места быть не может
+**Почему так:** Только стадия «Оценка участка»: подземной концепции ещё нет. Площадь на место с проездами — факт компании (уровень 4) или эксперт (уровень 5) с обоснованием и диапазоном; меньше минимальной площади самого места быть не может. Кладовые размещаются в подземной части и входят в её площадь
 
 **Источники:** `S_COMPANY_ACTUALS`, [S_ROSREESTR_P0316](https://www.consultant.ru/law/hotdocs/70715.html)
 
@@ -347,9 +389,9 @@ gfa_total = F.TEP.GFA_ABOVE + F.TEP.GFA_BELOW
 ### `F.TEP.SALEABLE_AREA` — Продаваемая площадь (м²)
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-saleable = Σ_k apt_area[k] + TEP.APART_AREA + comm_area + TEP.STORAGE_AREA;  машино-места — отдельно, в штуках (F.TEP.PARKING_COUNT), в м² не суммируются;  МОП, техпомещения и проезды паркинга не входят
+saleable = Σ_k apt_area[k] + apart_area (F.TEP.APART_AREA) + comm_area + storage_area (F.TEP.STORAGE);  машино-места — отдельно, в штуках (F.TEP.PARKING_COUNT), в м² не суммируются;  МОП, техпомещения и проезды паркинга не входят
 ```
-**Зависит от:** `F.TEP.APT_TYPE_AREA`, `TEP.APART_AREA`, `F.TEP.COMM_AREA`, `TEP.STORAGE_AREA`
+**Зависит от:** `F.TEP.APT_TYPE_AREA`, `F.TEP.APART_AREA`, `F.TEP.COMM_AREA`, `F.TEP.STORAGE`
 
 **Почему так:** Единое определение для всех проектов: продаваемая площадь = квартиры + апартаменты + ПСН + кладовые, каждая — по правилам обмера Росреестра (П/0393, приложение 2), квартиры — по ДДУ. Итоговым числом не вводится (параметра нет): сумма всегда раскладывается по продуктам и сходится с планом продаж
 
@@ -1168,38 +1210,74 @@ PARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) и�
 NCS_DEVIATION     : |deviation| <= tolerance или есть обоснование
 APT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE (иначе предупреждение с разницей в м² и %)
 STAGE_INPUTS      : для стадии GEN.PROJECT_STAGE заполнены обязательные входы раздела TEP с документом
-FOOTPRINT_LIMIT   : TEP.FOOTPRINT_AREA <= LAND.AREA × TEP.GPZU_COVERAGE_MAX
+GPZU_LIMITS       : F.CHECK.GPZU_LIMITS — превышение пределов ГПЗУ без решения об отклонении блокирует отчёт
+APART_ALLOWED     : F.TEP.APART_AREA > 0 → «4.7» ∈ LAND.VRI_CODES (иначе продукт «апартаменты» недоступен)
+GFA_SHARES_SUM    : стадия «оценка участка»: TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1
+STORAGE_FIT       : storage_area + F.TEP.PARKING_COUNT × F.TEP.PARKING_SPACE_MIN_AREA <= F.TEP.GFA_BELOW
+BENCH_MIN_COMPS   : выборки аналогов и пар — не меньше BENCH.MARKET_MIN_COMPS или есть экспертное обоснование
 APT_MIX_SHARE_SUM : стадия «оценка участка»: |Σ_k area_share[k] − 1| < 1e-9
 PARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA
 ```
+**Зависит от:** `F.CHECK.GPZU_LIMITS`
 
 **Почему так:** Ни одна из этих ошибок исходника не должна повториться незаметно
 
 **Источники:** `S_EXPERT`
 
+### `F.CHECK.GPZU_LIMITS` — Проверка проекта по предельным параметрам ГПЗУ
+**Единица:** bool · **Размерность:** скаляр · **Статус:** verified
+```
+предел[x] = GPZU.DEVIATION_PERMIT.permitted_value по x, если есть решение об отклонении; иначе значение из ГПЗУ
+F.TEP.GFA_ABOVE (наземная)                <= предел[GPZU.MAX_GFA_ABOVE]
+TEP.MAX_FLOORS (если нет — TEP.AVG_FLOORS) <= предел[GPZU.MAX_FLOORS]
+TEP.BUILDING_HEIGHT_M                     <= предел[GPZU.MAX_HEIGHT_M]
+TEP.FOOTPRINT_AREA / LAND.AREA            <= предел[GPZU.MAX_BUILT_SHARE]
+превышение любого → БЛОКИРУЮЩАЯ ошибка, отчёт не выпускается
+F.TEP.GFA_ABOVE < BENCH.GPZU_UNDERUSE_SHARE × GPZU.MAX_GFA_ABOVE → информационное сообщение «резерв площади по ГПЗУ»
+пустой предел в ГПЗУ — сравнение по нему не выполняется
+```
+**Зависит от:** `F.TEP.GFA_ABOVE`, `TEP.MAX_FLOORS`, `TEP.AVG_FLOORS`, `TEP.BUILDING_HEIGHT_M`, `TEP.FOOTPRINT_AREA`, `LAND.AREA`, `GPZU.MAX_GFA_ABOVE`, `GPZU.MAX_FLOORS`, `GPZU.MAX_HEIGHT_M`, `GPZU.MAX_BUILT_SHARE`, `GPZU.DEVIATION_PERMIT`, `BENCH.GPZU_UNDERUSE_SHARE`
+
+**Почему так:** Предельные параметры ГПЗУ (ст.38 ГрК РФ) обязательны: проект сверх них не получит разрешение на строительство, а финмодель на его основе завышает выручку. Сравнивается только сопоставимое: наземная ГНС с наземным пределом, этажность, высота, доля застройки. Снять ошибку можно только решением о разрешении на отклонение от предельных параметров (ст.40 ГрК РФ): однократное отклонение не более 10% — упрощённая процедура без публичных слушаний (ч.1.1); отклонение по этажности и высоте в границах исторических поселений не допускается (ч.2). На стадии «Оценка участка» ГНС берётся из ГПЗУ, поэтому проверка выполняется автоматически. Недоиспользование пределов — не ошибка, но резерв площади показывается
+
+**Отклонённые варианты:**
+- Предупреждение вместо блокирующей ошибки — модель с превышением ГПЗУ ушла бы в банк
+- Сравнивать общую ГНС (с подземной частью) с пределом наземной — несопоставимые величины
+- Автоматически обрезать ГНС до предела — скрывает расхождение ТЭП и ГПЗУ
+
+**Источники:** [S_GRK_38](https://www.consultant.ru/document/cons_doc_LAW_51040/312302f37ac9299771d2bf4f9b4bb797fb476948/), [S_GRK_40](https://www.consultant.ru/document/cons_doc_LAW_51040/91122874bbcf628c0e5c6bceb7fe613ee682fc73/), `S_PROJECT_DOCS`
+
 ## BENCH
 
-### `F.BENCH.WINDOW_FILTER` — Отбор данных аналогов по датам
+### `F.BENCH.WINDOW_FILTER` — Отбор аналогов: сопоставимость, даты, фазы продаж
 **Единица:** bool · **Размерность:** i · **Статус:** needs_verification
 ```
+сопоставимость (жёсткие фильтры): product = продукт проекта; struct_system = TEP.STRUCTURAL_SYSTEM;
+  F.BENCH.HEIGHT_BAND аналога = F.BENCH.HEIGHT_BAND проекта; excluded = false (исключение — только вручную с причиной)
 break  = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)
 oldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)
 цены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break );
         если аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:
           from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_EXT_M), oldest, break )
         сделка входит, если from <= дата <= GEN.VALUATION_DATE
-стартовая цена: дополнительно дата сделки < EDATE(sales_start аналога, BENCH.START_PHASE_M)
-темп:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break ); только месяцы активной фазы продаж аналога
-аналоги с excluded = true не входят (исключение — только вручную с причиной)
+стартовая цена: дополнительно дата сделки < EDATE(first_ddu_date аналога, BENCH.START_PHASE_M)
+фазы продаж аналога (для темпа):
+  старт    — первые BENCH.PACE_START_M месяцев с first_ddu_date
+  активная — после старта до MIN( даты распроданности BENCH.PACE_ACTIVE_END_SHARE × total_saleable_m2, rnv_date )
+  хвост    — после активной фазы, пока продажи видны в ЕИСЖС (до rnv_date)
+  аналог не используется для темпа, если активная фаза короче BENCH.PACE_MIN_ACTIVE_M месяцев (для цены — используется)
+темп:   месяцы фазы в окне from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break )
 ```
-**Зависит от:** `BENCH.MARKET_SAMPLE`, `GEN.VALUATION_DATE`, `BENCH.STRUCTURAL_BREAK_DATES`, `BENCH.PRICE_MAX_AGE_M`, `BENCH.PRICE_WINDOW_M`, `BENCH.PRICE_WINDOW_EXT_M`, `BENCH.MARKET_MEDIAN_MIN_COMPS`, `BENCH.START_PHASE_M`, `BENCH.PACE_WINDOW_M`
+**Зависит от:** `BENCH.MARKET_SAMPLE`, `TEP.STRUCTURAL_SYSTEM`, `F.BENCH.HEIGHT_BAND`, `GEN.VALUATION_DATE`, `BENCH.STRUCTURAL_BREAK_DATES`, `BENCH.PRICE_MAX_AGE_M`, `BENCH.PRICE_WINDOW_M`, `BENCH.PRICE_WINDOW_EXT_M`, `BENCH.MARKET_MEDIAN_MIN_COMPS`, `BENCH.START_PHASE_M`, `BENCH.PACE_WINDOW_M`, `BENCH.PACE_START_M`, `BENCH.PACE_ACTIVE_END_SHARE`, `BENCH.PACE_MIN_ACTIVE_M`
 
-**Почему так:** В расчёт попадает только сопоставимый с текущим рынок: свежие сделки, после последнего структурного сдвига (завершение массовой льготной ипотеки 01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Стартовая цена берётся по сделкам на старте продаж аналогов, темп — в активной фазе
+**Почему так:** В расчёт попадает только сопоставимый рынок: тот же продукт, несущая система и группа высотности; свежие сделки после последнего структурного сдвига (01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Темп считается по фазам: на старте спрос отложенный, в активной фазе — основной, хвост — неликвидные лоты со скидками; после РНВ продажи идут по ДКП и в ЕИСЖС не видны
 
 **Отклонённые варианты:**
 - Все доступные сделки без окна — смешивает рынки с разной ипотекой и ценами
 - Сделки до 01.07.2024 с индексацией — индекс не компенсирует смену условий ипотеки
 - Стартовая цена по текущим ценам аналогов на поздней стадии — завышает старт
+- Один темп на весь срок продаж — смешивает старт, основную фазу и хвост
+- Конец активной фазы на 90% распроданности — в выборку попадает часть хвоста
 
 **Источники:** [S_EISZHS_SALES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80), [S_ERZ_LGOTNAYA_2024](https://erzrf.ru/news/minfin-lgotnaya-ipoteka-pod-8-zakanchivayetsya-1-iyulya), `S_EXPERT`
 
@@ -1268,28 +1346,29 @@ n < BENCH.MARKET_MIN_COMPS:                              ошибка — сох
 
 **Контрольный пример:** `{'input': {'prices': [300000, 320000, 280000], 'adj_total': [0.1, 0.0, 0.2]}, 'output': 301215.47, 'note': 'n = 3 — средневзвешенная, веса 0,331 / 0,365 / 0,304'}`
 
-### `F.BENCH.COMP_PACE` — Нормированный темп продаж аналога
-**Единица:** доля · **Размерность:** i · **Статус:** verified
+### `F.BENCH.COMP_PACE` — Нормированный темп продаж аналога по фазам
+**Единица:** доля · **Размерность:** i, phase · **Статус:** verified
 ```
-pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i] = СРЕДНЕЕ_m(pace_norm[i,m]) за месяцы окна F.BENCH.WINDOW_FILTER (BENCH.PACE_WINDOW_M)
+pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i,phase] = СРЕДНЕЕ_m(pace_norm[i,m]) по месяцам фазы (старт, активная, хвост), прошедшим F.BENCH.WINDOW_FILTER
 ```
 **Зависит от:** `F.BENCH.WINDOW_FILTER`, `BENCH.MARKET_SAMPLE`, `BENCH.PACE_WINDOW_M`
 
-**Почему так:** Темп в доле от предложения сравним между ЖК разного масштаба; среднее за 12 месяцев сглаживает сезонность
+**Почему так:** Темп в доле от предложения сравним между ЖК разного масштаба; по фазам — потому что старт, основная фаза и хвост продаются с разной скоростью; среднее по месяцам сглаживает сезонность
 
 **Отклонённые варианты:**
 - Абсолютный темп м²/мес — у крупного ЖК он выше просто из-за объёма предложения
+- Один темп на весь срок — хвост со скидками занижает темп основной фазы
 
 **Источники:** [S_EISZHS_SALES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80)
 
-### `F.BENCH.MARKET_PACE` — Рыночный темп продаж по выборке аналогов
-**Единица:** доля · **Размерность:** скаляр · **Статус:** verified
+### `F.BENCH.MARKET_PACE` — Рыночный темп продаж по фазам
+**Единица:** доля · **Размерность:** phase · **Статус:** verified
 ```
-market_pace = MEDIAN(comp_pace);  ошибка, если аналогов < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)
+market_pace[phase] = MEDIAN_i(comp_pace[i,phase]) отдельно для фаз старт, активная, хвост;  ошибка по фазе, если аналогов с данными по ней < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)
 ```
 **Зависит от:** `F.BENCH.COMP_PACE`, `BENCH.MARKET_MIN_COMPS`
 
-**Почему так:** Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. Результат подставляется в SALES.PACE (способ «доля от остатка в месяц») как значение уровня 3
+**Почему так:** Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. SALES.PACE проекта может ссылаться на все три фазы (способ «доля от остатка в месяц»), значение — уровень 3
 
 **Отклонённые варианты:**
 - Сравнение абсолютных м²/мес между ЖК разного масштаба
@@ -1314,9 +1393,9 @@ cost_unit[i] = contract_amount[i] (без НДС) / base_qty[i];  база — �
 ### `F.BENCH.COST_INDEXED` — Расценка аналога на дату оценки и в регионе проекта
 **Единица:** руб/м2 · **Размерность:** i · **Статус:** verified
 ```
-cost_idx[i] = cost_unit[i] × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС)
+cost_idx[i] = cost_unit[i] × (1 + adj_value[i]) × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС); adj_value — корректировка на отличие фасада и т.п. (BENCH.COST_SAMPLE), только с обоснованием
 ```
-**Зависит от:** `F.BENCH.COST_UNIT`, `BENCH.COST_INDEX_HIST`, `GEN.VALUATION_DATE`, `GEN.REGION_CODE`
+**Зависит от:** `BENCH.COST_SAMPLE`, `F.BENCH.COST_UNIT`, `BENCH.COST_INDEX_HIST`, `GEN.VALUATION_DATE`, `GEN.REGION_CODE`
 
 **Почему так:** Время приводится официальными индексами изменения сметной стоимости Минстроя, регион — отношением коэффициентов перехода НЦС (регион проекта / регион аналога). Оба показателя — государственные и одинаковы для всех проектов
 
@@ -1330,12 +1409,12 @@ cost_idx[i] = cost_unit[i] × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.
 **Единица:** руб/м2 · **Размерность:** item · **Статус:** verified
 ```
 сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  |floors / TEP.AVG_FLOORS − 1| <= BENCH.COST_FLOORS_TOLERANCE;
-                      structural_system = TEP.STRUCTURAL_SYSTEM;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false
+                      structural_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = группа проекта;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false
 n >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)
 n <  BENCH.COST_MIN_PROJECTS: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)
 незавершённые проекты (completed = false) — только по сумме договора, с пометкой
 ```
-**Зависит от:** `F.BENCH.COST_INDEXED`, `BENCH.COST_SAMPLE`, `GEN.HOUSING_CLASS`, `TEP.AVG_FLOORS`, `TEP.STRUCTURAL_SYSTEM`, `BENCH.COST_FLOORS_TOLERANCE`, `BENCH.COST_MAX_AGE_Y`, `BENCH.COST_MIN_PROJECTS`, `GEN.VALUATION_DATE`, `F.CAPEX.NCS_BENCH`
+**Зависит от:** `F.BENCH.COST_INDEXED`, `BENCH.COST_SAMPLE`, `GEN.HOUSING_CLASS`, `TEP.AVG_FLOORS`, `TEP.STRUCTURAL_SYSTEM`, `F.BENCH.HEIGHT_BAND`, `BENCH.COST_FLOORS_TOLERANCE`, `BENCH.COST_MAX_AGE_Y`, `BENCH.COST_MIN_PROJECTS`, `GEN.VALUATION_DATE`, `F.CAPEX.NCS_BENCH`
 
 **Почему так:** При оценке нового участка каждый проект компании — одно наблюдение: крупный проект не должен перевешивать. Медиана устойчива к нетипичному проекту
 
@@ -1363,3 +1442,36 @@ IQR = Q3 − Q1;  x < Q1 − BENCH.OUTLIER_IQR_K × IQR  или  x > Q3 + BENCH.
 - Квартили по методу QUARTILE.EXC — на малых выборках не определены и не совпадают с формулами Excel в выгрузке
 
 **Источники:** `S_EXPERT`
+
+### `F.BENCH.HEIGHT_BAND` — Группа высотности здания
+**Единица:** enum · **Размерность:** скаляр · **Статус:** needs_verification
+```
+band = «свыше_100м», если высота > height_max_m группы «26_плюс_до_100м» (100 м);
+иначе band — строка BENCH.HEIGHT_BAND, где floors_min <= этажность <= floors_max (floors_max = null — без верхней границы)
+этажность = TEP.MAX_FLOORS (для аналога — max_floors), высота = TEP.BUILDING_HEIGHT_M (для аналога — height_m)
+```
+**Зависит от:** `BENCH.HEIGHT_BAND`, `TEP.MAX_FLOORS`, `TEP.BUILDING_HEIGHT_M`
+
+**Почему так:** Стоимость и цена зависят от высотности скачками (конструктив, лифты, пожарные требования). Здание выше 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ) и с другими группами не смешивается
+
+**Отклонённые варианты:**
+- Сравнение по средней этажности — у комплекса с башней и малоэтажной частью среднее скрывает башню
+
+**Источники:** [S_GRK_48_1](https://www.consultant.ru/document/cons_doc_LAW_51040/020268898fa86a2e82a7b360986eb212b02482cf/), `S_EXPERT`, [S_NCS_2026_01](https://docs.cntd.ru/document/1316343087)
+
+### `F.BENCH.APART_PRICE` — Цена апартаментов
+**Единица:** руб/м2 · **Размерность:** скаляр · **Статус:** verified
+```
+аналогов-апартаментов (продукт = апартаменты) >= BENCH.MARKET_MIN_COMPS: apart_price = F.BENCH.MARKET_PRICE по этим аналогам
+иначе: discount = MEDIAN_j( apart_price_m2[j] / flat_price_m2[j] − 1 ) по парам BENCH.APART_PAIRS_SAMPLE в одной локации;
+       apart_price = F.BENCH.MARKET_PRICE (квартиры) × (1 + discount), пометка «дисконт по парам»;
+       ошибка, если пар < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)
+```
+**Зависит от:** `F.BENCH.MARKET_PRICE`, `BENCH.APART_PAIRS_SAMPLE`, `BENCH.MARKET_MIN_COMPS`
+
+**Почему так:** Апартаменты — отдельный продукт: без семейной ипотеки, с НДС, с другим спросом. Цена — по прямым аналогам; если их мало — по наблюдаемому соотношению цен квартир и апартаментов в одной локации (уровень 3), а не по допущению
+
+**Отклонённые варианты:**
+- Фиксированный процент дисконта к квартирам без выборки — непроверяемое допущение
+
+**Источники:** [S_EISZHS_SALES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80)

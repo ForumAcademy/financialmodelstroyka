@@ -161,6 +161,18 @@ parameters:
     status: project_input
     legacy: [{cell: "ТЭПы!C15", value: 96572, verdict: keep}, {cell: "ТЭПы!I15", value: 96572, verdict: remove, note: "дубль"}]
 
+  - id: LAND.VRI_CODES
+    name: "Виды разрешённого использования участка (коды классификатора)"
+    unit: текст
+    kind: table
+    scope: project
+    default: null
+    source_ids: [S_ROSREESTR_P0412, S_NSPD, S_PROJECT_DOCS]
+    basis: "Коды ВРИ по классификатору (Приказ Росреестра от 10.11.2020 № П/0412) из ЕГРН/ГПЗУ. Код 4.7 «Гостиничное обслуживание» — условие для продукта «апартаменты» (F.CHECK.ALL → APART_ALLOWED)"
+    how_to_fill: "Выписка ЕГРН / НСПД / ГПЗУ по кадастровому номеру; приложить документ"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
   - id: LAND.CADASTRAL_VALUE
     name: "Кадастровая стоимость участка (текущая)"
     unit: руб
@@ -337,28 +349,69 @@ parameters:
     status: project_input
     legacy: [{cell: "ТЭПы!C19", value: 221967, verdict: keep, note: "подпись «СПП (ГНС)» смешивала понятия; уточнено как наземная ГНС (вопрос автора ТЭПы!E19)"}]
 
-  - id: TEP.GPZU_GFA_MAX
-    name: "Максимальная суммарная поэтажная площадь по ГПЗУ/ПЗЗ"
+  - id: GPZU.MAX_GFA_ABOVE
+    name: "ГПЗУ: максимальная суммарная поэтажная площадь наземной части"
     unit: м2
     kind: scalar
     scope: project
     default: null
     source_ids: [S_GRK_38, S_PROJECT_DOCS]
-    basis: "Предельный параметр разрешённого строительства (ст.38 ГрК РФ), указывается в ГПЗУ или в градостроительном регламенте ПЗЗ. Стадия «Оценка участка»: ГНС наземная = это значение. Если в ГПЗУ суммарная поэтажная площадь не указана — поле пустое, ГНС считается как пятно застройки × средняя этажность"
-    how_to_fill: "ГПЗУ участка (предельные параметры) или ПЗЗ (регламент территориальной зоны); приложить документ"
+    basis: "Предельный параметр разрешённого строительства (ст.38 ГрК РФ), указывается в ГПЗУ или в градостроительном регламенте ПЗЗ. Стадия «Оценка участка»: ГНС наземная = это значение. На любой стадии — предел для проверки F.CHECK.GPZU_LIMITS. Если в ГПЗУ не указана — поле пустое, ГНС на стадии оценки считается как пятно застройки × средняя этажность"
+    how_to_fill: "ГПЗУ участка (предельные параметры) или ПЗЗ (регламент территориальной зоны); уровень 4, вложение обязательно"
     status: project_input
     legacy: [{cell: null, verdict: new}]
 
-  - id: TEP.GPZU_COVERAGE_MAX
-    name: "Максимальный процент застройки участка по ГПЗУ/ПЗЗ"
+  - id: GPZU.MAX_BUILT_SHARE
+    name: "ГПЗУ: максимальный процент застройки участка"
     unit: доля
     kind: scalar
     scope: project
     default: null
     range: [0, 1]
     source_ids: [S_GRK_38, S_PROJECT_DOCS]
-    basis: "Предельный параметр (ст.38 ГрК РФ): доля площади участка, которую можно застроить. Ограничивает пятно застройки: TEP.FOOTPRINT_AREA ≤ LAND.AREA × это значение, иначе ошибка"
-    how_to_fill: "ГПЗУ участка или ПЗЗ; хранится долей (40% → 0,4)"
+    basis: "Предельный параметр (ст.38 ГрК РФ): доля площади участка, которую можно застроить. Проверка F.CHECK.GPZU_LIMITS: TEP.FOOTPRINT_AREA / LAND.AREA ≤ это значение"
+    how_to_fill: "ГПЗУ участка или ПЗЗ; хранится долей (40% → 0,4); уровень 4, вложение обязательно"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GPZU.MAX_FLOORS
+    name: "ГПЗУ: предельное количество этажей"
+    unit: шт
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_GRK_38, S_PROJECT_DOCS]
+    basis: "Предельный параметр (ч.1 ст.38 ГрК РФ). Проверка F.CHECK.GPZU_LIMITS: TEP.MAX_FLOORS ≤ это значение"
+    how_to_fill: "ГПЗУ участка; уровень 4, вложение обязательно"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GPZU.MAX_HEIGHT_M
+    name: "ГПЗУ: предельная высота зданий, м"
+    unit: м
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_GRK_38, S_PROJECT_DOCS]
+    basis: "Предельный параметр (ч.1 ст.38 ГрК РФ). Проверка F.CHECK.GPZU_LIMITS: TEP.BUILDING_HEIGHT_M ≤ это значение"
+    how_to_fill: "ГПЗУ участка; уровень 4, вложение обязательно"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GPZU.DEVIATION_PERMIT
+    name: "Разрешение на отклонение от предельных параметров"
+    unit: table
+    kind: table
+    columns:
+      - {key: limit, unit: enum, options: [GPZU.MAX_GFA_ABOVE, GPZU.MAX_FLOORS, GPZU.MAX_HEIGHT_M, GPZU.MAX_BUILT_SHARE]}
+      - {key: permitted_value, unit: "в единицах предела"}
+      - {key: decision, unit: текст, note: "реквизиты решения органа местного самоуправления / исполнительной власти"}
+      - {key: attachment_id, unit: текст, note: "вложение решения обязательно"}
+    scope: project
+    default: null
+    source_ids: [S_GRK_40, S_PROJECT_DOCS]
+    basis: "Единственный способ снять блокирующую ошибку F.CHECK.GPZU_LIMITS: решение о предоставлении разрешения на отклонение от предельных параметров (ст.40 ГрК РФ) с вложением. Проверка сравнивает проект с permitted_value вместо предела ГПЗУ"
+    how_to_fill: "Приложить решение о разрешении на отклонение (обязательно)"
     status: project_input
     legacy: [{cell: null, verdict: new}]
 
@@ -369,8 +422,8 @@ parameters:
     scope: project
     default: null
     source_ids: [S_PROJECT_DOCS, S_COMPANY_ACTUALS, S_EXPERT]
-    basis: "Стадия «Оценка участка», если суммарная поэтажная площадь в ГПЗУ не указана: ГНС наземная = пятно × средняя этажность. Пятно не больше LAND.AREA × TEP.GPZU_COVERAGE_MAX"
-    how_to_fill: "Эскиз посадки / градостроительный анализ (уровень 4) или экспертная оценка (уровень 5: автор, обоснование, диапазон min–max)"
+    basis: "Стадия «Концепция» — из ТЭП архитектора. Стадия «Оценка участка», если суммарная поэтажная площадь в ГПЗУ не указана: ГНС наземная = пятно × средняя этажность. На любой стадии проверка F.CHECK.GPZU_LIMITS: пятно / LAND.AREA ≤ GPZU.MAX_BUILT_SHARE"
+    how_to_fill: "ТЭП концепции; до концепции — эскиз посадки (уровень 4) или экспертная оценка (уровень 5: автор, обоснование, диапазон min–max)"
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
@@ -384,6 +437,30 @@ parameters:
     basis: "Стадия «Оценка участка», если суммарная поэтажная площадь в ГПЗУ не указана. Не выше предельной этажности/высоты из ГПЗУ (ст.38 ГрК РФ)"
     how_to_fill: "Эскиз посадки (уровень 4) или экспертная оценка (уровень 5: автор, обоснование, диапазон min–max)"
     status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.MAX_FLOORS
+    name: "Максимальная этажность здания проекта"
+    unit: шт
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Стадия «Концепция» — из ТЭП архитектора. Используется в проверке F.CHECK.GPZU_LIMITS (≤ GPZU.MAX_FLOORS) и для группы высотности F.BENCH.HEIGHT_BAND. На стадии «Оценка участка», если не задана, проверка ведётся по TEP.AVG_FLOORS"
+    how_to_fill: "ТЭП концепции; приложить документ"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.BUILDING_HEIGHT_M
+    name: "Высота здания проекта, м"
+    unit: м
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS, S_GRK_48_1]
+    basis: "Из ТЭП архитектора. Проверка F.CHECK.GPZU_LIMITS (≤ GPZU.MAX_HEIGHT_M); высота более 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ), группа высотности «свыше_100м» (F.BENCH.HEIGHT_BAND)"
+    how_to_fill: "ТЭП концепции; приложить документ"
+    status: project_input
     legacy: [{cell: null, verdict: new}]
 
   - id: TEP.GFA_BELOW
@@ -435,6 +512,31 @@ parameters:
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
+  - id: TEP.APART_GFA
+    name: "ГНС апартаментной части по ГПЗУ / ППТ / ТЭП архитектора"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: 0
+    source_ids: [S_PROJECT_DOCS, S_ROSREESTR_P0412]
+    basis: "Апартаменты разрешены, только если ВРИ участка включает код 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412; LAND.VRI_CODES), иначе продукт недоступен (F.CHECK.ALL → APART_ALLOWED). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — из ГПЗУ/ППТ, а если там не задано — долей TEP.APART_GFA_SHARE (F.TEP.GFA_SPLIT). 0 — апартаментов нет"
+    how_to_fill: "ТЭП концепции / ГПЗУ / ППТ; приложить документ"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.APART_GFA_SHARE
+    name: "Доля апартаментной части в ГНС наземной части"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: 0
+    range: [0, 1]
+    source_ids: [S_COMPANY_ACTUALS, S_EXPERT]
+    basis: "Только стадия «Оценка участка», если ГПЗУ/ППТ не выделяют апартаментную часть и ВРИ включает код 4.7. TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE ≤ 1, остаток — нежилая (коммерческая) часть"
+    how_to_fill: "Уровень 4 — концепции и факт компании (ссылка на проект); уровень 5 — эксперт (автор, обоснование, диапазон min–max)"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
   - id: TEP.APT_EFFICIENCY
     name: "Коэффициент продаваемой площади квартир к ГНС жилой части"
     unit: доля
@@ -460,6 +562,18 @@ parameters:
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
+  - id: TEP.APART_EFFICIENCY
+    name: "Коэффициент продаваемой площади апартаментов к ГНС апартаментной части"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_COMPANY_ACTUALS, S_EXPERT]
+    basis: "Только стадия «Оценка участка»: площадь апартаментов = ГНС апартаментной части × коэффициент (F.TEP.APART_AREA). Значения по умолчанию нет; диапазон min–max обязателен"
+    how_to_fill: "Уровень 4 — факт компании по реализованным проектам и концепциям (ссылка на проект); уровень 5 — эксперт (автор, обоснование, диапазон min–max)"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
   - id: TEP.APT_AREA
     name: "Площадь квартир по ТЭП архитектора (для продажи, по ДДУ)"
     unit: м2
@@ -479,9 +593,9 @@ parameters:
     scope: project
     default: 0
     source_ids: [S_PROJECT_DOCS, S_ROSREESTR_P0393]
-    basis: "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA). Стадия «Концепция»: из ТЭП архитектора (уровень 4); обмер — Приказ Росреестра № П/0393 (приложение 2). 0 — апартаментов в проекте нет. Правило оценки площади апартаментов на стадии «Оценка участка» не задано — до решения владельца продукта только ручной ввод по документу"
+    basis: "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA). Обмер — Приказ Росреестра № П/0393 (приложение 2). Стадия «Концепция» — из ТЭП архитектора (уровень 4). Стадия «Оценка участка» — не вводится: F.TEP.APART_AREA = ГНС апартаментной части × TEP.APART_EFFICIENCY. Цена — по аналогам-апартаментам (F.BENCH.APART_PRICE), НДС — облагается (TAX.VAT_REGIME), своя структура оплат (SALES.PAYMENT_MIX, продукт «апартаменты»)"
     how_to_fill: "ТЭП концепции; приложить документ"
-    status: needs_verification
+    status: project_input
     legacy: [{cell: null, verdict: new}]
 
   - id: TEP.COMM_AREA
@@ -506,9 +620,33 @@ parameters:
     scope: project
     default: 0
     source_ids: [S_PROJECT_DOCS, S_ROSREESTR_P0393]
-    basis: "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA). Стадия «Концепция»: из ТЭП архитектора (уровень 4); обмер — Приказ Росреестра № П/0393 (приложение 2). 0 — кладовых нет. Правило оценки на стадии «Оценка участка» не задано — до решения владельца продукта только ручной ввод по документу"
+    basis: "Входит в продаваемую площадь (F.TEP.SALEABLE_AREA) и в площадь подземной части (TEP.GFA_BELOW), сверх неё не добавляется. Обмер — Приказ Росреестра № П/0393 (приложение 2). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — не вводится, F.TEP.STORAGE = количество × TEP.STORAGE_AVG_AREA"
     how_to_fill: "ТЭП концепции; приложить документ"
-    status: needs_verification
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.STORAGE_PER_APT
+    name: "Обеспеченность кладовыми на квартиру"
+    unit: коэф
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "Только стадия «Оценка участка»: количество кладовых = FLOOR(Σ квартир × коэффициент) (F.TEP.STORAGE). Уровень 4 — концепции компании; диапазон min–max обязателен"
+    how_to_fill: "Концепции компании по сопоставимым проектам (ссылка на проект), с диапазоном min–max"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.STORAGE_AVG_AREA
+    name: "Средняя площадь кладовой"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_COMPANY_ACTUALS, S_ROSREESTR_P0393]
+    basis: "Только стадия «Оценка участка»: площадь кладовых = количество × средняя площадь (F.TEP.STORAGE). Уровень 4 — концепции компании; диапазон min–max обязателен"
+    how_to_fill: "Концепции компании по сопоставимым проектам (ссылка на проект), с диапазоном min–max"
+    status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
   - id: TEP.MOP_AREA
@@ -523,13 +661,13 @@ parameters:
     legacy: [{cell: "ТЭПы!C26", value: "=51775+7719", verdict: keep}]
 
   - id: TEP.STORAGE_COUNT
-    name: "Количество кладовых"
+    name: "Количество кладовых по ТЭП архитектора"
     unit: шт
     kind: scalar
     scope: project
     default: 0
     source_ids: [S_PROJECT_DOCS]
-    basis: "По концепции"
+    basis: "Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — не вводится, F.TEP.STORAGE. Цена кладовой — руб/шт по аналогам (SALES.PRODUCTS)"
     status: project_input
     legacy: [{cell: "ТЭПы!E50", value: 0, verdict: keep, note: "«Прочие помещения» = 0; на дашборде названо «Кладовые»"}]
 
@@ -662,6 +800,18 @@ parameters:
     basis: "Региональные НГП. Москва (2118-ПП от 05.08.2026): до 70 м² — 0,8; 70–100 м² — 1,2; > 100 м² — 1,6. Прочие регионы — regions.yaml"
     status: needs_verification
     legacy: [{cell: "ТЭПы!I41:I43", value: [0.8, 1.2, 1.6], verdict: keep, note: "совпадает с 2118-ПП; источник в исходнике не указан"}]
+
+  - id: TEP.PARKING_NORM_APART
+    name: "Норматив машино-мест для апартаментов (объекты гостиничного назначения)"
+    unit: table
+    kind: table
+    scope: region
+    default: null
+    source_ids: [S_SP_42_2026, S_PROJECT_DOCS]
+    basis: "По региональным НГП для объектов гостиничного назначения (regions.yaml → parking_norm_apart; единица — как в акте региона: на апартамент или на м²). Пока значение региона null — обязательный ручной ввод с документом"
+    how_to_fill: "Региональные НГП (раздел о гостиницах); приложить документ"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
 
   - id: TEP.APT_AREA_TOLERANCE
     name: "Допустимое расхождение площади квартир: квартирография vs ТЭП"
@@ -844,7 +994,7 @@ parameters:
     scope: project
     default: null
     source_ids: [S_EISZHS_SALES, S_COMPANY_ACTUALS]
-    basis: "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — нормированный темп аналогов F.BENCH.MARKET_PACE (доля от экспозиции в месяц, медиана по BENCH.MARKET_SAMPLE); такое значение имеет уровень 3"
+    basis: "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — нормированный темп аналогов F.BENCH.MARKET_PACE по трём фазам (старт, активная фаза, хвост; доля от экспозиции в месяц, медиана по BENCH.MARKET_SAMPLE); такое значение имеет уровень 3. Кладовые — отдельный темп, с долей продаж после РНВ"
     status: project_input
     legacy:
       - {cell: "План продаж!E28:AG28", verdict: keep, note: "Тип 1, шт/квартал, 29 значений (сумма 961)"}
@@ -888,6 +1038,7 @@ parameters:
     unit: table
     kind: table
     columns:
+      - {key: product, unit: enum, options: [квартиры, апартаменты, ПСН, машино-места, кладовые], note: "структура оплат задаётся по продуктам"}
       - {key: mortgage_share, unit: доля}
       - {key: full_payment_share, unit: доля}
       - {key: installment_share, unit: доля}
@@ -896,7 +1047,7 @@ parameters:
     scope: project
     default: null
     source_ids: [S_CBR_MORTGAGE, S_EISZHS_SALES]
-    basis: "Сумма долей = 1. Ипотека и 100% поступают на эскроу в месяц сделки; рассрочка — по графику. Доли — статистика ЦБ по доле ипотеки в ДДУ региона"
+    basis: "Задаётся по продуктам. Апартаменты — отдельной строкой: семейная ипотека на апартаменты не распространяется, доля ипотеки — по данным аналогов-апартаментов. Сумма долей = 1. Ипотека и 100% поступают на эскроу в месяц сделки; рассрочка — по графику. Доли — статистика ЦБ по доле ипотеки в ДДУ региона"
     status: project_input
     legacy:
       - {cell: "Эскроу!C5", value: 0, verdict: keep, note: "рассрочка"}
@@ -1249,6 +1400,39 @@ parameters:
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
+  - id: BENCH.PACE_START_M
+    name: "Стартовая фаза продаж аналога, месяцев"
+    unit: мес
+    kind: scalar
+    scope: template
+    default: 3
+    source_ids: [S_EXPERT]
+    basis: "Методологическое значение (автор — методолог компании). Стартовая фаза — первые 3 месяца с первого зарегистрированного ДДУ аналога; темп старта считается отдельно (F.BENCH.COMP_PACE)"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.PACE_ACTIVE_END_SHARE
+    name: "Распроданность, на которой заканчивается активная фаза"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.85
+    source_ids: [S_EXPERT]
+    basis: "Методологическое значение (автор — методолог компании). Активная фаза заканчивается при распроданности 85% площади или на дате РНВ — что раньше. Последние 10–20% — неликвидные лоты со скидками, искажают темп; после РНВ продажи идут по ДКП и не видны в ЕИСЖС. Отклонено: 0,90 — в выборку попадает часть хвоста"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.PACE_MIN_ACTIVE_M
+    name: "Минимальная длительность активной фазы аналога, месяцев"
+    unit: мес
+    kind: scalar
+    scope: template
+    default: 6
+    source_ids: [S_EXPERT]
+    basis: "Методологическое значение (автор — методолог компании). Если активная фаза аналога короче 6 месяцев, аналог не используется для темпа (для цены — используется): короткий ряд даёт случайный темп"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
   - id: BENCH.START_PHASE_M
     name: "Начальная фаза продаж аналога для стартовой цены, месяцев"
     unit: мес
@@ -1342,6 +1526,62 @@ parameters:
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
+  - id: BENCH.GPZU_UNDERUSE_SHARE
+    name: "Порог сообщения «резерв площади по ГПЗУ»"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.9
+    source_ids: [S_EXPERT]
+    basis: "Методологическое значение (автор — методолог компании). Если ГНС наземная проекта меньше 90% разрешённой по ГПЗУ, выводится информационное сообщение «резерв площади по ГПЗУ» (F.CHECK.GPZU_LIMITS) — не ошибка"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.STRUCT_SYSTEM
+    name: "Классификатор несущих систем"
+    unit: enum
+    kind: enum
+    options: [монолитный_жб, сборно_монолитный, сборный_жб, кирпич_каменная]
+    scope: template
+    default: null
+    source_ids: [S_EXPERT, S_NCS_2026_01]
+    basis: "Жёсткий фильтр сопоставимости аналогов рынка и расценок компании. сборный_жб — панель или сборный каркас. «Монолит-кирпич» отдельной несущей системой не является: это монолитный_жб + кирпичная_облицовка (BENCH.FACADE_TYPE) или кирпичное заполнение. Задача на сверку: привести перечень в соответствие с разделами таблиц НЦС 81-02-01-2026, чтобы бенчмарк компании сопоставлялся с НЦС один к одному"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.FACADE_TYPE
+    name: "Классификатор типов фасада"
+    unit: enum
+    kind: enum
+    options: [вентфасад, СФТК_штукатурный, кирпичная_облицовка, светопрозрачный]
+    scope: template
+    default: null
+    source_ids: [S_EXPERT, S_NCS_2026_01]
+    basis: "Не фильтр, а основание для корректировки: цена аналога (BENCH.PRICE_ADJUSTMENTS, фактор «фасад»), расценка проекта-аналога (BENCH.COST_SAMPLE, adj_value с обоснованием). Задача на сверку — с разделами таблиц НЦС 81-02-01-2026"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.HEIGHT_BAND
+    name: "Классификатор групп высотности"
+    unit: table
+    kind: table
+    columns:
+      - {key: band, unit: enum, options: [до_9, 10_17, 18_25, 26_плюс_до_100м, свыше_100м]}
+      - {key: floors_min, unit: шт}
+      - {key: floors_max, unit: шт}
+      - {key: height_max_m, unit: м}
+    scope: template
+    default:
+      - {band: до_9, floors_min: 1, floors_max: 9, height_max_m: null}
+      - {band: 10_17, floors_min: 10, floors_max: 17, height_max_m: null}
+      - {band: 18_25, floors_min: 18, floors_max: 25, height_max_m: null}
+      - {band: 26_плюс_до_100м, floors_min: 26, floors_max: null, height_max_m: 100}
+      - {band: свыше_100м, floors_min: null, floors_max: null, height_max_m: null}
+    source_ids: [S_EXPERT, S_GRK_48_1, S_NCS_2026_01]
+    basis: "Жёсткий фильтр сопоставимости (F.BENCH.HEIGHT_BAND). Группа определяется по максимальной этажности; здание высотой более 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ) и с другими группами не смешивается. Границы по этажности — методологические (автор — методолог компании); задача на сверку — с разделами таблиц НЦС 81-02-01-2026"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
   - id: BENCH.DDU_PRICE_INDEX
     name: "Индекс цен ДДУ региона (помесячный ряд)"
     unit: коэф
@@ -1373,9 +1613,16 @@ parameters:
     columns:
       - {key: comp_id, unit: текст, note: "ЖК из Справочник → Бенчмарки → Аналоги рынка (market_comps)"}
       - {key: purpose, unit: enum, options: [стартовая цена, цена, темп]}
+      - {key: product, unit: enum, options: [квартиры, апартаменты, ПСН, машино-места, кладовые], note: "фильтр: продукт аналога = продукт проекта"}
+      - {key: struct_system, unit: enum, note: "BENCH.STRUCT_SYSTEM — жёсткий фильтр"}
+      - {key: facade_type, unit: enum, note: "BENCH.FACADE_TYPE — основание корректировки"}
+      - {key: max_floors, unit: шт}
+      - {key: height_m, unit: м}
       - {key: deals, unit: таблица, note: "сделки за окно: дата, стоимость, руб; площадь, м² (ЕИСЖС или другой источник)"}
       - {key: exposure_m2, unit: таблица, note: "площадь в экспозиции на начало каждого месяца, м²"}
-      - {key: sales_start, unit: дата}
+      - {key: first_ddu_date, unit: дата, note: "первый зарегистрированный ДДУ — начало стартовой фазы"}
+      - {key: rnv_date, unit: дата, note: "после РНВ продажи по ДКП не видны в ЕИСЖС"}
+      - {key: total_saleable_m2, unit: м2, note: "для распроданности (конец активной фазы)"}
       - {key: excluded, unit: bool, note: "исключён вручную"}
       - {key: exclusion_reason, unit: текст, note: "обязательна при excluded; фиксируется в журнале"}
       - {key: source_id, unit: текст}
@@ -1394,7 +1641,7 @@ parameters:
     kind: table
     columns:
       - {key: comp_id, unit: текст}
-      - {key: factor, unit: enum, options: [локация, класс, отделка, стадия готовности]}
+      - {key: factor, unit: enum, options: [локация, класс, отделка, стадия готовности, фасад]}
       - {key: value, unit: доля, note: "со знаком: +0,05 — аналог хуже проекта, цена повышается"}
       - {key: rationale, unit: текст}
       - {key: source_id, unit: текст}
@@ -1418,8 +1665,12 @@ parameters:
       - {key: contract_date, unit: дата}
       - {key: region_code, unit: текст}
       - {key: housing_class, unit: текст}
-      - {key: floors, unit: шт}
-      - {key: structural_system, unit: текст}
+      - {key: floors, unit: шт, note: "максимальная этажность"}
+      - {key: height_m, unit: м}
+      - {key: structural_system, unit: enum, note: "BENCH.STRUCT_SYSTEM — жёсткий фильтр"}
+      - {key: facade_type, unit: enum, note: "BENCH.FACADE_TYPE"}
+      - {key: adj_value, unit: доля, note: "корректировка ставки на отличие фасада и т.п.; со знаком"}
+      - {key: adj_rationale, unit: текст, note: "обязательна при adj_value ≠ 0"}
       - {key: completed, unit: bool, note: "незавершённый — только по сумме договора, с пометкой"}
       - {key: excluded, unit: bool}
       - {key: exclusion_reason, unit: текст}
@@ -1432,14 +1683,48 @@ parameters:
     status: project_input
     legacy: [{cell: null, verdict: new}]
 
+  - id: BENCH.APART_PAIRS_SAMPLE
+    name: "Пары «квартиры / апартаменты» в одной локации"
+    unit: table
+    kind: table
+    columns:
+      - {key: location, unit: текст}
+      - {key: flat_comp_id, unit: текст}
+      - {key: apart_comp_id, unit: текст}
+      - {key: flat_price_m2, unit: руб/м2, note: "по F.BENCH.COMP_PRICE → PRICE_INDEXED"}
+      - {key: apart_price_m2, unit: руб/м2}
+      - {key: source_id, unit: текст}
+      - {key: url, unit: текст}
+    scope: project
+    default: null
+    source_ids: [S_EISZHS_SALES]
+    basis: "Используется, только если аналогов-апартаментов меньше BENCH.MARKET_MIN_COMPS: дисконт апартаментов к квартирам считается по парам в одной локации (уровень 3, F.BENCH.APART_PRICE), значение помечается. Фиксированный процент дисконта без выборки запрещён"
+    how_to_fill: "Подобрать ЖК с квартирами и апартаменты в той же локации; сервис подтянет цены"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
   - id: TEP.STRUCTURAL_SYSTEM
-    name: "Конструктивная схема здания"
-    unit: текст
-    kind: text
+    name: "Несущая система здания проекта"
+    unit: enum
+    kind: enum
+    options: [монолитный_жб, сборно_монолитный, сборный_жб, кирпич_каменная]
     scope: project
     default: null
     source_ids: [S_PROJECT_DOCS]
-    basis: "Фильтр сопоставимости проектов-аналогов по затратам (F.BENCH.COST_BENCH). Перечень значений утверждает методолог"
+    basis: "Значение из классификатора BENCH.STRUCT_SYSTEM. Жёсткий фильтр сопоставимости аналогов рынка и расценок компании. «Монолит-кирпич» = монолитный_жб + кирпичная облицовка (TEP.FACADE_TYPE) или кирпичное заполнение"
     how_to_fill: "По концепции / эскизу"
-    status: needs_verification
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.FACADE_TYPE
+    name: "Тип фасада здания проекта"
+    unit: enum
+    kind: enum
+    options: [вентфасад, СФТК_штукатурный, кирпичная_облицовка, светопрозрачный]
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Значение из классификатора BENCH.FACADE_TYPE. Не фильтр, а основание для корректировки цены аналога (BENCH.PRICE_ADJUSTMENTS, фактор «фасад») и расценки проекта-аналога (BENCH.COST_SAMPLE)"
+    how_to_fill: "По концепции / эскизу"
+    status: project_input
     legacy: [{cell: null, verdict: new}]

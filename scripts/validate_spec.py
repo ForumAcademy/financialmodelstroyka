@@ -3,7 +3,7 @@
 Проверяет:
   1. Уникальность ID источников, параметров, формул, статей.
   2. У каждого параметра/формулы/статьи есть source_ids, и все они существуют в sources.yaml.
-  3. У источников уровня 1–3 есть URL.
+  3. У источников уровня 1–3 есть URL; scope: global | project (проектные — уровень 4–5, без URL).
   4. depends_on формул ссылается на существующие параметры/формулы; граф без циклов.
   5. Каждый параметр имеет basis; project-параметры без default или с обоснованием.
   6. Карта исходного Excel полная: нет UNMAPPED в legacy/*.csv; все target_id существуют.
@@ -44,6 +44,12 @@ for s in src:
         errors.append(f"источник {s['id']} уровня {s['level']} без URL")
     if s.get("url") and not re.match(r"^https?://", s["url"]):
         errors.append(f"источник {s['id']}: некорректный URL")
+    if s.get("scope") not in ("global", "project"):
+        errors.append(f"источник {s['id']}: scope должен быть global или project")
+    elif s["scope"] == "project" and (s["level"] < 4 or s.get("url")):
+        errors.append(f"источник {s['id']}: проектный источник (scope: project) — только уровень 4–5 и без URL")
+    elif s["scope"] == "global" and s["level"] == 5:
+        errors.append(f"источник {s['id']}: экспертная оценка (уровень 5) может быть только проектной")
     if s.get("verified") is False:
         warns.append(f"источник {s['id']}: не сверен ({s.get('note', '')})")
 

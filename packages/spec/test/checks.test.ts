@@ -53,6 +53,19 @@ describe("проверки ловят ошибки", () => {
     expect(checkSpec(s).errors).toContainEqual(`источник ${src.id} уровня 2 без URL`);
   });
 
+  it("проектный источник с URL или уровнем ниже 4", () => {
+    const s = clone();
+    const src = s.sources.find((x) => x.scope === "project")!;
+    src.url = "https://example.com";
+    expect(checkSpec(s).errors).toContainEqual(expect.stringContaining(`источник ${src.id}: проектный источник`));
+  });
+
+  it("общий источник уровня 5", () => {
+    const s = clone();
+    s.sources.find((x) => x.scope === "global")!.level = 5;
+    expect(checkSpec(s).errors).toContainEqual(expect.stringContaining("может быть только проектной"));
+  });
+
   it("зависимость формулы на несуществующий ID", () => {
     const s = clone();
     s.formulas[0]!.depends_on.push("GEN.НЕТ_ТАКОГО");

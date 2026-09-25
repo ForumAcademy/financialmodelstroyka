@@ -31,6 +31,7 @@ export {
   PARAMETER_STATUSES,
   REGION_STATUSES,
   SOURCE_LEVELS,
+  SOURCE_SCOPES,
 } from "./schemas";
 export type { CapexItem, Formula, Parameter, Region, Source, SpecData } from "./schemas";
 

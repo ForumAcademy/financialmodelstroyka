@@ -47,6 +47,12 @@ export function checkSpec(spec: SpecData): SpecCheckResult {
 
   for (const s of spec.sources) {
     if (s.level <= 3 && !s.url) errors.push(`источник ${s.id} уровня ${s.level} без URL`);
+    if (s.scope === "project" && (s.level < 4 || s.url)) {
+      errors.push(`источник ${s.id}: проектный источник (scope: project) — только уровень 4–5 и без URL`);
+    }
+    if (s.scope === "global" && s.level === 5) {
+      errors.push(`источник ${s.id}: экспертная оценка (уровень 5) может быть только проектной`);
+    }
   }
 
   const checkSources = (owner: string, ids: string[]) => {

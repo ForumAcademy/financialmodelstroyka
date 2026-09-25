@@ -12,11 +12,14 @@ const idList = z.array(z.string().min(1));
 // ---------- sources.yaml ----------
 
 export const SOURCE_LEVELS = [1, 2, 3, 4, 5] as const;
+export const SOURCE_SCOPES = ["global", "project"] as const;
 
 export const sourceSchema = z
   .object({
     id: z.string().regex(/^S_[A-Z0-9_]+$/, "ID источника: S_ВЕРХНИЙ_РЕГИСТР"),
     level: z.union(SOURCE_LEVELS.map((l) => z.literal(l))),
+    /** global — общий источник справочника; project — тип проектного источника (документ хранится в проекте). */
+    scope: z.enum(SOURCE_SCOPES),
     title: z.string().min(1),
     issuer: z.string().min(1),
     url: z.string().regex(/^https?:\/\//, "URL должен начинаться с http(s)://").nullable(),

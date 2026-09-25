@@ -79,11 +79,14 @@ for p in params:
 (ROOT / "docs" / "04_parameters.md").write_text("".join(out), encoding="utf-8")
 
 # ---------------- sources
-out = [HEADER, "# Реестр источников\n",
-       "| ID | Ур. | Источник | Для чего | Проверено | Сверено |\n|---|---|---|---|---|---|\n"]
-for s in sorted(src.values(), key=lambda x: (x["level"], x["id"])):
-    title = f"[{esc(s['title'])}]({s['url']})" if s.get("url") else esc(s["title"])
-    note = f" *{esc(s['note'])}*" if s.get("note") else ""
-    out.append(f"| `{s['id']}` | {s['level']} | {title} | {esc(s['used_for'])}{note} | {s.get('accessed') or '—'} | {'да' if s.get('verified') else ('нет' if s.get('verified') is False else '—')} |\n")
+out = [HEADER, "# Реестр источников\n"]
+SCOPES = [("global", "Общие источники справочника", "Законы, НПА, статистика, госсервисы, рыночные данные, бенчмарки компании. Одни для всех проектов."),
+          ("project", "Типы проектных источников", "Конкретный документ (ГПЗУ, ППТ, ТЭП архитектора, договор, term sheet, экспертная оценка) хранится внутри проекта — вложение, автор, дата — и в справочник не попадает.")]
+for scope, heading, intro in SCOPES:
+    out.append(f"\n## {heading}\n\n{intro}\n\n| ID | Ур. | Источник | Для чего | Проверено | Сверено |\n|---|---|---|---|---|---|\n")
+    for s in sorted((x for x in src.values() if x.get("scope") == scope), key=lambda x: (x["level"], x["id"])):
+        title = f"[{esc(s['title'])}]({s['url']})" if s.get("url") else esc(s["title"])
+        note = f" *{esc(s['note'])}*" if s.get("note") else ""
+        out.append(f"| `{s['id']}` | {s['level']} | {title} | {esc(s['used_for'])}{note} | {s.get('accessed') or '—'} | {'да' if s.get('verified') else ('нет' if s.get('verified') is False else '—')} |\n")
 (ROOT / "docs" / "05_sources.md").write_text("".join(out), encoding="utf-8")
 print("docs rendered: 03_formulas.md, 04_parameters.md, 05_sources.md")

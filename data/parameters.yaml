@@ -1,0 +1,1014 @@
+# Реестр исходных параметров модели.
+# Правило: любое число, которое не вычисляется формулой из formulas.yaml, обязано быть здесь.
+# В коде расчётного ядра «магических чисел» нет — только ссылки на id отсюда.
+#
+# Поля:
+#   id            — уникальный идентификатор МОДУЛЬ.ИМЯ (используется в формулах)
+#   name          — название для интерфейса
+#   unit          — единица: руб | руб/м2 | руб/шт | м2 | шт | доля | %годовых | дата | мес | enum | текст | коэф
+#                   Доли хранятся как доли (0.22), а не проценты (22). Деньги — в рублях без НДС, если не указано иное.
+#   kind          — scalar | series (по месяцам) | table | enum | date | bool | text
+#   scope         — template (универсальное значение из закона/статистики, одинаково для всех проектов)
+#                   region  (зависит от субъекта/муниципалитета — берётся из regions.yaml)
+#                   project (вводится по проекту; без значения по умолчанию)
+#   default       — значение по умолчанию (для scope=template/region) или null
+#   range         — [min, max] допустимый диапазон; выход — предупреждение валидатора
+#   source_ids    — ссылки на data/sources.yaml (обязательно ≥1)
+#   basis         — почему значение такое / откуда оно берётся (обязательно)
+#   how_to_fill   — инструкция пользователю, где взять значение
+#   status        — verified | needs_verification | project_input | expert_allowed
+#   legacy        — ячейки исходного Excel, откуда пришло значение, и вердикт (keep | fix | replace | remove)
+#
+# Значения конкретного проекта (Дербеневская) — в tests/cases/derbenevskaya_legacy.yaml.
+
+parameters:
+
+  # =====================================================================
+  # GEN — общие параметры
+  # =====================================================================
+
+  - id: GEN.PROJECT_NAME
+    name: "Название проекта"
+    unit: текст
+    kind: text
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Идентификация расчёта"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C2", verdict: keep}]
+
+  - id: GEN.REGION_CODE
+    name: "Субъект РФ (код ФНС)"
+    unit: enum
+    kind: enum
+    scope: project
+    default: null
+    source_ids: [S_FNS_RATES]
+    basis: "Определяет все региональные параметры (regions.yaml): ставки земельного налога, аренда, ВРИ, нормативы парковок, коэффициент перехода НЦС"
+    how_to_fill: "Выбрать из списка regions.yaml"
+    status: project_input
+    legacy: [{cell: null, verdict: "new — в исходном файле регион не задан, нормативы Москвы зашиты неявно"}]
+
+  - id: GEN.OKTMO
+    name: "ОКТМО муниципального образования"
+    unit: текст
+    kind: text
+    scope: project
+    default: null
+    source_ids: [S_FNS_RATES, S_NSPD]
+    basis: "Ставка земельного налога устанавливается муниципалитетом (п.1 ст.394 НК РФ), поиск в сервисе ФНС — по ОКТМО"
+    how_to_fill: "Взять из выписки ЕГРН / НСПД по кадастровому номеру"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GEN.CADASTRAL_NUMBER
+    name: "Кадастровый номер участка"
+    unit: текст
+    kind: text
+    scope: project
+    default: null
+    source_ids: [S_NSPD]
+    basis: "Ключ для проверки площади, ВРИ и кадастровой стоимости по официальным данным Росреестра"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GEN.HOUSING_CLASS
+    name: "Класс жилья"
+    unit: enum
+    kind: enum
+    options: [стандарт, комфорт, бизнес, премиум, элит]
+    scope: project
+    default: null
+    source_ids: [S_EISZHS_INDICATORS]
+    basis: "Определяет выбор аналогов для цены/темпа и уровень отделки МОП. Классификация по данным ЕИСЖС"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C4", value: "БИЗНЕС", verdict: keep}]
+
+  - id: GEN.MODEL_START_DATE
+    name: "Дата начала модели (первый месяц)"
+    unit: дата
+    kind: date
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Начало временной шкалы. Все ряды — помесячно от этой даты"
+    status: project_input
+    legacy: [{cell: "CF1!E2", value: "2025-12-31", verdict: keep, note: "в исходнике шаг — квартал; в новой модели — месяц"}]
+
+  - id: GEN.VALUATION_DATE
+    name: "Дата оценки (приведения NPV)"
+    unit: дата
+    kind: date
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Дата, на которую дисконтируются потоки. В исходнике отсутствовала — NPV фактически не считался (Бюджет!F63 = финрез)"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GEN.REPORT_STEP
+    name: "Шаг отчётов"
+    unit: enum
+    kind: enum
+    options: [месяц, квартал, год]
+    scope: project
+    default: квартал
+    source_ids: [S_EXPERT]
+    basis: "Расчёт всегда помесячный (точность эскроу и процентов), отчёты агрегируются. Выбор пользователя"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
+  - id: GEN.PHASES_COUNT
+    name: "Количество очередей"
+    unit: шт
+    kind: scalar
+    scope: project
+    default: 1
+    range: [1, 20]
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По ППТ / концепции. Каждая очередь имеет свои вехи (РНС, РНВ) и свой счёт эскроу"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C17", value: 3, verdict: fix, note: "в исходнике 3 очереди объявлены, но расчёт ведётся одной суммой на одной шкале"}]
+
+  # =====================================================================
+  # LAND — участок и права
+  # =====================================================================
+
+  - id: LAND.AREA
+    name: "Площадь земельного участка"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    range: [100, 5000000]
+    source_ids: [S_NSPD, S_PROJECT_DOCS]
+    basis: "Площадь по ЕГРН"
+    how_to_fill: "Выписка ЕГРН или НСПД по кадастровому номеру"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C15", value: 96572, verdict: keep}, {cell: "ТЭПы!I15", value: 96572, verdict: remove, note: "дубль"}]
+
+  - id: LAND.CADASTRAL_VALUE
+    name: "Кадастровая стоимость участка (текущая)"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_NSPD]
+    basis: "База для земельного налога (ст.390 НК РФ) и аренды. В исходнике не указано — до или после смены ВРИ (комментарий ТЭПы!D13)"
+    how_to_fill: "НСПД / выписка ЕГРН о кадастровой стоимости на 1 января года"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C13", value: 5834907660, verdict: keep}, {cell: "ТЭПы!I13", value: 5834907660, verdict: remove, note: "дубль"}]
+
+  - id: LAND.CADASTRAL_VALUE_AFTER_VRI
+    name: "Кадастровая стоимость после изменения ВРИ"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_NSPD, S_MSK_VRI_593PP]
+    basis: "Нужна для платы за изменение ВРИ (от прироста кадастровой стоимости) и налога после смены ВРИ"
+    how_to_fill: "Оценка по удельному показателю кадастровой стоимости для нового ВРИ в квартале (НСПД) или расчёт ДГИ"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: LAND.TENURE
+    name: "Форма права на участок"
+    unit: enum
+    kind: enum
+    options: [собственность, аренда]
+    scope: project
+    default: собственность
+    source_ids: [S_NK_394]
+    basis: "Собственник платит земельный налог (гл.31 НК РФ), арендатор — арендную плату (регион. акт). В исходнике строка «Аренда/налог ЗУ» смешивала оба платежа"
+    status: project_input
+    legacy: [{cell: "CF1!A24", verdict: fix}]
+
+  - id: LAND.PURCHASE_PRICE
+    name: "Цена приобретения участка / прав"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По договору/оферте. Если сделка не заключена — оценка по аналогам (уровень 3) с обоснованием"
+    status: project_input
+    legacy: [{cell: "Бюджет!F17", value: "=2440190898-F22", verdict: fix, note: "из цены вычтена плата за ВРИ — зашитое число 2 440 190 898 без пояснения"}]
+
+  - id: LAND.LEGAL_COSTS
+    name: "Юридические расходы и due diligence при покупке"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_COMPANY_ACTUALS, S_EXPERT]
+    basis: "По договорам с консультантами"
+    status: project_input
+    legacy: [{cell: "Бюджет!F18", value: 0, verdict: keep}]
+
+  - id: LAND.AGENT_FEE_RATE
+    name: "Агентское вознаграждение, доля от цены участка"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: 0
+    range: [0, 0.05]
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По агентскому договору"
+    status: project_input
+    legacy: [{cell: "Бюджет!D19", value: 0.02, verdict: fix, note: "ставка 2% задана, но сумма F19 вбита 0 — ставка не участвует в расчёте"}, {cell: "Бюджет!F19", value: 0, verdict: replace}]
+
+  - id: LAND.VRI_FEE
+    name: "Плата за изменение ВРИ"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_MSK_VRI_593PP]
+    basis: "Москва: от прироста кадастровой стоимости (ПП 593-ПП). Другие регионы: по региональному акту (regions.yaml → vri_fee_act) или 0, если платы нет. В исходнике — 5 000 руб/м² ГНС без источника"
+    how_to_fill: "Рассчитывается формулой F.LAND.VRI_FEE, если регион задан; ручной ввод — только с приложением расчёта ДГИ"
+    status: needs_verification
+    legacy: [{cell: "Бюджет!D22", value: 5000, verdict: replace, note: "5 000 руб/м² × СПП — экспертно, без ссылки"}]
+
+  - id: LAND.RENT_ANNUAL
+    name: "Арендная плата за участок, в год"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_MSK_RENT_273PP, S_SPB_RENT_608, S_PROJECT_DOCS]
+    basis: "По договору аренды или расчёт по региональной методике (кадастровая стоимость × ставка × коэффициенты)"
+    status: project_input
+    legacy: [{cell: "Бюджет!F21", value: 825124525.273, verdict: replace, note: "итоговая сумма за весь срок без расчёта; распределена равномерно на 7,25 года (CF1 строка 24)"}]
+
+  - id: LAND.CITY_OBLIGATIONS
+    name: "Обязательства перед городом (компенсация, передача объектов, КРТ)"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По договору о КРТ / соглашению с городом / ГПЗУ. Это правообладание, а не ПИР"
+    status: project_input
+    legacy: [{cell: "Бюджет!F24", value: 1260033986.66, verdict: fix, note: "была в разделе ПиР; комментарий автора: «перенести в правообладание»"}]
+
+  # --- земельный налог ---
+
+  - id: TAX.LAND_RATE
+    name: "Ставка земельного налога"
+    unit: доля
+    kind: scalar
+    scope: region
+    default: null
+    range: [0, 0.015]
+    source_ids: [S_NK_394, S_FNS_RATES]
+    basis: "Устанавливается муниципалитетом (для Москвы, СПб, Севастополя — законом города) в пределах ст.394 НК РФ. Для участков под жильё > 300 млн руб. кадастровой стоимости предел 0,3% не действует → до 1,5%"
+    how_to_fill: "Сервис ФНС по ОКТМО участка; значение подставляется из regions.yaml при наличии"
+    status: needs_verification
+    legacy: [{cell: "CF1!D84", value: 0.002, verdict: replace, note: "0,2% без источника; для участка стоимостью 5,8 млрд предел 0,3% не применяется"}]
+
+  - id: TAX.LAND_COEF_UP_TO_3Y
+    name: "Повышающий коэффициент земельного налога (первые 3 года строительства)"
+    unit: коэф
+    kind: scalar
+    scope: template
+    default: 2
+    source_ids: [S_NK_396, S_FNS_LANDCOEF_2026]
+    basis: "п.15 ст.396 НК РФ: участки для жилищного строительства (кроме ИЖС) — коэф. 2 в течение 3 лет проектирования и строительства до госрегистрации прав на объект"
+    status: verified
+    legacy: [{cell: null, verdict: "new — в исходнике не учитывался"}]
+
+  - id: TAX.LAND_COEF_OVER_3Y
+    name: "Повышающий коэффициент земельного налога (сверх 3 лет)"
+    unit: коэф
+    kind: scalar
+    scope: template
+    default: 4
+    source_ids: [S_NK_396, S_FNS_LANDCOEF_2026]
+    basis: "п.15 ст.396 НК РФ: коэф. 4 — сверх трёхлетнего срока до госрегистрации прав"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TAX.LAND_COEF_APPLY
+    name: "Применять коэффициенты п.15 ст.396"
+    unit: bool
+    kind: bool
+    scope: project
+    default: true
+    source_ids: [S_NK_396, S_FNS_LANDCOEF_2026]
+    basis: "Коэффициенты привязаны к ВРИ «жилищное строительство». Выключатель — для участков с иным ВРИ до его смены (решение пользователя с комментарием)"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
+  # =====================================================================
+  # TEP — технико-экономические показатели
+  # =====================================================================
+
+  - id: TEP.GFA_ABOVE
+    name: "Площадь наземной части в ГНС (суммарная поэтажная)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По ГПЗУ (предельные параметры) / концепции. База для СМР надземной части и НЦС"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C19", value: 221967, verdict: keep, note: "подпись «СПП (ГНС)» смешивала понятия; уточнено как наземная ГНС (вопрос автора ТЭПы!E19)"}]
+
+  - id: TEP.GFA_BELOW
+    name: "Площадь подземной части (паркинг, техпомещения)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции. НЦС жилых зданий подземные автостоянки не включают (S_NCS_TECHPART п.21) — считается отдельной статьёй"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C34", value: "=E49 (= 40,945 × 862)", verdict: fix, note: "подземная площадь выводилась из числа машино-мест; СМР подземной части имеет объём 0 (Бюджет!E33)"}]
+
+  - id: TEP.RES_GFA
+    name: "ГНС жилой части"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C20", value: "=210038+420", verdict: keep}]
+
+  - id: TEP.NONRES_GFA
+    name: "ГНС нежилой части (коммерция, соцобъекты во встроенных помещениях)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C21", value: 19009, verdict: keep}]
+
+  - id: TEP.APT_EFFICIENCY
+    name: "Коэффициент продаваемой площади квартир к ГНС жилой части"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    range: [0.55, 0.8]
+    source_ids: [S_PROJECT_DOCS, S_COMPANY_ACTUALS]
+    basis: "Используется, если продаваемая площадь ещё не посчитана архитектором. При наличии концепции — вводится площадь квартир напрямую"
+    status: expert_allowed
+    legacy: [{cell: "ТЭПы!D22", value: "=C22/C20 ≈ 0,68", verdict: keep, note: "в исходнике — обратный расчёт из заданной площади"}]
+
+  - id: TEP.APT_AREA
+    name: "Продаваемая площадь квартир"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции; если нет — F.TEP.APT_AREA = ГНС жилой части × коэффициент"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C22", value: 143560, verdict: keep}]
+
+  - id: TEP.COMM_AREA
+    name: "Продаваемая площадь коммерческих помещений (ПСН)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции"
+    status: project_input
+    legacy:
+      - {cell: "ТЭПы!C23", value: 10322, verdict: keep}
+      - {cell: "ТЭПы!C48", value: 10332, verdict: remove, note: "расхождение с C23 на 10 м² — опечатка"}
+      - {cell: "ТЭПы!D23", value: 0.8, verdict: remove, note: "коэффициент без назначения, в формулах не участвует"}
+
+  - id: TEP.MOP_AREA
+    name: "Площадь МОП под отделку (включая лобби, ресепшн)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "База для статьи «Отделка МОП»"
+    status: project_input
+    legacy: [{cell: "ТЭПы!C26", value: "=51775+7719", verdict: keep}]
+
+  - id: TEP.STORAGE_COUNT
+    name: "Количество кладовых"
+    unit: шт
+    kind: scalar
+    scope: project
+    default: 0
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции"
+    status: project_input
+    legacy: [{cell: "ТЭПы!E50", value: 0, verdict: keep, note: "«Прочие помещения» = 0; на дашборде названо «Кладовые»"}]
+
+  - id: TEP.PARKING_AREA_PER_SPACE
+    name: "Площадь подземного паркинга на одно машино-место (с проездами)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    range: [25, 50]
+    source_ids: [S_PROJECT_DOCS, S_COMPANY_ACTUALS]
+    basis: "Из концепции паркинга; используется для оценки площади подземной части, если её нет"
+    status: expert_allowed
+    legacy: [{cell: "ТЭПы!D49", value: 40.945, verdict: keep}]
+
+  - id: TEP.PARKING_COUNT_OVERRIDE
+    name: "Количество машино-мест (ручной ввод, если отличается от норматива)"
+    unit: шт
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Если ГПЗУ/ППТ даёт иное число. Без документа ввод запрещён: модель считает по нормативу региона (F.TEP.PARKING_REQUIRED)"
+    status: project_input
+    legacy:
+      - {cell: "ТЭПы!C27", value: 862, verdict: fix, note: "по нормативу из той же таблицы (0,8/1,2/1,6) получается 2 785 м/м; 862 вбито без обоснования"}
+      - {cell: "ТЭПы!J44", value: 862, verdict: fix, note: "перебивает формулу-норматив"}
+
+  - id: TEP.LANDSCAPE_SHARE
+    name: "Доля благоустройства от площади участка"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    range: [0.1, 0.8]
+    source_ids: [S_PROJECT_DOCS, S_SP_42_2026, S_SPB_NGP_257]
+    basis: "Из ППТ/концепции. Минимум озеленения — по региональным НГП и СП 42"
+    status: expert_allowed
+    legacy: [{cell: "ТЭПы!D29", value: 0.3, verdict: keep, note: "вопрос автора: «откуда нормативы?» — теперь требуется ссылка на ППТ/НГП"}]
+
+  - id: TEP.ROAD_SHARE
+    name: "Доля внутриквартальных проездов в площади благоустройства"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Из ППТ/концепции"
+    status: expert_allowed
+    legacy: [{cell: "ТЭПы!D30", value: 0.1, verdict: keep}]
+
+  - id: TEP.GREEN_SHARE
+    name: "Доля озеленения в площади благоустройства"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS, S_SP_42_2026]
+    basis: "Из ППТ; проверка на минимум по НГП региона"
+    status: expert_allowed
+    legacy: [{cell: "ТЭПы!D31", value: 0.1, verdict: keep}]
+
+  - id: TEP.APT_MIX
+    name: "Квартирография"
+    unit: table
+    kind: table
+    columns:
+      - {key: type_name, unit: текст}
+      - {key: count, unit: шт}
+      - {key: avg_area, unit: м2}
+      - {key: phase, unit: номер очереди}
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По концепции. Доля типа вычисляется (F.TEP.APT_SHARE), а не вводится — иначе расходится с количеством"
+    status: project_input
+    legacy:
+      - {cell: "ТЭПы!C41:C43", value: [0.4, 0.3, 0.3], verdict: remove, note: "доли вводились вручную параллельно с количеством"}
+      - {cell: "ТЭПы!D41:D43", value: [35.108, 60.53, 92], verdict: keep}
+      - {cell: "ТЭПы!F41:F43", value: [961, 720, 720], verdict: keep}
+      - {cell: "ТЭПы!F44", value: 2401, verdict: fix, note: "итог вбит числом вместо SUM"}
+      - {cell: "ТЭПы!C28", value: 2401, verdict: remove, note: "дубль"}
+
+  - id: TEP.PARKING_NORM
+    name: "Норматив машино-мест на квартиру по типам"
+    unit: table
+    kind: table
+    scope: region
+    default: null
+    source_ids: [S_MSK_PARKING_2118PP, S_SPB_NGP_257, S_SP_42_2026]
+    basis: "Региональные НГП. Москва (2118-ПП от 05.08.2026): до 70 м² — 0,8; 70–100 м² — 1,2; > 100 м² — 1,6. Прочие регионы — regions.yaml"
+    status: needs_verification
+    legacy: [{cell: "ТЭПы!I41:I43", value: [0.8, 1.2, 1.6], verdict: keep, note: "совпадает с 2118-ПП; источник в исходнике не указан"}]
+
+  - id: TEP.UNCLEAR_LEGACY
+    name: "Значения исходника с неясным назначением"
+    unit: текст
+    kind: text
+    scope: project
+    default: null
+    source_ids: [S_EXPERT]
+    basis: "Сохранены, чтобы ничего не потерять; требуют пояснения автора исходного файла"
+    status: needs_verification
+    legacy:
+      - {cell: "ТЭПы!C49", value: 5200, verdict: "clarify", note: "в столбце долей для машино-мест; в формулах не участвует"}
+      - {cell: "ТЭПы!C35", value: 149281, verdict: "clarify", note: "«Продаваемая площадь» вбита числом; кв+ком = 153 882. Разница 4 601 м² не объяснена"}
+
+  # =====================================================================
+  # TIME — вехи (по каждой очереди)
+  # =====================================================================
+
+  - id: TIME.MILESTONES
+    name: "Вехи проекта по очередям"
+    unit: table
+    kind: table
+    columns:
+      - {key: phase, unit: номер}
+      - {key: land_acquired, unit: дата}
+      - {key: design_start, unit: дата}
+      - {key: expertise_done, unit: дата}
+      - {key: rns_date, unit: дата, note: "РНС, ст.51 ГрК"}
+      - {key: construction_start, unit: дата}
+      - {key: construction_end, unit: дата}
+      - {key: rnv_date, unit: дата, note: "РНВ, ст.55 ГрК"}
+      - {key: handover_end, unit: дата, note: "окончание передачи по актам — дата признания финреза для налога на прибыль"}
+      - {key: sales_start, unit: дата}
+    scope: project
+    default: null
+    source_ids: [S_GRK_51, S_GRK_55, S_PROJECT_DOCS]
+    basis: "Все даты — настоящие даты (не текст «1 кв 2026»). Из них строятся флаги периодов (F.TIME.*)"
+    status: project_input
+    legacy:
+      - {cell: "ТЭПы!C6", value: "3 кв 2025-4 кв 2025", verdict: fix, note: "текст — формулы CF1 его не распознают"}
+      - {cell: "ТЭПы!C7", value: "4 кв 2025", verdict: fix, note: "текст → флаг «Начало стройки» (CF1!4) никогда не срабатывает"}
+      - {cell: "ТЭПы!C8", value: "1 кв 2026", verdict: fix}
+      - {cell: "ТЭПы!C9", value: "1 кв 2032", verdict: fix}
+      - {cell: "ТЭПы!C10", value: "30.09.2029; 01.03.2031; 01.07.2031; 01.10.2031", verdict: fix, note: "4 даты РНВ при 3 очередях, в одной ячейке текстом"}
+      - {cell: "ТЭПы!C11", value: "4 кв 2033", verdict: fix}
+      - {cell: "ТЭПы!C12", value: "2 кв 2032", verdict: fix, note: "«окончание ПФ» → раскрытие эскроу (CF1!D6) — текст, флаг не срабатывает"}
+      - {cell: "ТЭПы!C5", value: 7.25, verdict: remove, note: "срок проекта — вычисляется из вех; 7,25 было зашито и в делители CF1!F24, F84"}
+      - {cell: "CF1!AB6:AF6", value: [1, 0, 0, 0, 0], verdict: remove, note: "флаг раскрытия эскроу проставлен руками поверх формулы"}
+      - {cell: "CF1!AB8:AS8", value: "0 × 18", verdict: remove, note: "флаг продаж по эскроу перебит руками"}
+      - {cell: "CF1!F7:AC7", value: "1..6", verdict: remove, note: "«год строительства» — ручная нумерация, вычисляется"}
+
+  - id: TIME.ESCROW_RELEASE_LAG_M
+    name: "Лаг раскрытия эскроу после РНВ"
+    unit: мес
+    kind: scalar
+    scope: template
+    default: 1
+    range: [0, 6]
+    source_ids: [S_214_ART15_5]
+    basis: "ч.6 ст.15.5 214-ФЗ: не позднее 10 рабочих дней после представления РНВ → при месячном шаге 1 месяц (консервативно)"
+    status: verified
+    legacy: [{cell: null, verdict: "new — в исходнике раскрытие привязано к «окончанию ПФ»"}]
+
+  - id: TIME.RNS_TO_RNV_TAX_YEARS
+    name: "Порог лет для коэффициента 4 земельного налога"
+    unit: год
+    kind: scalar
+    scope: template
+    default: 3
+    source_ids: [S_NK_396]
+    basis: "п.15 ст.396 НК РФ — трёхлетний срок"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
+  # =====================================================================
+  # CAPEX — бюджет затрат (каждая статья = ставка × база × индекс, график по правилу)
+  # =====================================================================
+
+  - id: CAPEX.ITEMS
+    name: "Справочник статей бюджета"
+    unit: table
+    kind: table
+    columns:
+      - {key: item_id, unit: текст}
+      - {key: group, unit: enum, options: [правообладание, ПИР, СМР, сети, благоустройство, соцобъекты, управление, коммерческие]}
+      - {key: base, unit: enum, options: [LAND.AREA, TEP.GFA_ABOVE, TEP.GFA_BELOW, TEP.MOP_AREA, F.TEP.GFA_TOTAL, F.TEP.SALEABLE_AREA, F.TEP.LANDSCAPE_AREA, F.CAPEX.SMR_TOTAL, F.SALES.REVENUE_TOTAL, LAND.PURCHASE_PRICE, фикс, фикс_в_месяц, формула]}
+      - {key: rate, unit: "руб/ед. базы или доля"}
+      - {key: price_date, unit: дата, note: "дата уровня цен ставки — для индексации"}
+      - {key: vat_included, unit: bool, note: "ставка с НДС или без"}
+      - {key: schedule_rule, unit: enum, options: [uniform, s_curve, at_milestone, follow_smr, follow_sales, manual]}
+      - {key: schedule_from, unit: веха}
+      - {key: schedule_to, unit: веха}
+      - {key: source_ids, unit: список}
+      - {key: basis, unit: текст}
+    scope: project
+    default: "см. data/capex_items.yaml — перечень статей с нормативными источниками по умолчанию"
+    source_ids: [S_NCS_2026_01, S_MINSTROY_421, S_COMPANY_ACTUALS]
+    basis: "В исходнике суммы вбиты числом, а «расценка» получалась обратным делением (Бюджет!D = F/E). Теперь сумма всегда = ставка × база × индекс"
+    status: project_input
+    legacy: [{cell: "Бюджет!D17:F49", verdict: fix, note: "детально — capex_items.yaml → legacy"}]
+
+  - id: CAPEX.CONTINGENCY_RATE
+    name: "Резерв на непредвиденные работы и затраты"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.02
+    range: [0, 0.1]
+    source_ids: [S_MINSTROY_421, S_NCS_TECHPART]
+    basis: "Методика 421/пр: 2% для объектов непроизводственного назначения. Если СМР взяты по НЦС — резерв уже внутри показателя, начислять только на статьи вне НЦС"
+    status: needs_verification
+    legacy:
+      - {cell: "Бюджет!D42", value: "=(D32+D33+D34)*10%", verdict: fix, note: "10% от суммы расценок, затем F42 = E42 + D42 (площадь + ставка) → 0,2 млн вместо ~7,5 млрд по замыслу автора"}
+
+  - id: CAPEX.NCS_BENCHMARK_ENABLED
+    name: "Сверять СМР с НЦС"
+    unit: bool
+    kind: bool
+    scope: template
+    default: true
+    source_ids: [S_NCS_2026_01, S_NCS_TECHPART]
+    basis: "Отклонение расценки СМР от НЦС (с региональными коэффициентами) > ±25% — предупреждение с требованием обоснования"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
+  - id: CAPEX.NCS_BENCH_TOLERANCE
+    name: "Допустимое отклонение СМР от НЦС без обоснования"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.25
+    source_ids: [S_EXPERT]
+    basis: "Порог сигнала для проверки; НЦС — госнорматив для бюджетных объектов, коммерческая стоимость может отличаться (класс, отделка)"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: CAPEX.COST_INDEX
+    name: "Индекс роста строительных затрат, годовой"
+    unit: "доля/год"
+    kind: series
+    scope: template
+    default: null
+    source_ids: [S_MINEC_SCENARIO_2027, S_FGISCS]
+    basis: "Дефлятор/индекс МЭР по годам; для СМР — индексы Минстроя (ФГИС ЦС). В исходнике затраты не индексировались"
+    how_to_fill: "Заполняется из прогноза МЭР при актуализации справочника (раз в квартал)"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  # =====================================================================
+  # SALES — продажи
+  # =====================================================================
+
+  - id: SALES.PRODUCTS
+    name: "Продуктовые линии"
+    unit: table
+    kind: table
+    columns:
+      - {key: product, unit: enum, options: [квартиры, апартаменты, ПСН, машино-места, кладовые]}
+      - {key: phase, unit: номер}
+      - {key: stock_area, unit: м2}
+      - {key: stock_units, unit: шт}
+      - {key: start_price, unit: "руб/м2 (руб/шт для м/м и кладовых), с НДС если облагается"}
+      - {key: price_date, unit: дата}
+      - {key: sale_channel_before_rnv, unit: enum, options: [ДДУ_эскроу, не_продаётся]}
+      - {key: source_ids, unit: список}
+    scope: project
+    default: null
+    source_ids: [S_EISZHS_SALES, S_ROSSTAT_PRICES, S_PROJECT_DOCS]
+    basis: "Стартовая цена — по аналогам (ЕИСЖС: цены ДДУ проектов того же класса в радиусе), минимум 3 аналога с ссылками в карточке параметра"
+    status: project_input
+    legacy:
+      - {cell: "ТЭПы!G41:G43", value: [497703, 497703, 497703], verdict: keep, note: "одинаковая цена для всех типов — источник не указан"}
+      - {cell: "ТЭПы!G48", value: 600000, verdict: keep, note: "ПСН, руб/м²"}
+      - {cell: "ТЭПы!D48", value: 80, verdict: keep, note: "средняя площадь лота ПСН"}
+      - {cell: "ТЭПы!G49", value: 270000, verdict: fix, note: "цена м/м задана в руб/м² × 40,945 м² = 11,06 млн за место; проверить"}
+      - {cell: "ТЭПы!D50:F50", value: [0, 0, 0], verdict: keep}
+
+  - id: SALES.PACE
+    name: "Темп продаж"
+    unit: "м2/мес или доля остатка/мес"
+    kind: table
+    scope: project
+    default: null
+    source_ids: [S_EISZHS_SALES, S_COMPANY_ACTUALS]
+    basis: "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — темпы аналогов по ЕИСЖС"
+    status: project_input
+    legacy:
+      - {cell: "План продаж!E28:AG28", verdict: keep, note: "Тип 1, шт/квартал, 29 значений (сумма 961)"}
+      - {cell: "План продаж!E33:AG33", verdict: keep, note: "Тип 2, шт/квартал (сумма 720)"}
+      - {cell: "План продаж!E38:AG38", verdict: keep, note: "Тип 3, шт/квартал (сумма 720)"}
+      - {cell: "План продаж!E43:AM43", verdict: fix, note: "ПСН, лотов/квартал, дробные (2,2125…); итого 136,1 лота × 80 м² = 10 888 м² при запасе 10 322 м² — продано больше, чем построено"}
+      - {cell: "План продаж!E48:BC48", verdict: fix, note: "машино-места, шт/квартал (итого 862); выручка = шт × 40,945 м² × 270 000 руб/м² ≈ 11 млн за место без роста, 13,6 млрд итого — проверить цену"}
+      - {cell: "План продаж!E1:AG3", verdict: remove, note: "дубль рядов 28/33/38"}
+      - {cell: "План продаж!E21:AG22", verdict: remove, note: "итоги вбиты числами вместо сумм"}
+      - {cell: "План продаж!E70:BC70", verdict: remove, note: "пустой ряд без подписи"}
+
+  - id: SALES.PRICE_MARKET_GROWTH
+    name: "Рыночный рост цен, годовой"
+    unit: "доля/год"
+    kind: series
+    scope: project
+    default: null
+    source_ids: [S_EISZHS_SERIES, S_MINEC_SCENARIO_2027]
+    basis: "Базовый сценарий — не выше прогноза ИПЦ МЭР; отклонение требует обоснования динамикой цен ЕИСЖС по региону"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: "new — в исходнике рост 2%/кв один на всё"}]
+
+  - id: SALES.PRICE_STAGE_UPLIFT
+    name: "Рост цены по стадиям строительной готовности"
+    unit: table
+    kind: table
+    columns:
+      - {key: stage, unit: enum, options: [старт продаж, котлован, 25%, 50%, 75%, РНВ]}
+      - {key: uplift, unit: "доля к предыдущей стадии"}
+    scope: project
+    default: null
+    source_ids: [S_EISZHS_SERIES, S_COMPANY_ACTUALS]
+    basis: "Надбавка за снижение риска по мере готовности; калибруется по истории цен аналогов"
+    status: expert_allowed
+    legacy:
+      - {cell: "План продаж!E30,E35,E40,E45,E50,E55", value: 0.02, verdict: replace, note: "2% в квартал без разделения на рынок и стадию"}
+      - {cell: "План продаж!U55:AM55", value: "2.02 … 20.02", verdict: remove, note: "ошибка ввода (рост 202–2002% в квартал); ряд «прочие» не используется"}
+
+  - id: SALES.PAYMENT_MIX
+    name: "Структура оплат"
+    unit: table
+    kind: table
+    columns:
+      - {key: mortgage_share, unit: доля}
+      - {key: full_payment_share, unit: доля}
+      - {key: installment_share, unit: доля}
+      - {key: installment_months, unit: мес}
+      - {key: installment_down_payment, unit: доля}
+    scope: project
+    default: null
+    source_ids: [S_CBR_MORTGAGE, S_EISZHS_SALES]
+    basis: "Сумма долей = 1. Ипотека и 100% поступают на эскроу в месяц сделки; рассрочка — по графику. Доли — статистика ЦБ по доле ипотеки в ДДУ региона"
+    status: project_input
+    legacy:
+      - {cell: "Эскроу!C5", value: 0, verdict: keep, note: "рассрочка"}
+      - {cell: "Эскроу!C6", value: 0.7, verdict: keep, note: "ипотека"}
+      - {cell: "Эскроу!C7", value: 0.1, verdict: fix, note: "100% оплата; 0,7+0,1+0 = 0,8 — доли не сходятся к 1"}
+      - {cell: "Эскроу!C8", value: 0.2, verdict: fix, note: "ПВ 20% — смешан со структурой оплат"}
+      - {cell: "Эскроу!D3:AK3", value: "6 кв × 27", verdict: keep, note: "срок рассрочки"}
+      - {cell: "Эскроу!D8:H8", value: 0, verdict: remove}
+
+  # =====================================================================
+  # FIN — проектное финансирование
+  # =====================================================================
+
+  - id: FIN.EQUITY_SHARE
+    name: "Доля собственного участия в бюджете (до первой выборки ПФ)"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: 0.15
+    range: [0.1, 0.5]
+    source_ids: [S_214_ART3, S_BANK_TERMSHEET]
+    basis: "Не ниже 10% (п.1.1 ч.2 ст.3 214-ФЗ); банк задаёт фактическую долю в кредитном решении. Вносится ДО выборок кредита (не пропорционально каждому периоду, как в исходнике)"
+    status: needs_verification
+    legacy:
+      - {cell: "CF1!D132", value: 0.1, verdict: fix, note: "10% от расходов каждого периода — неверно, банк требует внести собственные средства вперёд"}
+      - {cell: "Бюджет!D65", value: 0.1, verdict: remove, note: "дубль"}
+
+  - id: FIN.RATE_PREFERENTIAL
+    name: "Льготная ставка на часть долга, покрытую эскроу"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: null
+    range: [0.0001, 0.1]
+    source_ids: [S_BANK_TERMSHEET, S_CBR_PF_STATS]
+    basis: "Условие банка; калибровка — средние ставки ПФ по статистике ЦБ"
+    status: project_input
+    legacy: [{cell: "CF1!D116", value: 0.05, verdict: keep}]
+
+  - id: FIN.RATE_BASE_SPREAD
+    name: "Спред базовой ставки к ключевой"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: null
+    range: [0, 0.1]
+    source_ids: [S_BANK_TERMSHEET]
+    basis: "Базовая ставка = ключевая + спред. В исходнике базовая 20% задана фиксированно при ключевой 14,25% — не реагирует на сценарий ставки"
+    status: project_input
+    legacy: [{cell: "CF1!D117", value: 0.2, verdict: fix, note: "эквивалент спреда = 20% − 14,25% = 5,75 п.п."}]
+
+  - id: FIN.KEY_RATE_PATH
+    name: "Траектория ключевой ставки"
+    unit: "%годовых"
+    kind: series
+    scope: template
+    default: {current: 0.14, as_of: 2026-09-11}
+    source_ids: [S_CBR_KEYRATE, S_CBR_KEYRATE_DECISION, S_CBR_MACROSURVEY]
+    basis: "Текущее значение — ЦБ (14,00% на 11.09.2026); будущие периоды — медиана макроопроса ЦБ, далее — последнее значение"
+    status: verified
+    legacy: [{cell: "CF1!D115", value: 0.1425, verdict: replace, note: "устарело, одна константа на весь срок"}]
+
+  - id: FIN.RATE_DISCOUNT_COEF
+    name: "Скидка к ставке при избыточном покрытии эскроу (СкР)"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: 0
+    source_ids: [S_BANK_TERMSHEET]
+    basis: "Условие банка (не у всех банков). В исходнике: ставка скидки = ключевая − 2 п.п."
+    status: project_input
+    legacy: [{cell: "CF1!D118", value: -0.02, verdict: keep}]
+
+  - id: FIN.RATE_MIN
+    name: "Минимальная ставка ПФ"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: 0.001
+    source_ids: [S_BANK_TERMSHEET]
+    basis: "Нижняя граница ставки по кредитному договору"
+    status: project_input
+    legacy: [{cell: "CF1!D119", value: 0.001, verdict: keep}]
+
+  - id: FIN.ESCROW_RESERVE_RATE
+    name: "Коэффициент уменьшения остатков эскроу для расчёта ставки (ФОР)"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: 0
+    source_ids: [S_CBR_RESERVE, S_BANK_TERMSHEET]
+    basis: "Если банк учитывает остатки эскроу за вычетом резервирования — по кредитному договору"
+    status: project_input
+    legacy: [{cell: "CF1!D92", value: 0, verdict: keep}]
+
+  - id: FIN.FEE_ARRANGEMENT
+    name: "Комиссия за выдачу кредита, доля от лимита"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_BANK_TERMSHEET]
+    basis: "По кредитному договору"
+    status: project_input
+    legacy: [{cell: "CF1!D111", value: 0.01, verdict: keep}]
+
+  - id: FIN.FEE_COMMITMENT
+    name: "Комиссия за неиспользованный лимит, %годовых"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: 0
+    source_ids: [S_BANK_TERMSHEET]
+    basis: "По кредитному договору"
+    status: project_input
+    legacy: [{cell: "CF1!A112", verdict: keep, note: "строка была пустой"}]
+
+  - id: FIN.COLLATERAL_DISCOUNT
+    name: "Дисконт залоговой стоимости нераспроданных площадей"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_BANK_TERMSHEET]
+    basis: "Если после РНВ долг не погашен эскроу — погашение из ДКП по залоговой стоимости"
+    status: project_input
+    legacy: [{cell: "CF1!D102", value: 0.15, verdict: keep, note: "в исходнике строки 103–105 не доведены до расчёта"}]
+
+  # =====================================================================
+  # TAX — налоги
+  # =====================================================================
+
+  - id: TAX.VAT_RATE
+    name: "Ставка НДС"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.22
+    source_ids: [S_NK_164, S_FZ_425_VAT22]
+    basis: "п.3 ст.164 НК РФ, 22% с 01.01.2026"
+    status: verified
+    legacy:
+      - {cell: "Бюджет!D54", value: 0.22, verdict: keep}
+      - {cell: "CF1!D85", value: 0.22, verdict: remove, note: "дубль"}
+      - {cell: "План продаж!C62", value: 0.22, verdict: remove, note: "дубль; применялась как 22% от цены с НДС вместо 22/122"}
+
+  - id: TAX.VAT_REGIME
+    name: "Режим НДС по продуктам и каналам продаж"
+    unit: table
+    kind: table
+    scope: template
+    default:
+      - {product: квартиры,     channel: ДДУ, taxable: false, basis: "пп.23.1 п.3 ст.149 НК РФ"}
+      - {product: квартиры,     channel: ДКП, taxable: false, basis: "пп.22 п.3 ст.149 НК РФ"}
+      - {product: машино-места, channel: ДДУ, taxable: false, basis: "пп.23.1 п.3 ст.149 НК РФ"}
+      - {product: машино-места, channel: ДКП, taxable: true,  basis: "не входят в пп.22 (только жилые помещения)"}
+      - {product: ПСН,          channel: ДДУ, taxable: false, basis: "пп.23.1 п.3 ст.149 — кроме объектов производственного назначения"}
+      - {product: ПСН,          channel: ДКП, taxable: true,  basis: "общий порядок, ст.146 НК РФ"}
+      - {product: кладовые,     channel: ДДУ, taxable: false, basis: "пп.23.1 п.3 ст.149 НК РФ"}
+      - {product: кладовые,     channel: ДКП, taxable: true,  basis: "общий порядок"}
+      - {product: апартаменты,  channel: ДДУ, taxable: true,  basis: "РНС с 01.01.2024 — облагается (389-ФЗ, письмо Минфина 03-07-07/82426)"}
+      - {product: апартаменты,  channel: ДКП, taxable: true,  basis: "не жилые помещения"}
+    source_ids: [S_NK_149, S_MINFIN_VAT_DDU_2023, S_MINFIN_VAT_APART_2023]
+    basis: "В исходнике НДС 22% начислялся на всю выручку ПСН+ММ «сверху». Для ДДУ по ПСН/ММ освобождение применяется к услуге застройщика; строки ПСН и ДДУ по нежилым — сверить с налоговым консультантом проекта"
+    status: needs_verification
+    legacy: [{cell: "Бюджет!E54", value: "=(F30+F23+F16)-'План продаж'!D60", verdict: fix, note: "база НДС = затраты − выручка, бессмысленная формула; F54 пустая"}, {cell: "CF1!M85:AA85", value: "5 000 000 × 15", verdict: remove, note: "НДС вбит по 5 млн в квартал"}]
+
+  - id: TAX.INPUT_VAT_RECOVERABLE
+    name: "Входящий НДС к вычету — доля"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_NK_149, S_MINFIN_VAT_DDU_2023]
+    basis: "По освобождённым операциям входящий НДС не вычитается и включается в стоимость (раздельный учёт). Доля к вычету = доля облагаемой выручки (рассчитывается F.TAX.INPUT_VAT_SHARE; ручной ввод — по учётной политике)"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TAX.PROFIT_RATE
+    name: "Ставка налога на прибыль"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.25
+    source_ids: [S_NK_284]
+    basis: "ст.284 НК РФ, 25% с 01.01.2025"
+    status: verified
+    legacy:
+      - {cell: "Бюджет!D55", value: 0.25, verdict: keep}
+      - {cell: "CF1!D86", value: 0.25, verdict: remove, note: "дубль"}
+      - {cell: "Бюджет!M55", value: "=F12*5.7%", verdict: remove, note: "налог взят как 5,7% выручки без обоснования"}
+
+  - id: TAX.LOSS_CARRYFORWARD_LIMIT
+    name: "Лимит зачёта убытков прошлых лет, доля базы"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 0.5
+    source_ids: [S_NK_283]
+    basis: "п.2.1 ст.283 НК РФ — ограничение 50% базы в установленные периоды"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  # =====================================================================
+  # OPEX — коммерческие и управленческие
+  # =====================================================================
+
+  - id: OPEX.MARKETING_RATE
+    name: "Маркетинг, доля выручки"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    range: [0, 0.05]
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "Факт компании по сопоставимым проектам"
+    status: expert_allowed
+    legacy: [{cell: "Бюджет!D51", value: 0.035, verdict: keep}, {cell: "Бюджет!F51", value: "=8389618415.5/2", verdict: fix, note: "сумма вбита числом и не равна 3,5% выручки"}]
+
+  - id: OPEX.BROKERAGE_RATE
+    name: "Брокеридж / агентские продажи, доля выручки"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    range: [0, 0.06]
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "По агентским договорам; платится в месяц сделки (не с лагом)"
+    status: expert_allowed
+    legacy: [{cell: "Бюджет!D52", value: 0.035, verdict: keep}]
+
+  - id: OPEX.DEV_FEE_RATE
+    name: "Вознаграждение за управление проектом (девелоперский фи), доля"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "По внутригрупповому договору; база — выручка или затраты (указать)"
+    status: expert_allowed
+    legacy: [{cell: "Бюджет!D48", value: 0.02, verdict: fix, note: "2% задано, но F48 = 1 850 054 797 вбито (≠ 2% ни от выручки, ни от затрат)"}]
+
+  # =====================================================================
+  # VAL — оценка
+  # =====================================================================
+
+  - id: VAL.RISK_FREE
+    name: "Безрисковая ставка"
+    unit: "%годовых"
+    kind: scalar
+    scope: template
+    default: null
+    source_ids: [S_CBR_ZCYC]
+    basis: "Доходность ОФЗ со сроком, равным сроку проекта, на дату оценки (G-curve ЦБ)"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  - id: VAL.EQUITY_PREMIUM
+    name: "Премия за риск девелоперского проекта"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_EXPERT]
+    basis: "Экспертная (уровень 5): обязательны автор и диапазон. Ставка дисконтирования = безрисковая + премия"
+    status: expert_allowed
+    legacy: [{cell: "CF1!D139", value: 0.25, verdict: fix, note: "cost of equity 25% без разложения на безрисковую ставку и премию"}]
+
+  - id: VAL.HURDLE_IRR
+    name: "Целевая (барьерная) IRR акционера"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_EXPERT]
+    basis: "Инвестиционная политика компании — ответ на вопрос автора «какой % должен быть, чтобы проект был эффективным?» (Бюджет!G63)"
+    status: expert_allowed
+    legacy: [{cell: "Бюджет!G63", verdict: new}]

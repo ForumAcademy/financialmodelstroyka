@@ -1,0 +1,220 @@
+<!-- Файл сгенерирован scripts/render_docs.py из data/*.yaml. Не редактировать вручную. -->
+
+# Реестр параметров
+| ID | Параметр | Ед. | Область | По умолчанию | Источники | Статус | Обоснование |
+|---|---|---|---|---|---|---|---|
+| `GEN.PROJECT_NAME` | Название проекта | текст | project | — | `S_PROJECT_DOCS` | project_input | Идентификация расчёта |
+| `GEN.REGION_CODE` | Субъект РФ (код ФНС) | enum | project | — | [S_FNS_RATES](https://www.nalog.gov.ru/rn77/service/tax/) | project_input | Определяет все региональные параметры (regions.yaml): ставки земельного налога, аренда, ВРИ, нормативы парковок, коэффициент перехода НЦС |
+| `GEN.OKTMO` | ОКТМО муниципального образования | текст | project | — | [S_FNS_RATES](https://www.nalog.gov.ru/rn77/service/tax/), [S_NSPD](https://nspd.gov.ru/) | project_input | Ставка земельного налога устанавливается муниципалитетом (п.1 ст.394 НК РФ), поиск в сервисе ФНС — по ОКТМО |
+| `GEN.CADASTRAL_NUMBER` | Кадастровый номер участка | текст | project | — | [S_NSPD](https://nspd.gov.ru/) | project_input | Ключ для проверки площади, ВРИ и кадастровой стоимости по официальным данным Росреестра |
+| `GEN.HOUSING_CLASS` | Класс жилья | enum | project | — | [S_EISZHS_INDICATORS](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D0%BF%D0%BE%D0%BA%D0%B0%D0%B7%D0%B0%D1%82%D0%B5%D0%BB%D0%B8_%D0%B6%D0%B8%D0%BB%D0%B8%D1%89%D0%BD%D0%BE%D0%B3%D0%BE_%D1%81%D1%82%D1%80%D0%BE%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D1%81%D1%82%D0%B2%D0%B0) | project_input | Определяет выбор аналогов для цены/темпа и уровень отделки МОП. Классификация по данным ЕИСЖС |
+| `GEN.MODEL_START_DATE` | Дата начала модели (первый месяц) | дата | project | — | `S_PROJECT_DOCS` | project_input | Начало временной шкалы. Все ряды — помесячно от этой даты |
+| `GEN.VALUATION_DATE` | Дата оценки (приведения NPV) | дата | project | — | `S_PROJECT_DOCS` | project_input | Дата, на которую дисконтируются потоки. В исходнике отсутствовала — NPV фактически не считался (Бюджет!F63 = финрез) |
+| `GEN.REPORT_STEP` | Шаг отчётов | enum | project | квартал | `S_EXPERT` | verified | Расчёт всегда помесячный (точность эскроу и процентов), отчёты агрегируются. Выбор пользователя |
+| `GEN.PHASES_COUNT` | Количество очередей | шт | project | 1 | `S_PROJECT_DOCS` | project_input | По ППТ / концепции. Каждая очередь имеет свои вехи (РНС, РНВ) и свой счёт эскроу |
+| `LAND.AREA` | Площадь земельного участка | м2 | project | — | [S_NSPD](https://nspd.gov.ru/), `S_PROJECT_DOCS` | project_input | Площадь по ЕГРН |
+| `LAND.CADASTRAL_VALUE` | Кадастровая стоимость участка (текущая) | руб | project | — | [S_NSPD](https://nspd.gov.ru/) | project_input | База для земельного налога (ст.390 НК РФ) и аренды. В исходнике не указано — до или после смены ВРИ (комментарий ТЭПы!D13) |
+| `LAND.CADASTRAL_VALUE_AFTER_VRI` | Кадастровая стоимость после изменения ВРИ | руб | project | — | [S_NSPD](https://nspd.gov.ru/), [S_MSK_VRI_593PP](https://base.garant.ru/70457992/de40175ab12d04d68f792b5b742a18fc/) | project_input | Нужна для платы за изменение ВРИ (от прироста кадастровой стоимости) и налога после смены ВРИ |
+| `LAND.TENURE` | Форма права на участок | enum | project | собственность | [S_NK_394](https://www.consultant.ru/document/cons_doc_LAW_28165/fd2ac88b2311a6053a128cfa43aa07672e826213/) | project_input | Собственник платит земельный налог (гл.31 НК РФ), арендатор — арендную плату (регион. акт). В исходнике строка «Аренда/налог ЗУ» смешивала оба платежа |
+| `LAND.PURCHASE_PRICE` | Цена приобретения участка / прав | руб | project | — | `S_PROJECT_DOCS` | project_input | По договору/оферте. Если сделка не заключена — оценка по аналогам (уровень 3) с обоснованием |
+| `LAND.LEGAL_COSTS` | Юридические расходы и due diligence при покупке | руб | project | — | `S_COMPANY_ACTUALS`, `S_EXPERT` | project_input | По договорам с консультантами |
+| `LAND.AGENT_FEE_RATE` | Агентское вознаграждение, доля от цены участка | доля | project | 0 | `S_PROJECT_DOCS` | project_input | По агентскому договору |
+| `LAND.VRI_FEE` | Плата за изменение ВРИ | руб | project | — | [S_MSK_VRI_593PP](https://base.garant.ru/70457992/de40175ab12d04d68f792b5b742a18fc/) | needs_verification | Москва: от прироста кадастровой стоимости (ПП 593-ПП). Другие регионы: по региональному акту (regions.yaml → vri_fee_act) или 0, если платы нет. В исходнике — 5 000 руб/м² ГНС без источника |
+| `LAND.RENT_ANNUAL` | Арендная плата за участок, в год | руб | project | — | [S_MSK_RENT_273PP](https://erzrf.ru/news/v-moskve-aktualizirovan-poryadok-vzimaniya-platy-za-arendu-i-za-izmeneniye-vida-razreshennogo-ispolzovaniya-zemelnogo-uchastka), [S_SPB_RENT_608](http://docs.cntd.ru/document/8462648), `S_PROJECT_DOCS` | project_input | По договору аренды или расчёт по региональной методике (кадастровая стоимость × ставка × коэффициенты) |
+| `LAND.CITY_OBLIGATIONS` | Обязательства перед городом (компенсация, передача объектов, КРТ) | руб | project | — | `S_PROJECT_DOCS` | project_input | По договору о КРТ / соглашению с городом / ГПЗУ. Это правообладание, а не ПИР |
+| `TAX.LAND_RATE` | Ставка земельного налога | доля | region | — | [S_NK_394](https://www.consultant.ru/document/cons_doc_LAW_28165/fd2ac88b2311a6053a128cfa43aa07672e826213/), [S_FNS_RATES](https://www.nalog.gov.ru/rn77/service/tax/) | needs_verification | Устанавливается муниципалитетом (для Москвы, СПб, Севастополя — законом города) в пределах ст.394 НК РФ. Для участков под жильё > 300 млн руб. кадастровой стоимости предел 0,3% не действует → до 1,5% |
+| `TAX.LAND_COEF_UP_TO_3Y` | Повышающий коэффициент земельного налога (первые 3 года строительства) | коэф | template | 2 | [S_NK_396](https://www.consultant.ru/document/cons_doc_LAW_28165/9aa69b8504295f7fce85452466c428d2522a89c8/), [S_FNS_LANDCOEF_2026](https://www.garant.ru/products/ipo/prime/doc/414716619/) | verified | п.15 ст.396 НК РФ: участки для жилищного строительства (кроме ИЖС) — коэф. 2 в течение 3 лет проектирования и строительства до госрегистрации прав на объект |
+| `TAX.LAND_COEF_OVER_3Y` | Повышающий коэффициент земельного налога (сверх 3 лет) | коэф | template | 4 | [S_NK_396](https://www.consultant.ru/document/cons_doc_LAW_28165/9aa69b8504295f7fce85452466c428d2522a89c8/), [S_FNS_LANDCOEF_2026](https://www.garant.ru/products/ipo/prime/doc/414716619/) | verified | п.15 ст.396 НК РФ: коэф. 4 — сверх трёхлетнего срока до госрегистрации прав |
+| `TAX.LAND_COEF_APPLY` | Применять коэффициенты п.15 ст.396 | bool | project | True | [S_NK_396](https://www.consultant.ru/document/cons_doc_LAW_28165/9aa69b8504295f7fce85452466c428d2522a89c8/), [S_FNS_LANDCOEF_2026](https://www.garant.ru/products/ipo/prime/doc/414716619/) | verified | Коэффициенты привязаны к ВРИ «жилищное строительство». Выключатель — для участков с иным ВРИ до его смены (решение пользователя с комментарием) |
+| `TEP.GFA_ABOVE` | Площадь наземной части в ГНС (суммарная поэтажная) | м2 | project | — | `S_PROJECT_DOCS` | project_input | По ГПЗУ (предельные параметры) / концепции. База для СМР надземной части и НЦС |
+| `TEP.GFA_BELOW` | Площадь подземной части (паркинг, техпомещения) | м2 | project | — | `S_PROJECT_DOCS` | project_input | По концепции. НЦС жилых зданий подземные автостоянки не включают (S_NCS_TECHPART п.21) — считается отдельной статьёй |
+| `TEP.RES_GFA` | ГНС жилой части | м2 | project | — | `S_PROJECT_DOCS` | project_input | По концепции |
+| `TEP.NONRES_GFA` | ГНС нежилой части (коммерция, соцобъекты во встроенных помещениях) | м2 | project | — | `S_PROJECT_DOCS` | project_input | По концепции |
+| `TEP.APT_EFFICIENCY` | Коэффициент продаваемой площади квартир к ГНС жилой части | доля | project | — | `S_PROJECT_DOCS`, `S_COMPANY_ACTUALS` | expert_allowed | Используется, если продаваемая площадь ещё не посчитана архитектором. При наличии концепции — вводится площадь квартир напрямую |
+| `TEP.APT_AREA` | Продаваемая площадь квартир | м2 | project | — | `S_PROJECT_DOCS` | project_input | По концепции; если нет — F.TEP.APT_AREA = ГНС жилой части × коэффициент |
+| `TEP.COMM_AREA` | Продаваемая площадь коммерческих помещений (ПСН) | м2 | project | — | `S_PROJECT_DOCS` | project_input | По концепции |
+| `TEP.MOP_AREA` | Площадь МОП под отделку (включая лобби, ресепшн) | м2 | project | — | `S_PROJECT_DOCS` | project_input | База для статьи «Отделка МОП» |
+| `TEP.STORAGE_COUNT` | Количество кладовых | шт | project | 0 | `S_PROJECT_DOCS` | project_input | По концепции |
+| `TEP.PARKING_AREA_PER_SPACE` | Площадь подземного паркинга на одно машино-место (с проездами) | м2 | project | — | `S_PROJECT_DOCS`, `S_COMPANY_ACTUALS` | expert_allowed | Из концепции паркинга; используется для оценки площади подземной части, если её нет |
+| `TEP.PARKING_COUNT_OVERRIDE` | Количество машино-мест (ручной ввод, если отличается от норматива) | шт | project | — | `S_PROJECT_DOCS` | project_input | Если ГПЗУ/ППТ даёт иное число. Без документа ввод запрещён: модель считает по нормативу региона (F.TEP.PARKING_REQUIRED) |
+| `TEP.LANDSCAPE_SHARE` | Доля благоустройства от площади участка | доля | project | — | `S_PROJECT_DOCS`, [S_SP_42_2026](https://www.nep.expert/news/sp-42-13330-2026/), [S_SPB_NGP_257](https://base.garant.ru/43424438/) | expert_allowed | Из ППТ/концепции. Минимум озеленения — по региональным НГП и СП 42 |
+| `TEP.ROAD_SHARE` | Доля внутриквартальных проездов в площади благоустройства | доля | project | — | `S_PROJECT_DOCS` | expert_allowed | Из ППТ/концепции |
+| `TEP.GREEN_SHARE` | Доля озеленения в площади благоустройства | доля | project | — | `S_PROJECT_DOCS`, [S_SP_42_2026](https://www.nep.expert/news/sp-42-13330-2026/) | expert_allowed | Из ППТ; проверка на минимум по НГП региона |
+| `TEP.APT_MIX` | Квартирография | table | project | — | `S_PROJECT_DOCS` | project_input | По концепции. Доля типа вычисляется (F.TEP.APT_SHARE), а не вводится — иначе расходится с количеством |
+| `TEP.PARKING_NORM` | Норматив машино-мест на квартиру по типам | table | region | — | [S_MSK_PARKING_2118PP](https://mperspektiva.ru/topics/moskva-izmenila-normativy-obespechennosti-novostroek-parkovkami/), [S_SPB_NGP_257](https://base.garant.ru/43424438/), [S_SP_42_2026](https://www.nep.expert/news/sp-42-13330-2026/) | needs_verification | Региональные НГП. Москва (2118-ПП от 05.08.2026): до 70 м² — 0,8; 70–100 м² — 1,2; > 100 м² — 1,6. Прочие регионы — regions.yaml |
+| `TEP.UNCLEAR_LEGACY` | Значения исходника с неясным назначением | текст | project | — | `S_EXPERT` | needs_verification | Сохранены, чтобы ничего не потерять; требуют пояснения автора исходного файла |
+| `TIME.MILESTONES` | Вехи проекта по очередям | table | project | — | [S_GRK_51](https://www.consultant.ru/document/cons_doc_LAW_51040/570afc6feff03328459242886307d6aebe1ccb6b/), [S_GRK_55](https://www.consultant.ru/document/cons_doc_LAW_51040/935a657a2b5f7c7a6436cb756694bb2d649c7a00/), `S_PROJECT_DOCS` | project_input | Все даты — настоящие даты (не текст «1 кв 2026»). Из них строятся флаги периодов (F.TIME.*) |
+| `TIME.ESCROW_RELEASE_LAG_M` | Лаг раскрытия эскроу после РНВ | мес | template | 1 | [S_214_ART15_5](https://www.consultant.ru/document/cons_doc_LAW_51038/7e20edcc51ba599c70fb328204e3ac1226e7d912/) | verified | ч.6 ст.15.5 214-ФЗ: не позднее 10 рабочих дней после представления РНВ → при месячном шаге 1 месяц (консервативно) |
+| `TIME.RNS_TO_RNV_TAX_YEARS` | Порог лет для коэффициента 4 земельного налога | год | template | 3 | [S_NK_396](https://www.consultant.ru/document/cons_doc_LAW_28165/9aa69b8504295f7fce85452466c428d2522a89c8/) | verified | п.15 ст.396 НК РФ — трёхлетний срок |
+| `CAPEX.ITEMS` | Справочник статей бюджета | table | project | см. data/capex_items.yaml — перечень статей с нормативными источниками по умолчанию | [S_NCS_2026_01](https://docs.cntd.ru/document/1316343087), [S_MINSTROY_421](https://www.consultant.ru/document/cons_doc_LAW_362957/), `S_COMPANY_ACTUALS` | project_input | В исходнике суммы вбиты числом, а «расценка» получалась обратным делением (Бюджет!D = F/E). Теперь сумма всегда = ставка × база × индекс |
+| `CAPEX.CONTINGENCY_RATE` | Резерв на непредвиденные работы и затраты | доля | template | 0.02 | [S_MINSTROY_421](https://www.consultant.ru/document/cons_doc_LAW_362957/), [S_NCS_TECHPART](https://meganorm.ru/mega_doc/norm/normativy/1/ntss_81-02-01-2023_ukrupnennye_normativy_tseny_stroitelstva.html) | needs_verification | Методика 421/пр: 2% для объектов непроизводственного назначения. Если СМР взяты по НЦС — резерв уже внутри показателя, начислять только на статьи вне НЦС |
+| `CAPEX.NCS_BENCHMARK_ENABLED` | Сверять СМР с НЦС | bool | template | True | [S_NCS_2026_01](https://docs.cntd.ru/document/1316343087), [S_NCS_TECHPART](https://meganorm.ru/mega_doc/norm/normativy/1/ntss_81-02-01-2023_ukrupnennye_normativy_tseny_stroitelstva.html) | verified | Отклонение расценки СМР от НЦС (с региональными коэффициентами) > ±25% — предупреждение с требованием обоснования |
+| `CAPEX.NCS_BENCH_TOLERANCE` | Допустимое отклонение СМР от НЦС без обоснования | доля | template | 0.25 | `S_EXPERT` | expert_allowed | Порог сигнала для проверки; НЦС — госнорматив для бюджетных объектов, коммерческая стоимость может отличаться (класс, отделка) |
+| `CAPEX.COST_INDEX` | Индекс роста строительных затрат, годовой | доля/год | template | — | [S_MINEC_SCENARIO_2027](https://www.garant.ru/products/ipo/prime/doc/414115625/), [S_FGISCS](https://fgiscs.minstroyrf.ru/) | needs_verification | Дефлятор/индекс МЭР по годам; для СМР — индексы Минстроя (ФГИС ЦС). В исходнике затраты не индексировались |
+| `SALES.PRODUCTS` | Продуктовые линии | table | project | — | [S_EISZHS_SALES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80), [S_ROSSTAT_PRICES](https://rosstat.gov.ru/statistics/price), `S_PROJECT_DOCS` | project_input | Стартовая цена — по аналогам (ЕИСЖС: цены ДДУ проектов того же класса в радиусе), минимум 3 аналога с ссылками в карточке параметра |
+| `SALES.PACE` | Темп продаж | м2/мес или доля остатка/мес | project | — | [S_EISZHS_SALES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80), `S_COMPANY_ACTUALS` | project_input | Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — темпы аналогов по ЕИСЖС |
+| `SALES.PRICE_MARKET_GROWTH` | Рыночный рост цен, годовой | доля/год | project | — | [S_EISZHS_SERIES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%81%D1%82%D0%B0%D1%82%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5_%D1%80%D1%8F%D0%B4%D1%8B), [S_MINEC_SCENARIO_2027](https://www.garant.ru/products/ipo/prime/doc/414115625/) | expert_allowed | Базовый сценарий — не выше прогноза ИПЦ МЭР; отклонение требует обоснования динамикой цен ЕИСЖС по региону |
+| `SALES.PRICE_STAGE_UPLIFT` | Рост цены по стадиям строительной готовности | table | project | — | [S_EISZHS_SERIES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%81%D1%82%D0%B0%D1%82%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5_%D1%80%D1%8F%D0%B4%D1%8B), `S_COMPANY_ACTUALS` | expert_allowed | Надбавка за снижение риска по мере готовности; калибруется по истории цен аналогов |
+| `SALES.PAYMENT_MIX` | Структура оплат | table | project | — | [S_CBR_MORTGAGE](https://www.cbr.ru/statistics/bank_sector/mortgage/), [S_EISZHS_SALES](https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80) | project_input | Сумма долей = 1. Ипотека и 100% поступают на эскроу в месяц сделки; рассрочка — по графику. Доли — статистика ЦБ по доле ипотеки в ДДУ региона |
+| `FIN.EQUITY_SHARE` | Доля собственного участия в бюджете (до первой выборки ПФ) | доля | project | 0.15 | [S_214_ART3](https://www.consultant.ru/document/cons_doc_LAW_51038/24a7b7f2b0571ac53f7b789c337316109c23d1a7/), `S_BANK_TERMSHEET` | needs_verification | Не ниже 10% (п.1.1 ч.2 ст.3 214-ФЗ); банк задаёт фактическую долю в кредитном решении. Вносится ДО выборок кредита (не пропорционально каждому периоду, как в исходнике) |
+| `FIN.RATE_PREFERENTIAL` | Льготная ставка на часть долга, покрытую эскроу | %годовых | project | — | `S_BANK_TERMSHEET`, [S_CBR_PF_STATS](https://www.cbr.ru/statistics/bank_sector/equity_const_financing/) | project_input | Условие банка; калибровка — средние ставки ПФ по статистике ЦБ |
+| `FIN.RATE_BASE_SPREAD` | Спред базовой ставки к ключевой | %годовых | project | — | `S_BANK_TERMSHEET` | project_input | Базовая ставка = ключевая + спред. В исходнике базовая 20% задана фиксированно при ключевой 14,25% — не реагирует на сценарий ставки |
+| `FIN.KEY_RATE_PATH` | Траектория ключевой ставки | %годовых | template | таблица | [S_CBR_KEYRATE](https://www.cbr.ru/hd_base/keyrate/), [S_CBR_KEYRATE_DECISION](https://www.cbr.ru/press/keypr/), [S_CBR_MACROSURVEY](https://cbr.ru/statistics/ddkp/mo_br/) | verified | Текущее значение — ЦБ (14,00% на 11.09.2026); будущие периоды — медиана макроопроса ЦБ, далее — последнее значение |
+| `FIN.RATE_DISCOUNT_COEF` | Скидка к ставке при избыточном покрытии эскроу (СкР) | %годовых | project | 0 | `S_BANK_TERMSHEET` | project_input | Условие банка (не у всех банков). В исходнике: ставка скидки = ключевая − 2 п.п. |
+| `FIN.RATE_MIN` | Минимальная ставка ПФ | %годовых | project | 0.001 | `S_BANK_TERMSHEET` | project_input | Нижняя граница ставки по кредитному договору |
+| `FIN.ESCROW_RESERVE_RATE` | Коэффициент уменьшения остатков эскроу для расчёта ставки (ФОР) | доля | project | 0 | [S_CBR_RESERVE](https://www.cbr.ru/oper_br/o_dkp/reserve_requirements/), `S_BANK_TERMSHEET` | project_input | Если банк учитывает остатки эскроу за вычетом резервирования — по кредитному договору |
+| `FIN.FEE_ARRANGEMENT` | Комиссия за выдачу кредита, доля от лимита | доля | project | — | `S_BANK_TERMSHEET` | project_input | По кредитному договору |
+| `FIN.FEE_COMMITMENT` | Комиссия за неиспользованный лимит, %годовых | %годовых | project | 0 | `S_BANK_TERMSHEET` | project_input | По кредитному договору |
+| `FIN.COLLATERAL_DISCOUNT` | Дисконт залоговой стоимости нераспроданных площадей | доля | project | — | `S_BANK_TERMSHEET` | project_input | Если после РНВ долг не погашен эскроу — погашение из ДКП по залоговой стоимости |
+| `TAX.VAT_RATE` | Ставка НДС | доля | template | 0.22 | [S_NK_164](https://www.consultant.ru/document/cons_doc_LAW_28165/35cc6698564adc4507baa31c9cfdbb4f2516d068/), [S_FZ_425_VAT22](https://its.1c.ru/db/content/newscomm/src/497590.htm) | verified | п.3 ст.164 НК РФ, 22% с 01.01.2026 |
+| `TAX.VAT_REGIME` | Режим НДС по продуктам и каналам продаж | table | template | таблица | [S_NK_149](https://www.consultant.ru/document/cons_doc_LAW_28165/c8ebcedc9ddce9d959d6c520c3b0d602f71e8e12/), [S_MINFIN_VAT_DDU_2023](https://www.garant.ru/products/ipo/prime/doc/407693240/), [S_MINFIN_VAT_APART_2023](https://www.garant.ru/products/ipo/prime/doc/407693270/) | needs_verification | В исходнике НДС 22% начислялся на всю выручку ПСН+ММ «сверху». Для ДДУ по ПСН/ММ освобождение применяется к услуге застройщика; строки ПСН и ДДУ по нежилым — сверить с налоговым консультантом проекта |
+| `TAX.INPUT_VAT_RECOVERABLE` | Входящий НДС к вычету — доля | доля | project | — | [S_NK_149](https://www.consultant.ru/document/cons_doc_LAW_28165/c8ebcedc9ddce9d959d6c520c3b0d602f71e8e12/), [S_MINFIN_VAT_DDU_2023](https://www.garant.ru/products/ipo/prime/doc/407693240/) | needs_verification | По освобождённым операциям входящий НДС не вычитается и включается в стоимость (раздельный учёт). Доля к вычету = доля облагаемой выручки (рассчитывается F.TAX.INPUT_VAT_SHARE; ручной ввод — по учётной политике) |
+| `TAX.PROFIT_RATE` | Ставка налога на прибыль | доля | template | 0.25 | [S_NK_284](https://www.consultant.ru/document/cons_doc_LAW_28165/eb9180fc785448d58fe76ef323fb67d1832b9363/) | verified | ст.284 НК РФ, 25% с 01.01.2025 |
+| `TAX.LOSS_CARRYFORWARD_LIMIT` | Лимит зачёта убытков прошлых лет, доля базы | доля | template | 0.5 | [S_NK_283](https://www.consultant.ru/document/cons_doc_LAW_28165/f07c38898fd7af4a54b1c6d33e01f23cc2dae757/) | needs_verification | п.2.1 ст.283 НК РФ — ограничение 50% базы в установленные периоды |
+| `OPEX.MARKETING_RATE` | Маркетинг, доля выручки | доля | project | — | `S_COMPANY_ACTUALS` | expert_allowed | Факт компании по сопоставимым проектам |
+| `OPEX.BROKERAGE_RATE` | Брокеридж / агентские продажи, доля выручки | доля | project | — | `S_COMPANY_ACTUALS` | expert_allowed | По агентским договорам; платится в месяц сделки (не с лагом) |
+| `OPEX.DEV_FEE_RATE` | Вознаграждение за управление проектом (девелоперский фи), доля | доля | project | — | `S_COMPANY_ACTUALS` | expert_allowed | По внутригрупповому договору; база — выручка или затраты (указать) |
+| `VAL.RISK_FREE` | Безрисковая ставка | %годовых | template | — | [S_CBR_ZCYC](https://www.cbr.ru/hd_base/zcyc_params/) | needs_verification | Доходность ОФЗ со сроком, равным сроку проекта, на дату оценки (G-curve ЦБ) |
+| `VAL.EQUITY_PREMIUM` | Премия за риск девелоперского проекта | %годовых | project | — | `S_EXPERT` | expert_allowed | Экспертная (уровень 5): обязательны автор и диапазон. Ставка дисконтирования = безрисковая + премия |
+| `VAL.HURDLE_IRR` | Целевая (барьерная) IRR акционера | %годовых | project | — | `S_EXPERT` | expert_allowed | Инвестиционная политика компании — ответ на вопрос автора «какой % должен быть, чтобы проект был эффективным?» (Бюджет!G63) |
+
+## Статьи бюджета (capex_items.yaml)
+
+| Статья | Группа | База | График | Источники | Обоснование | Исходник |
+|---|---|---|---|---|---|---|
+| `LAND_PURCHASE` Покупка участка / прав | правообладание | фикс | at_milestone | `S_PROJECT_DOCS` | Сумма по договору купли-продажи / уступки | Бюджет стр.17: =2440190898-F22 — число зашито в формулу |
+| `LAND_LEGAL` Юридические расходы, due diligence | правообладание | фикс | at_milestone | `S_COMPANY_ACTUALS` | Договоры консультантов | Бюджет стр.18: 0 |
+| `LAND_AGENT` Агентское вознаграждение за участок | правообладание | LAND.PURCHASE_PRICE | at_milestone | `S_PROJECT_DOCS` | Агентский договор | Бюджет стр.19: 0 — ставка 2% не участвует — сумма вбита 0 |
+| `LAND_TAX_OR_RENT` Земельный налог или арендная плата | правообладание | формула | formula | [S_NK_394](https://www.consultant.ru/document/cons_doc_LAW_28165/fd2ac88b2311a6053a128cfa43aa07672e826213/), [S_NK_396](https://www.consultant.ru/document/cons_doc_LAW_28165/9aa69b8504295f7fce85452466c428d2522a89c8/), [S_FNS_RATES](https://www.nalog.gov.ru/rn77/service/tax/) | Считается помесячно от кадастровой стоимости и статуса строительства (коэф. 2/4); для аренды — по методике региона | Бюджет стр.21: 825124525.273 — две строки: «Аренда/налог ЗУ» (CF1!24) и «Налог на имущество» 0,2% (CF1!84) — возможен двойной счёт; обе делятся на 7,25 года равномерно |
+| `LAND_VRI` Плата за изменение ВРИ | правообладание | формула | at_milestone | [S_MSK_VRI_593PP](https://base.garant.ru/70457992/de40175ab12d04d68f792b5b742a18fc/) | По региональному акту; для регионов без платы — 0 | Бюджет стр.22: =5000 × ТЭПы!C19 — ставка 5 000 руб/м² без источника; ряд распределения CF1!K26 = 1 |
+| `CITY_OBLIGATIONS` Обязательства перед городом (компенсация, КРТ) | правообладание | фикс | manual | `S_PROJECT_DOCS` | Договор о КРТ / соглашение | Бюджет стр.24: 1260033986.66 — стояла в ПиР |
+| `IRD` Получение ИРД (ППТ, ГПЗУ, ТУ) | ПИР | фикс | uniform | `S_COMPANY_ACTUALS` | Договоры с консультантами по ИРД | Бюджет стр.25: пусто (D25×E25, обе пустые) |
+| `PREDESIGN` Предпроектные проработки (концепция) | ПИР | фикс | at_milestone | `S_COMPANY_ACTUALS` | Договор с архитектором | Бюджет стр.29: 2000000 — комментарий «уточнить у Елены расценку» |
+| `SURVEYS` Инженерные изыскания | ПИР | фикс | uniform | `S_COMPANY_ACTUALS` | Договоры на изыскания | Бюджет стр.28: пусто |
+| `DESIGN_P` Проектирование, стадия П | ПИР | F.TEP.GFA_TOTAL | uniform | `S_COMPANY_ACTUALS` | Руб/м² ГНС по договорам генпроектировщика. Если СМР берутся по НЦС — ПИР уже внутри НЦС (S_NCS_TECHPART п.14): статью обнулить, чтобы не было двойного счёта | Бюджет стр.26: 751140673 — комментарий «уточнить у Елены расценку»; база — продаваемая площадь |
+| `DESIGN_RD` Проектирование, стадия РД | ПИР | F.TEP.GFA_TOTAL | uniform | `S_COMPANY_ACTUALS` | Как DESIGN_P | Бюджет стр.27: пусто |
+| `EXPERTISE` Экспертиза проектной документации | ПИР | фикс | at_milestone | [S_PP_145](https://www.consultant.ru/document/cons_doc_LAW_66669/2aa378f7c71e32b9ce97bb38dd0f0647b075da48/) | Госэкспертиза — по разд. VIII ПП РФ № 145; негосударственная — по договору | Бюджет стр.None: None — статья отсутствовала |
+| `SITE_PREP` Подготовка площадки (включая снос) | СМР | LAND.AREA | uniform | `S_COMPANY_ACTUALS` | Смета на снос/вынос сетей | Бюджет стр.31: 141554585 — комментарий «какая единица изм?» |
+| `SMR_ABOVE` СМР надземной части (в т.ч. стилобат) | СМР | TEP.GFA_ABOVE | s_curve | `S_COMPANY_ACTUALS`, [S_NCS_2026_01](https://docs.cntd.ru/document/1316343087) | Ставка — по договорам генподряда/факту компании (уровень 4); контроль — НЦС 81-02-01-2026 × Кпер региона × индекс (F.CAPEX.NCS_BENCH). База — ГНС наземная, а не продаваемая площадь | Бюджет стр.32: 52782616084 — база изменена на продаваемую площадь (комментарий H32); расценка = F/E ≈ 353 579 руб/м² |
+| `SMR_BELOW` СМР подземной части (паркинг) | СМР | TEP.GFA_BELOW | s_curve | `S_COMPANY_ACTUALS` | НЦС жилых зданий подземные стоянки не включают (S_NCS_TECHPART п.21) — отдельная расценка | Бюджет стр.33: D33 = 400000*0.22, E33 = 0 → 0 — объём 0 — подземная часть не построена в модели |
+| `MOP_FINISH` Отделка МОП | СМР | TEP.MOP_AREA | uniform | `S_COMPANY_ACTUALS` | Руб/м² МОП по классу | Бюджет стр.34: D34 = 400000*0.12, E34 = 0 → 0 — объём 0 |
+| `OTHER_SMR` Прочие СМР | СМР | F.TEP.GFA_TOTAL | follow_smr | `S_COMPANY_ACTUALS` | Указать состав | Бюджет стр.39: 16904952.57 |
+| `COMMISSIONING` Расходы по вводу в эксплуатацию | СМР | F.TEP.SALEABLE_AREA | uniform | `S_COMPANY_ACTUALS` | Обмеры БТИ, техпланы, приёмка | Бюджет стр.41: 0 — ставка 1 000 руб/м², сумма вбита 0 |
+| `UTILITY_CONNECTION` ТУ и плата за технологическое присоединение | сети | фикс | manual | `S_PROJECT_DOCS` | Плата за техприсоединение — по тарифным решениям регионального органа регулирования (regions.yaml → tariff_authority) и договорам с ресурсоснабжающими организациями | Бюджет стр.35: =2295331433.88/2 — сумма поделена пополам между ТУ и сетями без обоснования; «что обозначает объем (цифра 5)?» |
+| `EXTERNAL_NETWORKS` Наружные сети и сооружения | сети | фикс | uniform | `S_COMPANY_ACTUALS` | Вне НЦС (S_NCS_TECHPART п.16) — отдельная смета | Бюджет стр.36: =F35 |
+| `LANDSCAPING` Благоустройство | благоустройство | F.TEP.LANDSCAPE_AREA | uniform | `S_COMPANY_ACTUALS` | Руб/м² благоустройства; вне НЦС | Бюджет стр.37: 1355940 — ≈ 47 руб/м² при 28 972 м² — вероятно, ошибка порядка |
+| `ROADS_UDS` Улично-дорожная сеть | благоустройство | фикс | uniform | `S_PROJECT_DOCS` | По ППТ / соглашению с городом | Бюджет стр.38: 535620851 — статья есть в бюджете, но НЕ перенесена в CF1 — 535,6 млн выпадают из денежного потока |
+| `SOCIAL_OBJECTS` Социальные объекты (отдельно стоящие) | соцобъекты | фикс | uniform | `S_PROJECT_DOCS`, [S_SPB_NGP_257](https://base.garant.ru/43424438/) | Объём — по ППТ и нормативам обеспеченности (РНГП региона); стоимость — НЦС соответствующего сборника или договор | Бюджет стр.47: 5128070146.9 |
+| `CONTINGENCY` Непредвиденные расходы | управление | F.CAPEX.SMR_TOTAL | follow_smr | [S_MINSTROY_421](https://www.consultant.ru/document/cons_doc_LAW_362957/) | Доля от СМР, не взятых по НЦС | Бюджет стр.42: =E42+D42 — сложены площадь и ставка → 202 840 руб |
+| `TECH_CUSTOMER` Услуги технического заказчика | управление | F.CAPEX.SMR_TOTAL | follow_smr | [S_MINSTROY_297](https://www.consultant.ru/document/cons_doc_LAW_357554/), `S_COMPANY_ACTUALS` | % от стоимости строительства по шкале Методики 297/пр или по договору | Бюджет стр.43: 2383139493 — база — выручка (E43 = План продаж!D25) |
+| `AUTHOR_SUPERVISION` Авторский надзор | управление | F.CAPEX.SMR_TOTAL | follow_smr | [S_MINSTROY_421](https://www.consultant.ru/document/cons_doc_LAW_362957/), `S_COMPANY_ACTUALS` | Договор с генпроектировщиком | Бюджет стр.44: пусто |
+| `TECH_SUPERVISION` Строительный контроль (технадзор) | управление | F.CAPEX.SMR_TOTAL | follow_smr | [S_PP_468](https://www.consultant.ru/document/cons_doc_LAW_101791/) | Нормативы расходов на строительный контроль (ПП РФ № 468) как ориентир; фактически — договор. Если СМР по НЦС — уже внутри показателя | Бюджет стр.46: пусто |
+| `MONITORING` Мониторинг окружающей застройки | управление | фикс | uniform | `S_COMPANY_ACTUALS` | Договор | Бюджет стр.45: 88670039 — комментарий «операц расходы из ФМ» |
+| `SITE_SECURITY` Охрана и содержание площадки | управление | фикс_в_месяц | uniform | `S_COMPANY_ACTUALS` | Руб/мес × длительность | Бюджет стр.40: 56837555.65 |
+| `DEV_FEE` Вознаграждение за управление проектом | управление | F.SALES.REVENUE_TOTAL | follow_smr | `S_COMPANY_ACTUALS` | По договору управления | Бюджет стр.48: 1850054797 |
+| `DEVELOPER_OVERHEAD` Содержание застройщика (СЗ) | управление | фикс_в_месяц | uniform | `S_COMPANY_ACTUALS` | Штат, аренда, аудит СЗ | Бюджет стр.49: 14454850.84 |
+| `MARKETING` Маркетинг | коммерческие | F.SALES.REVENUE_TOTAL | follow_sales | `S_COMPANY_ACTUALS` | Доля выручки месяца | Бюджет стр.51: =8389618415.5/2 |
+| `BROKERAGE` Брокеридж | коммерческие | F.SALES.REVENUE_TOTAL | follow_sales | `S_COMPANY_ACTUALS` | Доля выручки месяца, платится в месяц сделки | Бюджет стр.52: =F12*3.5% — в CF1 M78:AA78 ссылки сдвинуты на 7 кварталов назад, с AB78 — на 1 квартал: часть продаж без брокериджа |
+
+## Связь с исходным Excel по параметрам
+- `GEN.PROJECT_NAME` ← `ТЭПы!C2` → **keep**
+- `GEN.HOUSING_CLASS` ← `ТЭПы!C4` = `БИЗНЕС` → **keep**
+- `GEN.MODEL_START_DATE` ← `CF1!E2` = `2025-12-31` → **keep** — в исходнике шаг — квартал; в новой модели — месяц
+- `GEN.PHASES_COUNT` ← `ТЭПы!C17` = `3` → **fix** — в исходнике 3 очереди объявлены, но расчёт ведётся одной суммой на одной шкале
+- `LAND.AREA` ← `ТЭПы!C15` = `96572` → **keep**
+- `LAND.AREA` ← `ТЭПы!I15` = `96572` → **remove** — дубль
+- `LAND.CADASTRAL_VALUE` ← `ТЭПы!C13` = `5834907660` → **keep**
+- `LAND.CADASTRAL_VALUE` ← `ТЭПы!I13` = `5834907660` → **remove** — дубль
+- `LAND.TENURE` ← `CF1!A24` → **fix**
+- `LAND.PURCHASE_PRICE` ← `Бюджет!F17` = `=2440190898-F22` → **fix** — из цены вычтена плата за ВРИ — зашитое число 2 440 190 898 без пояснения
+- `LAND.LEGAL_COSTS` ← `Бюджет!F18` = `0` → **keep**
+- `LAND.AGENT_FEE_RATE` ← `Бюджет!D19` = `0.02` → **fix** — ставка 2% задана, но сумма F19 вбита 0 — ставка не участвует в расчёте
+- `LAND.AGENT_FEE_RATE` ← `Бюджет!F19` = `0` → **replace**
+- `LAND.VRI_FEE` ← `Бюджет!D22` = `5000` → **replace** — 5 000 руб/м² × СПП — экспертно, без ссылки
+- `LAND.RENT_ANNUAL` ← `Бюджет!F21` = `825124525.273` → **replace** — итоговая сумма за весь срок без расчёта; распределена равномерно на 7,25 года (CF1 строка 24)
+- `LAND.CITY_OBLIGATIONS` ← `Бюджет!F24` = `1260033986.66` → **fix** — была в разделе ПиР; комментарий автора: «перенести в правообладание»
+- `TAX.LAND_RATE` ← `CF1!D84` = `0.002` → **replace** — 0,2% без источника; для участка стоимостью 5,8 млрд предел 0,3% не применяется
+- `TEP.GFA_ABOVE` ← `ТЭПы!C19` = `221967` → **keep** — подпись «СПП (ГНС)» смешивала понятия; уточнено как наземная ГНС (вопрос автора ТЭПы!E19)
+- `TEP.GFA_BELOW` ← `ТЭПы!C34` = `=E49 (= 40,945 × 862)` → **fix** — подземная площадь выводилась из числа машино-мест; СМР подземной части имеет объём 0 (Бюджет!E33)
+- `TEP.RES_GFA` ← `ТЭПы!C20` = `=210038+420` → **keep**
+- `TEP.NONRES_GFA` ← `ТЭПы!C21` = `19009` → **keep**
+- `TEP.APT_EFFICIENCY` ← `ТЭПы!D22` = `=C22/C20 ≈ 0,68` → **keep** — в исходнике — обратный расчёт из заданной площади
+- `TEP.APT_AREA` ← `ТЭПы!C22` = `143560` → **keep**
+- `TEP.COMM_AREA` ← `ТЭПы!C23` = `10322` → **keep**
+- `TEP.COMM_AREA` ← `ТЭПы!C48` = `10332` → **remove** — расхождение с C23 на 10 м² — опечатка
+- `TEP.COMM_AREA` ← `ТЭПы!D23` = `0.8` → **remove** — коэффициент без назначения, в формулах не участвует
+- `TEP.MOP_AREA` ← `ТЭПы!C26` = `=51775+7719` → **keep**
+- `TEP.STORAGE_COUNT` ← `ТЭПы!E50` = `0` → **keep** — «Прочие помещения» = 0; на дашборде названо «Кладовые»
+- `TEP.PARKING_AREA_PER_SPACE` ← `ТЭПы!D49` = `40.945` → **keep**
+- `TEP.PARKING_COUNT_OVERRIDE` ← `ТЭПы!C27` = `862` → **fix** — по нормативу из той же таблицы (0,8/1,2/1,6) получается 2 785 м/м; 862 вбито без обоснования
+- `TEP.PARKING_COUNT_OVERRIDE` ← `ТЭПы!J44` = `862` → **fix** — перебивает формулу-норматив
+- `TEP.LANDSCAPE_SHARE` ← `ТЭПы!D29` = `0.3` → **keep** — вопрос автора: «откуда нормативы?» — теперь требуется ссылка на ППТ/НГП
+- `TEP.ROAD_SHARE` ← `ТЭПы!D30` = `0.1` → **keep**
+- `TEP.GREEN_SHARE` ← `ТЭПы!D31` = `0.1` → **keep**
+- `TEP.APT_MIX` ← `ТЭПы!C41:C43` = `[0.4, 0.3, 0.3]` → **remove** — доли вводились вручную параллельно с количеством
+- `TEP.APT_MIX` ← `ТЭПы!D41:D43` = `[35.108, 60.53, 92]` → **keep**
+- `TEP.APT_MIX` ← `ТЭПы!F41:F43` = `[961, 720, 720]` → **keep**
+- `TEP.APT_MIX` ← `ТЭПы!F44` = `2401` → **fix** — итог вбит числом вместо SUM
+- `TEP.APT_MIX` ← `ТЭПы!C28` = `2401` → **remove** — дубль
+- `TEP.PARKING_NORM` ← `ТЭПы!I41:I43` = `[0.8, 1.2, 1.6]` → **keep** — совпадает с 2118-ПП; источник в исходнике не указан
+- `TEP.UNCLEAR_LEGACY` ← `ТЭПы!C49` = `5200` → **clarify** — в столбце долей для машино-мест; в формулах не участвует
+- `TEP.UNCLEAR_LEGACY` ← `ТЭПы!C35` = `149281` → **clarify** — «Продаваемая площадь» вбита числом; кв+ком = 153 882. Разница 4 601 м² не объяснена
+- `TIME.MILESTONES` ← `ТЭПы!C6` = `3 кв 2025-4 кв 2025` → **fix** — текст — формулы CF1 его не распознают
+- `TIME.MILESTONES` ← `ТЭПы!C7` = `4 кв 2025` → **fix** — текст → флаг «Начало стройки» (CF1!4) никогда не срабатывает
+- `TIME.MILESTONES` ← `ТЭПы!C8` = `1 кв 2026` → **fix**
+- `TIME.MILESTONES` ← `ТЭПы!C9` = `1 кв 2032` → **fix**
+- `TIME.MILESTONES` ← `ТЭПы!C10` = `30.09.2029; 01.03.2031; 01.07.2031; 01.10.2031` → **fix** — 4 даты РНВ при 3 очередях, в одной ячейке текстом
+- `TIME.MILESTONES` ← `ТЭПы!C11` = `4 кв 2033` → **fix**
+- `TIME.MILESTONES` ← `ТЭПы!C12` = `2 кв 2032` → **fix** — «окончание ПФ» → раскрытие эскроу (CF1!D6) — текст, флаг не срабатывает
+- `TIME.MILESTONES` ← `ТЭПы!C5` = `7.25` → **remove** — срок проекта — вычисляется из вех; 7,25 было зашито и в делители CF1!F24, F84
+- `TIME.MILESTONES` ← `CF1!AB6:AF6` = `[1, 0, 0, 0, 0]` → **remove** — флаг раскрытия эскроу проставлен руками поверх формулы
+- `TIME.MILESTONES` ← `CF1!AB8:AS8` = `0 × 18` → **remove** — флаг продаж по эскроу перебит руками
+- `TIME.MILESTONES` ← `CF1!F7:AC7` = `1..6` → **remove** — «год строительства» — ручная нумерация, вычисляется
+- `CAPEX.ITEMS` ← `Бюджет!D17:F49` → **fix** — детально — capex_items.yaml → legacy
+- `CAPEX.CONTINGENCY_RATE` ← `Бюджет!D42` = `=(D32+D33+D34)*10%` → **fix** — 10% от суммы расценок, затем F42 = E42 + D42 (площадь + ставка) → 0,2 млн вместо ~7,5 млрд по замыслу автора
+- `SALES.PRODUCTS` ← `ТЭПы!G41:G43` = `[497703, 497703, 497703]` → **keep** — одинаковая цена для всех типов — источник не указан
+- `SALES.PRODUCTS` ← `ТЭПы!G48` = `600000` → **keep** — ПСН, руб/м²
+- `SALES.PRODUCTS` ← `ТЭПы!D48` = `80` → **keep** — средняя площадь лота ПСН
+- `SALES.PRODUCTS` ← `ТЭПы!G49` = `270000` → **fix** — цена м/м задана в руб/м² × 40,945 м² = 11,06 млн за место; проверить
+- `SALES.PRODUCTS` ← `ТЭПы!D50:F50` = `[0, 0, 0]` → **keep**
+- `SALES.PACE` ← `План продаж!E28:AG28` → **keep** — Тип 1, шт/квартал, 29 значений (сумма 961)
+- `SALES.PACE` ← `План продаж!E33:AG33` → **keep** — Тип 2, шт/квартал (сумма 720)
+- `SALES.PACE` ← `План продаж!E38:AG38` → **keep** — Тип 3, шт/квартал (сумма 720)
+- `SALES.PACE` ← `План продаж!E43:AM43` → **fix** — ПСН, лотов/квартал, дробные (2,2125…); итого 136,1 лота × 80 м² = 10 888 м² при запасе 10 322 м² — продано больше, чем построено
+- `SALES.PACE` ← `План продаж!E48:BC48` → **fix** — машино-места, шт/квартал (итого 862); выручка = шт × 40,945 м² × 270 000 руб/м² ≈ 11 млн за место без роста, 13,6 млрд итого — проверить цену
+- `SALES.PACE` ← `План продаж!E1:AG3` → **remove** — дубль рядов 28/33/38
+- `SALES.PACE` ← `План продаж!E21:AG22` → **remove** — итоги вбиты числами вместо сумм
+- `SALES.PACE` ← `План продаж!E70:BC70` → **remove** — пустой ряд без подписи
+- `SALES.PRICE_STAGE_UPLIFT` ← `План продаж!E30,E35,E40,E45,E50,E55` = `0.02` → **replace** — 2% в квартал без разделения на рынок и стадию
+- `SALES.PRICE_STAGE_UPLIFT` ← `План продаж!U55:AM55` = `2.02 … 20.02` → **remove** — ошибка ввода (рост 202–2002% в квартал); ряд «прочие» не используется
+- `SALES.PAYMENT_MIX` ← `Эскроу!C5` = `0` → **keep** — рассрочка
+- `SALES.PAYMENT_MIX` ← `Эскроу!C6` = `0.7` → **keep** — ипотека
+- `SALES.PAYMENT_MIX` ← `Эскроу!C7` = `0.1` → **fix** — 100% оплата; 0,7+0,1+0 = 0,8 — доли не сходятся к 1
+- `SALES.PAYMENT_MIX` ← `Эскроу!C8` = `0.2` → **fix** — ПВ 20% — смешан со структурой оплат
+- `SALES.PAYMENT_MIX` ← `Эскроу!D3:AK3` = `6 кв × 27` → **keep** — срок рассрочки
+- `SALES.PAYMENT_MIX` ← `Эскроу!D8:H8` = `0` → **remove**
+- `FIN.EQUITY_SHARE` ← `CF1!D132` = `0.1` → **fix** — 10% от расходов каждого периода — неверно, банк требует внести собственные средства вперёд
+- `FIN.EQUITY_SHARE` ← `Бюджет!D65` = `0.1` → **remove** — дубль
+- `FIN.RATE_PREFERENTIAL` ← `CF1!D116` = `0.05` → **keep**
+- `FIN.RATE_BASE_SPREAD` ← `CF1!D117` = `0.2` → **fix** — эквивалент спреда = 20% − 14,25% = 5,75 п.п.
+- `FIN.KEY_RATE_PATH` ← `CF1!D115` = `0.1425` → **replace** — устарело, одна константа на весь срок
+- `FIN.RATE_DISCOUNT_COEF` ← `CF1!D118` = `-0.02` → **keep**
+- `FIN.RATE_MIN` ← `CF1!D119` = `0.001` → **keep**
+- `FIN.ESCROW_RESERVE_RATE` ← `CF1!D92` = `0` → **keep**
+- `FIN.FEE_ARRANGEMENT` ← `CF1!D111` = `0.01` → **keep**
+- `FIN.FEE_COMMITMENT` ← `CF1!A112` → **keep** — строка была пустой
+- `FIN.COLLATERAL_DISCOUNT` ← `CF1!D102` = `0.15` → **keep** — в исходнике строки 103–105 не доведены до расчёта
+- `TAX.VAT_RATE` ← `Бюджет!D54` = `0.22` → **keep**
+- `TAX.VAT_RATE` ← `CF1!D85` = `0.22` → **remove** — дубль
+- `TAX.VAT_RATE` ← `План продаж!C62` = `0.22` → **remove** — дубль; применялась как 22% от цены с НДС вместо 22/122
+- `TAX.VAT_REGIME` ← `Бюджет!E54` = `=(F30+F23+F16)-'План продаж'!D60` → **fix** — база НДС = затраты − выручка, бессмысленная формула; F54 пустая
+- `TAX.VAT_REGIME` ← `CF1!M85:AA85` = `5 000 000 × 15` → **remove** — НДС вбит по 5 млн в квартал
+- `TAX.PROFIT_RATE` ← `Бюджет!D55` = `0.25` → **keep**
+- `TAX.PROFIT_RATE` ← `CF1!D86` = `0.25` → **remove** — дубль
+- `TAX.PROFIT_RATE` ← `Бюджет!M55` = `=F12*5.7%` → **remove** — налог взят как 5,7% выручки без обоснования
+- `OPEX.MARKETING_RATE` ← `Бюджет!D51` = `0.035` → **keep**
+- `OPEX.MARKETING_RATE` ← `Бюджет!F51` = `=8389618415.5/2` → **fix** — сумма вбита числом и не равна 3,5% выручки
+- `OPEX.BROKERAGE_RATE` ← `Бюджет!D52` = `0.035` → **keep**
+- `OPEX.DEV_FEE_RATE` ← `Бюджет!D48` = `0.02` → **fix** — 2% задано, но F48 = 1 850 054 797 вбито (≠ 2% ни от выручки, ни от затрат)
+- `VAL.EQUITY_PREMIUM` ← `CF1!D139` = `0.25` → **fix** — cost of equity 25% без разложения на безрисковую ставку и премию
+- `VAL.HURDLE_IRR` ← `Бюджет!G63` → **new**

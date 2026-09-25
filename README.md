@@ -17,7 +17,8 @@
 | `data/*.yaml` | Источник правды: sources, parameters, capex_items, regions (89 субъектов), formulas |
 | `legacy/` | Исходный Excel + полная карта его ячеек (737 значений, 686 шаблонов формул на 5 547 ячеек, 467 текстовых ячеек) |
 | `tests/cases/derbenevskaya_legacy.yaml` | Входы исходника, цели сверки, обязательные отличия после исправлений |
-| `scripts/` | Валидатор, генератор документации, построение карты legacy |
+| `scripts/` | Валидатор, генератор документации, построение карты легаси |
+| `packages/spec`, `packages/engine`, `apps/web` | Монорепо pnpm: справочник, расчётное ядро, веб-интерфейс (Next.js) |
 
 ## Быстрый старт
 
@@ -25,6 +26,11 @@
 pip install pyyaml openpyxl
 python scripts/validate_spec.py   # 0 ошибок, список того, что сверить перед релизом
 python scripts/render_docs.py
+
+# веб-сервис (Node.js 22+, pnpm 10)
+pnpm install
+pnpm typecheck && pnpm lint && pnpm test
+pnpm dev                          # http://localhost:3000
 ```
 
 Дата актуализации справочника: 25.09.2026 (ключевая ставка ЦБ 14,00% от 11.09.2026, НДС 22%, налог на прибыль 25%, НЦС-2026, СП 42.13330.2026).

@@ -152,7 +152,7 @@ items:
   - item_id: SMR_ABOVE
     name: "СМР надземной части (в т.ч. стилобат)"
     group: СМР
-    base: TEP.GFA_ABOVE
+    base: F.TEP.GFA_ABOVE
     schedule_rule: s_curve
     schedule_from: construction_start
     schedule_to: construction_end
@@ -163,7 +163,7 @@ items:
   - item_id: SMR_BELOW
     name: "СМР подземной части (паркинг)"
     group: СМР
-    base: TEP.GFA_BELOW
+    base: F.TEP.GFA_BELOW
     schedule_rule: s_curve
     schedule_from: construction_start
     schedule_to: construction_end

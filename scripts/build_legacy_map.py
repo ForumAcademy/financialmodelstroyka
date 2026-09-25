@@ -43,7 +43,7 @@ def value_target(sheet, row, col):
             29: ("TEP.LANDSCAPE_SHARE", "keep", "нужна ссылка на ППТ/НГП"),
             30: ("TEP.ROAD_SHARE", "keep", "нужна ссылка на ППТ"),
             31: ("TEP.GREEN_SHARE", "keep", "нужна ссылка на ППТ/НГП"),
-            35: ("TEP.UNCLEAR_LEGACY", "clarify", "149 281 ≠ 153 882 (кв+ком)"),
+            35: ("CAPEX.ITEMS", "replace", "база только для режима совместимости: перевод вбитых сумм бюджета в ставки на м²; продаваемая площадь — F.TEP.SALEABLE_AREA"),
             44: ("TEP.APT_MIX" if c == "F" else "TEP.PARKING_COUNT_OVERRIDE", "fix", "итог вбит числом"),
         },
     }
@@ -63,7 +63,7 @@ def value_target(sheet, row, col):
                     "D": ("SALES.PRODUCTS", "keep", "средняя площадь лота ПСН"),
                     "G": ("SALES.PRODUCTS", "keep", "цена ПСН руб/м²")}.get(c)
         if row == 49:
-            return {"C": ("TEP.UNCLEAR_LEGACY", "clarify", "5 200 — назначение неизвестно"),
+            return {"C": ("TEP.PARKING_AREA_PER_SPACE", "remove", "5 200 = 127 м/м × 40,945 м² — остаток прежней версии, в расчётах не участвует"),
                     "D": ("TEP.PARKING_AREA_PER_SPACE", "keep", ""),
                     "G": ("SALES.PRODUCTS", "fix", "цена м/м в руб/м² × 40,945")}.get(c)
         if row == 50:

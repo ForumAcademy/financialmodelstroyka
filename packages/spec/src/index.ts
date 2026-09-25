@@ -21,7 +21,7 @@ import {
 import type { CapexItem, Formula, Parameter, Region, Source } from "./schemas";
 
 export * from "./generated/ids";
-export { checkSpec, LAG_DEPENDENCIES, type SpecCheckResult } from "./checks";
+export { checkSpec, type SpecCheckResult } from "./checks";
 export {
   CAPEX_SCHEDULE_RULES,
   FORMULA_MODULES,
@@ -31,6 +31,7 @@ export {
   PARAMETER_STATUSES,
   REGION_STATUSES,
   SOURCE_LEVELS,
+  SOURCE_SCOPES,
 } from "./schemas";
 export type { CapexItem, Formula, Parameter, Region, Source, SpecData } from "./schemas";
 
@@ -48,10 +49,11 @@ export type SpecFile = (typeof SPEC_FILES)[number];
 
 export type SpecSource = Omit<Source, "id"> & { id: SourceId };
 export type SpecParameter = Omit<Parameter, "id" | "source_ids"> & { id: ParameterId; source_ids: SourceId[] };
-export type SpecFormula = Omit<Formula, "id" | "source_ids" | "depends_on"> & {
+export type SpecFormula = Omit<Formula, "id" | "source_ids" | "depends_on" | "lag_depends_on"> & {
   id: FormulaId;
   source_ids: SourceId[];
   depends_on: (ParameterId | FormulaId)[];
+  lag_depends_on?: FormulaId[];
 };
 export type SpecCapexItem = Omit<CapexItem, "item_id" | "source_ids" | "rate_param" | "formula"> & {
   item_id: CapexItemId;
@@ -67,6 +69,7 @@ export type SpecRegion = Omit<
   | "land_rent_source_ids"
   | "vri_fee"
   | "parking_norm"
+  | "parking_norm_apart"
   | "ngp_source_ids"
 > & {
   code: RegionCode;
@@ -75,6 +78,7 @@ export type SpecRegion = Omit<
   land_rent_source_ids: SourceId[];
   vri_fee: Omit<Region["vri_fee"], "source_ids"> & { source_ids: SourceId[] };
   parking_norm: Omit<Region["parking_norm"], "source_ids"> & { source_ids: SourceId[] };
+  parking_norm_apart: Omit<Region["parking_norm_apart"], "source_ids"> & { source_ids: SourceId[] };
   ngp_source_ids: SourceId[];
 };
 

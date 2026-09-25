@@ -8,6 +8,12 @@
 #   4 — внутренние данные компании (договоры, сметы, факт прошлых проектов)
 #   5 — экспертная оценка (обязательны автор, обоснование, диапазон)
 #
+# scope — global  : общий источник справочника (законы, НПА, статистика, госсервисы, рыночные данные, бенчмарки компании);
+#                    уровни 1–4, для уровней 1–3 обязателен URL.
+#         project : ТИП проектного источника (ГПЗУ, ППТ, ТЭП архитектора, договор, term sheet, экспертная оценка).
+#                    Конкретный документ хранится внутри проекта (вложение, автор, дата) и в справочник не попадает;
+#                    уровни 4–5, URL не задаётся (docs/00_principles.md, раздел 6).
+#
 # accessed — дата, когда ссылка проверена. verified: true — содержание сверено с формулировкой в spec.
 # Ссылки на КонсультантПлюс/Гарант ведут на актуальную редакцию статьи.
 
@@ -17,6 +23,7 @@ sources:
 
   - id: S_NK_149
     level: 1
+    scope: global
     title: "НК РФ ч.2, ст.149 «Операции, не подлежащие налогообложению (освобождаемые от налогообложения)»"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/c8ebcedc9ddce9d959d6c520c3b0d602f71e8e12/"
@@ -26,6 +33,7 @@ sources:
 
   - id: S_NK_164
     level: 1
+    scope: global
     title: "НК РФ ч.2, ст.164 «Налоговые ставки» (НДС)"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/35cc6698564adc4507baa31c9cfdbb4f2516d068/"
@@ -35,6 +43,7 @@ sources:
 
   - id: S_FZ_425_VAT22
     level: 1
+    scope: global
     title: "Федеральный закон от 28.11.2025 № 425-ФЗ — повышение ставки НДС до 22% с 01.01.2026 (комментарий 1С:ИТС)"
     issuer: "1С:ИТС (комментарий к закону)"
     url: "https://its.1c.ru/db/content/newscomm/src/497590.htm"
@@ -44,6 +53,7 @@ sources:
 
   - id: S_MINFIN_VAT_DDU_2023
     level: 1
+    scope: global
     title: "Письмо Минфина России от 30.08.2023 № 03-07-07/82924 — НДС по услугам застройщика по ДДУ с 01.01.2024 (изменения 389-ФЗ)"
     issuer: "Минфин России"
     url: "https://www.garant.ru/products/ipo/prime/doc/407693240/"
@@ -53,6 +63,7 @@ sources:
 
   - id: S_MINFIN_VAT_APART_2023
     level: 1
+    scope: global
     title: "Письмо Минфина России от 29.08.2023 № 03-07-07/82426 — НДС по ДДУ на помещения для временного проживания (апартаменты)"
     issuer: "Минфин России"
     url: "https://www.garant.ru/products/ipo/prime/doc/407693270/"
@@ -62,6 +73,7 @@ sources:
 
   - id: S_NK_174
     level: 1
+    scope: global
     title: "НК РФ ст.174 «Порядок и сроки уплаты налога» (НДС)"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/"
@@ -72,6 +84,7 @@ sources:
 
   - id: S_NK_251
     level: 1
+    scope: global
     title: "НК РФ ст.251 «Доходы, не учитываемые при определении налоговой базы» (пп.14 п.1 — целевое финансирование, средства дольщиков)"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/850d11e08b0cb09a2318af00f2f0aff805d39c85/"
@@ -81,6 +94,7 @@ sources:
 
   - id: S_MINFIN_PROFIT_DDU_2026
     level: 1
+    scope: global
     title: "Письмо Минфина России от 28.07.2026 № 03-03-08/65074 — учёт доходов/расходов застройщика по ДДУ и определение финансового результата"
     issuer: "Минфин России"
     url: "https://www.garant.ru/products/ipo/prime/doc/414657525/"
@@ -90,6 +104,7 @@ sources:
 
   - id: S_NK_283
     level: 1
+    scope: global
     title: "НК РФ ст.283 «Перенос убытков на будущее»"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/f07c38898fd7af4a54b1c6d33e01f23cc2dae757/"
@@ -100,6 +115,7 @@ sources:
 
   - id: S_NK_284
     level: 1
+    scope: global
     title: "НК РФ ст.284 «Налоговые ставки» (налог на прибыль)"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/eb9180fc785448d58fe76ef323fb67d1832b9363/"
@@ -109,6 +125,7 @@ sources:
 
   - id: S_NK_394
     level: 1
+    scope: global
     title: "НК РФ ст.394 «Налоговая ставка» (земельный налог)"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/fd2ac88b2311a6053a128cfa43aa07672e826213/"
@@ -118,6 +135,7 @@ sources:
 
   - id: S_NK_396
     level: 1
+    scope: global
     title: "НК РФ ст.396 «Порядок исчисления налога и авансовых платежей» (п.15 — коэффициенты 2 и 4 при жилищном строительстве)"
     issuer: "Федеральный закон"
     url: "https://www.consultant.ru/document/cons_doc_LAW_28165/9aa69b8504295f7fce85452466c428d2522a89c8/"
@@ -127,6 +145,7 @@ sources:
 
   - id: S_FNS_LANDCOEF_2026
     level: 1
+    scope: global
     title: "Письмо ФНС России от 25.08.2026 № БС-35-21/11166@ — коэффициенты п.15 ст.396 для участков под МКД с кадастровой стоимостью > 300 млн руб."
     issuer: "ФНС России"
     url: "https://www.garant.ru/products/ipo/prime/doc/414716619/"
@@ -136,6 +155,7 @@ sources:
 
   - id: S_214_ART3
     level: 1
+    scope: global
     title: "214-ФЗ ст.3 — право застройщика на привлечение средств дольщиков (п.1.1 ч.2 — собственные средства ≥ 10% проектной стоимости)"
     issuer: "Федеральный закон от 30.12.2004 № 214-ФЗ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_51038/24a7b7f2b0571ac53f7b789c337316109c23d1a7/"
@@ -146,6 +166,7 @@ sources:
 
   - id: S_214_ART15_4
     level: 1
+    scope: global
     title: "214-ФЗ ст.15.4 — привлечение средств дольщиков с использованием счетов эскроу"
     issuer: "Федеральный закон от 30.12.2004 № 214-ФЗ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_51038/57da6efc7ca337d428cf526d01e70925ce5bdcb0/"
@@ -155,6 +176,7 @@ sources:
 
   - id: S_214_ART15_5
     level: 1
+    scope: global
     title: "214-ФЗ ст.15.5 — открытие, ведение и закрытие счёта эскроу"
     issuer: "Федеральный закон от 30.12.2004 № 214-ФЗ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_51038/7e20edcc51ba599c70fb328204e3ac1226e7d912/"
@@ -164,6 +186,7 @@ sources:
 
   - id: S_GRK_51
     level: 1
+    scope: global
     title: "ГрК РФ ст.51 «Разрешение на строительство»"
     issuer: "Федеральный закон от 29.12.2004 № 190-ФЗ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_51040/570afc6feff03328459242886307d6aebe1ccb6b/"
@@ -173,6 +196,7 @@ sources:
 
   - id: S_GRK_55
     level: 1
+    scope: global
     title: "ГрК РФ ст.55 «Выдача разрешения на ввод объекта в эксплуатацию»"
     issuer: "Федеральный закон от 29.12.2004 № 190-ФЗ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_51040/935a657a2b5f7c7a6436cb756694bb2d649c7a00/"
@@ -180,8 +204,90 @@ sources:
     accessed: 2026-09-25
     verified: true
 
+  - id: S_GRK_38
+    level: 1
+    scope: global
+    title: "ГрК РФ ст.38 «Предельные (минимальные и (или) максимальные) размеры земельных участков и предельные параметры разрешенного строительства, реконструкции объектов капитального строительства»"
+    issuer: "Федеральный закон от 29.12.2004 № 190-ФЗ"
+    url: "https://www.consultant.ru/document/cons_doc_LAW_51040/312302f37ac9299771d2bf4f9b4bb797fb476948/"
+    used_for: "ч.1 — предельные размеры участков, отступы, этажность/высота, максимальный процент застройки; ч.1.2 — иные параметры (в т.ч. суммарная поэтажная площадь в ГПЗУ/ПЗЗ). Стадия «Оценка участка»: ГНС наземная и пятно застройки"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_GRK_40
+    level: 1
+    scope: global
+    title: "ГрК РФ ст.40 «Отклонение от предельных параметров разрешенного строительства, реконструкции объектов капитального строительства»"
+    issuer: "Федеральный закон от 29.12.2004 № 190-ФЗ"
+    url: "https://www.consultant.ru/document/cons_doc_LAW_51040/91122874bbcf628c0e5c6bceb7fe613ee682fc73/"
+    used_for: "снятие блокирующей ошибки F.CHECK.GPZU_LIMITS решением о разрешении на отклонение (GPZU.DEVIATION_PERMIT); ч.1.1 — однократное изменение одного или нескольких предельных параметров не более чем на 10% без публичных слушаний; ч.2 — отклонение по предельной этажности / высоте в границах исторических поселений федерального и регионального значения не допускается"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_GRK_48_1
+    level: 1
+    scope: global
+    title: "ГрК РФ ст.48.1 «Особо опасные, технически сложные и уникальные объекты»"
+    issuer: "Федеральный закон от 29.12.2004 № 190-ФЗ"
+    url: "https://www.consultant.ru/document/cons_doc_LAW_51040/020268898fa86a2e82a7b360986eb212b02482cf/"
+    used_for: "ч.2 — уникальный объект, в т.ч. высотой более 100 м: группа высотности «свыше_100м» (BENCH.HEIGHT_BAND) с другими группами не смешивается"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_ZHK_15
+    level: 1
+    scope: global
+    title: "ЖК РФ ст.15 «Объекты жилищных прав. Пригодность жилого помещения для проживания»"
+    issuer: "Федеральный закон от 29.12.2004 № 188-ФЗ"
+    url: "https://www.consultant.ru/document/cons_doc_LAW_51057/3219ce4c6d0c49870efd7094d883d2d14184ce52/"
+    used_for: "ч.5 — общая площадь жилого помещения: сумма площадей всех частей помещения, включая вспомогательные, за исключением балконов, лоджий, веранд и террас. Основа площади квартиры для продажи"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_MINSTROY_854
+    level: 1
+    scope: global
+    title: "Приказ Минстроя России от 25.11.2016 № 854/пр «Об утверждении понижающих коэффициентов для расчета площади лоджии, веранды, балкона, террасы, используемой при расчете общей приведенной площади жилого помещения»"
+    issuer: "Минстрой России"
+    url: "https://base.garant.ru/71569280/"
+    used_for: "площадь квартиры по ДДУ = общая площадь (ч.5 ст.15 ЖК РФ) + лоджии × 0,5, балконы × 0,3, террасы × 0,3, веранды × 1,0. В силе с 01.01.2017 (зарегистрирован Минюстом 16.12.2016 № 44769)"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_ROSREESTR_P0393
+    level: 1
+    scope: global
+    title: "Приказ Росреестра от 23.10.2020 № П/0393 (ред. от 13.10.2025) — требования к точности и методам определения координат характерных точек и к определению площади здания, сооружения, помещения, машино-места"
+    issuer: "Росреестр"
+    url: "https://www.consultant.ru/document/cons_doc_LAW_368160/"
+    used_for: "приложение № 2 «Требования к определению площади здания, сооружения, помещения, машино-места» — правила обмера площадей квартир, ПСН, апартаментов, кладовых и машино-мест"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_ROSREESTR_P0316
+    level: 1
+    scope: global
+    title: "Приказ Росреестра от 23.07.2021 № П/0316 «Об установлении минимально допустимых размеров машино-места»"
+    issuer: "Росреестр"
+    url: "https://www.consultant.ru/law/hotdocs/70715.html"
+    used_for: "минимальный размер машино-места 5,3 × 2,5 м; с 28.10.2021 максимальный размер не ограничивается. Нижняя граница площади на одно машино-место"
+    accessed: 2026-09-25
+    verified: true
+
+  - id: S_ROSREESTR_P0412
+    level: 1
+    title: "Приказ Росреестра от 10.11.2020 № П/0412 «Об утверждении классификатора видов разрешенного использования земельных участков»"
+    scope: global
+    issuer: "Росреестр"
+    url: "https://www.consultant.ru/document/cons_doc_LAW_371246/"
+    used_for: "подсказка для продукта «апартаменты»: обычно это ВРИ 4.7 «Гостиничное обслуживание» (LAND.VRI_CODES). Решающий документ — ГПЗУ проекта (GPZU.APART_ALLOWED)"
+    accessed: 2026-09-25
+    verified: false
+    note: "Сверены реквизиты: Минюст 15.12.2020 № 61482, ред. от 02.06.2026. Текст кода 4.7 на официальных ресурсах не открылся; по вторичному источнику: 4.7 «Гостиничное обслуживание — размещение гостиниц». Сверить текст при релизе"
+
   - id: S_NCS_2026_01
     level: 1
+    scope: global
     title: "НЦС 81-02-01-2026 «Укрупнённые нормативы цены строительства. Сборник № 01. Жилые здания» (Приказ Минстроя России от 19.03.2026 № 159/пр), цены на 01.01.2026, базовый район — Московская область"
     issuer: "Минстрой России"
     url: "https://docs.cntd.ru/document/1316343087"
@@ -192,6 +298,7 @@ sources:
 
   - id: S_NCS_2026_NEWS
     level: 2
+    scope: global
     title: "Опубликованы приказы Минстроя об утверждении НЦС-2026 (обзор с реквизитами)"
     issuer: "ИТС АЙТАТ"
     url: "https://its.i-tat.ru/articles/opublikovany-prikazy-minstroya-ob-utverzhdenii-ukrupnennyh-normativov-ceny-stroitelstva-ncs-2026"
@@ -201,6 +308,7 @@ sources:
 
   - id: S_NCS_TECHPART
     level: 1
+    scope: global
     title: "НЦС 81-02-01-2023 (Приказ Минстроя от 22.02.2023 № 120/пр) — техническая часть: состав затрат и формула пересчёта (п.14, 16, 21, 40, 45)"
     issuer: "Минстрой России"
     url: "https://meganorm.ru/mega_doc/norm/normativy/1/ntss_81-02-01-2023_ukrupnennye_normativy_tseny_stroitelstva.html"
@@ -211,6 +319,7 @@ sources:
 
   - id: S_MINSTROY_421
     level: 1
+    scope: global
     title: "Методика определения сметной стоимости строительства (Приказ Минстроя России от 04.08.2020 № 421/пр, ред. от 30.01.2026)"
     issuer: "Минстрой России"
     url: "https://www.consultant.ru/document/cons_doc_LAW_362957/"
@@ -221,6 +330,7 @@ sources:
 
   - id: S_MINSTROY_297
     level: 1
+    scope: global
     title: "Методика определения затрат на осуществление функций технического заказчика (Приказ Минстроя России от 02.06.2020 № 297/пр)"
     issuer: "Минстрой России"
     url: "https://www.consultant.ru/document/cons_doc_LAW_357554/"
@@ -230,6 +340,7 @@ sources:
 
   - id: S_PP_468
     level: 1
+    scope: global
     title: "Постановление Правительства РФ от 21.06.2010 № 468 «О порядке проведения строительного контроля…» (нормативы расходов на стройконтроль)"
     issuer: "Правительство РФ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_101791/"
@@ -239,6 +350,7 @@ sources:
 
   - id: S_PP_145
     level: 1
+    scope: global
     title: "Постановление Правительства РФ от 05.03.2007 № 145 (разд. VIII — размер платы за госэкспертизу)"
     issuer: "Правительство РФ"
     url: "https://www.consultant.ru/document/cons_doc_LAW_66669/2aa378f7c71e32b9ce97bb38dd0f0647b075da48/"
@@ -248,6 +360,7 @@ sources:
 
   - id: S_SP_42_2026
     level: 1
+    scope: global
     title: "СП 42.13330.2026 «Градостроительство. Планировка и застройка городских и сельских поселений» (Приказ Минстроя № 368/пр от 11.06.2026, в действии с 12.07.2026; заменил СП 42.13330.2016)"
     issuer: "Минстрой России"
     url: "https://www.nep.expert/news/sp-42-13330-2026/"
@@ -258,6 +371,7 @@ sources:
 
   - id: S_SP_42_2016
     level: 1
+    scope: global
     title: "СП 42.13330.2016 (Приказ Минстроя от 30.12.2016 № 1034/пр) — предыдущая редакция"
     issuer: "Минстрой России"
     url: "https://minstroyrf.gov.ru/docs/14465/"
@@ -269,6 +383,7 @@ sources:
 
   - id: S_MSK_LANDTAX_74
     level: 1
+    scope: global
     title: "Закон г. Москвы от 24.11.2004 № 74 «О земельном налоге»"
     issuer: "Москва"
     url: "https://www.nalog.gov.ru/rn77/about_fts/docs/4294208/"
@@ -279,6 +394,7 @@ sources:
 
   - id: S_MSK_RENT_273PP
     level: 1
+    scope: global
     title: "Постановление Правительства Москвы от 25.04.2006 № 273-ПП (арендная плата за землю) в ред. ПП № 2652-ПП от 22.11.2024"
     issuer: "Правительство Москвы"
     url: "https://erzrf.ru/news/v-moskve-aktualizirovan-poryadok-vzimaniya-platy-za-arendu-i-za-izmeneniye-vida-razreshennogo-ispolzovaniya-zemelnogo-uchastka"
@@ -289,6 +405,7 @@ sources:
 
   - id: S_MSK_VRI_593PP
     level: 1
+    scope: global
     title: "Постановление Правительства Москвы от 10.09.2013 № 593-ПП — порядок определения платы за изменение ВРИ (ставки — приложение), в ред. ПП № 2652-ПП от 22.11.2024"
     issuer: "Правительство Москвы"
     url: "https://base.garant.ru/70457992/de40175ab12d04d68f792b5b742a18fc/"
@@ -299,6 +416,7 @@ sources:
 
   - id: S_MSK_PARKING_2118PP
     level: 1
+    scope: global
     title: "Постановление Правительства Москвы от 05.08.2026 № 2118-ПП — нормативы обеспеченности жилых домов машино-местами (0,8 / 1,2 / 1,6 м/м на квартиру)"
     issuer: "Правительство Москвы"
     url: "https://mperspektiva.ru/topics/moskva-izmenila-normativy-obespechennosti-novostroek-parkovkami/"
@@ -309,6 +427,7 @@ sources:
 
   - id: S_MSK_NGP_TRANSPORT_945PP
     level: 1
+    scope: global
     title: "Постановление Правительства Москвы от 01.10.2015 № 945-ПП — РНГП Москвы в области транспорта"
     issuer: "Правительство Москвы"
     url: "https://www.garant.ru/products/ipo/prime/doc/71200414/"
@@ -318,6 +437,7 @@ sources:
 
   - id: S_SPB_LANDTAX_617
     level: 1
+    scope: global
     title: "Закон Санкт-Петербурга от 23.11.2012 № 617-105 «О земельном налоге в Санкт-Петербурге»"
     issuer: "Санкт-Петербург"
     url: "https://www.nalog.gov.ru/rn78/about_fts/docs/4459430/"
@@ -328,6 +448,7 @@ sources:
 
   - id: S_SPB_RENT_608
     level: 1
+    scope: global
     title: "Закон Санкт-Петербурга от 05.12.2007 № 608-119 «О Методике определения арендной платы за земельные участки…»"
     issuer: "Санкт-Петербург"
     url: "http://docs.cntd.ru/document/8462648"
@@ -337,6 +458,7 @@ sources:
 
   - id: S_SPB_RENT_1379
     level: 1
+    scope: global
     title: "Постановление Правительства СПб от 26.11.2009 № 1379 (базовые ставки и коэффициенты арендной платы)"
     issuer: "Правительство Санкт-Петербурга"
     url: "https://base.garant.ru/35301781/"
@@ -346,6 +468,7 @@ sources:
 
   - id: S_SPB_NGP_257
     level: 1
+    scope: global
     title: "Постановление Правительства СПб от 11.04.2017 № 257 «Об утверждении нормативов градостроительного проектирования Санкт-Петербурга»"
     issuer: "Правительство Санкт-Петербурга"
     url: "https://base.garant.ru/43424438/"
@@ -357,6 +480,7 @@ sources:
 
   - id: S_CBR_KEYRATE
     level: 2
+    scope: global
     title: "Банк России — ключевая ставка (история значений)"
     issuer: "Банк России"
     url: "https://www.cbr.ru/hd_base/keyrate/"
@@ -366,6 +490,7 @@ sources:
 
   - id: S_CBR_KEYRATE_DECISION
     level: 2
+    scope: global
     title: "Банк России — решения по ключевой ставке (на 11.09.2026 ставка сохранена на уровне 14,00%)"
     issuer: "Банк России"
     url: "https://www.cbr.ru/press/keypr/"
@@ -375,6 +500,7 @@ sources:
 
   - id: S_CBR_MACROSURVEY
     level: 2
+    scope: global
     title: "Банк России — макроэкономический опрос (консенсус-прогноз ключевой ставки и инфляции)"
     issuer: "Банк России"
     url: "https://cbr.ru/statistics/ddkp/mo_br/"
@@ -384,6 +510,7 @@ sources:
 
   - id: S_CBR_ZCYC
     level: 2
+    scope: global
     title: "Банк России — кривая бескупонной доходности ОФЗ (G-curve)"
     issuer: "Банк России"
     url: "https://www.cbr.ru/hd_base/zcyc_params/"
@@ -393,6 +520,7 @@ sources:
 
   - id: S_CBR_PF_STATS
     level: 2
+    scope: global
     title: "Банк России — статистика финансирования долевого строительства (ПФ, счета эскроу), ежемесячно"
     issuer: "Банк России"
     url: "https://www.cbr.ru/statistics/bank_sector/equity_const_financing/"
@@ -402,6 +530,7 @@ sources:
 
   - id: S_CBR_RESERVE
     level: 2
+    scope: global
     title: "Банк России — обязательные резервы (нормативы)"
     issuer: "Банк России"
     url: "https://www.cbr.ru/oper_br/o_dkp/reserve_requirements/"
@@ -411,6 +540,7 @@ sources:
 
   - id: S_CBR_MORTGAGE
     level: 2
+    scope: global
     title: "Банк России — статистика жилищного (ипотечного) кредитования"
     issuer: "Банк России"
     url: "https://www.cbr.ru/statistics/bank_sector/mortgage/"
@@ -420,6 +550,7 @@ sources:
 
   - id: S_MINEC_FORECAST
     level: 2
+    scope: global
     title: "Минэкономразвития — прогнозы социально-экономического развития РФ (ИПЦ, индексы-дефляторы)"
     issuer: "Минэкономразвития России"
     url: "https://www.economy.gov.ru/material/directions/makroec/prognozy_socialno_ekonomicheskogo_razvitiya/"
@@ -429,6 +560,7 @@ sources:
 
   - id: S_MINEC_SCENARIO_2027
     level: 2
+    scope: global
     title: "Минэкономразвития — сценарные условия и основные параметры прогноза на 2027 г. и плановый период 2028–2029 гг."
     issuer: "Минэкономразвития России"
     url: "https://www.garant.ru/products/ipo/prime/doc/414115625/"
@@ -438,6 +570,7 @@ sources:
 
   - id: S_FGISCS
     level: 2
+    scope: global
     title: "ФГИС ЦС — индексы изменения сметной стоимости, НЦС, цены ресурсов"
     issuer: "Минстрой России / ФАУ «Главгосэкспертиза»"
     url: "https://fgiscs.minstroyrf.ru/"
@@ -447,6 +580,7 @@ sources:
 
   - id: S_FNS_RATES
     level: 2
+    scope: global
     title: "ФНС России — сервис «Справочная информация о ставках и льготах по имущественным налогам» (по ОКТМО, все субъекты)"
     issuer: "ФНС России"
     url: "https://www.nalog.gov.ru/rn77/service/tax/"
@@ -456,6 +590,7 @@ sources:
 
   - id: S_NSPD
     level: 2
+    scope: global
     title: "НСПД (Национальная система пространственных данных) — кадастровая стоимость, ВРИ, площадь участка"
     issuer: "Росреестр"
     url: "https://nspd.gov.ru/"
@@ -465,6 +600,7 @@ sources:
 
   - id: S_EISZHS_SALES
     level: 2
+    scope: global
     title: "ЕИСЖС (наш.дом.рф) — реализация квартир в строящихся домах"
     issuer: "ДОМ.РФ (оператор ЕИСЖС)"
     url: "https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%80%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D1%8F_%D1%81%D1%82%D1%80%D0%BE%D1%8F%D1%89%D0%B8%D1%85%D1%81%D1%8F_%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B8%D1%80"
@@ -474,6 +610,7 @@ sources:
 
   - id: S_EISZHS_INDICATORS
     level: 2
+    scope: global
     title: "ЕИСЖС (наш.дом.рф) — основные показатели жилищного строительства"
     issuer: "ДОМ.РФ (оператор ЕИСЖС)"
     url: "https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D0%BF%D0%BE%D0%BA%D0%B0%D0%B7%D0%B0%D1%82%D0%B5%D0%BB%D0%B8_%D0%B6%D0%B8%D0%BB%D0%B8%D1%89%D0%BD%D0%BE%D0%B3%D0%BE_%D1%81%D1%82%D1%80%D0%BE%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D1%81%D1%82%D0%B2%D0%B0"
@@ -483,6 +620,7 @@ sources:
 
   - id: S_EISZHS_SERIES
     level: 2
+    scope: global
     title: "ЕИСЖС (наш.дом.рф) — статистические ряды"
     issuer: "ДОМ.РФ (оператор ЕИСЖС)"
     url: "https://xn--80az8a.xn--d1aqf.xn--p1ai/%D0%B0%D0%BD%D0%B0%D0%BB%D0%B8%D1%82%D0%B8%D0%BA%D0%B0/%D1%81%D1%82%D0%B0%D1%82%D0%B8%D1%81%D1%82%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B5_%D1%80%D1%8F%D0%B4%D1%8B"
@@ -490,8 +628,20 @@ sources:
     accessed: 2026-09-25
     verified: true
 
+  - id: S_ERZ_LGOTNAYA_2024
+    level: 3
+    scope: global
+    title: "ЕРЗ.РФ: Минфин — льготная ипотека под 8% заканчивается 1 июля (2024)"
+    issuer: "ДОМ.РФ / ЕРЗ.РФ"
+    url: "https://erzrf.ru/news/minfin-lgotnaya-ipoteka-pod-8-zakanchivayetsya-1-iyulya"
+    used_for: "дата структурного сдвига рынка 01.07.2024 (BENCH.STRUCTURAL_BREAK_DATES): данные аналогов раньше этой даты не используются"
+    accessed: 2026-09-25
+    verified: false
+    note: "Новостной источник, временно. При релизе заменить на страницу Минфина https://minfin.gov.ru/ru/perfomance/govsupport/lgota/uslovie/ (уровень 1–2) и отметить verified"
+
   - id: S_ROSSTAT_PRICES
     level: 2
+    scope: global
     title: "Росстат — цены на рынке жилья (первичный рынок)"
     issuer: "Росстат"
     url: "https://rosstat.gov.ru/statistics/price"
@@ -503,6 +653,7 @@ sources:
 
   - id: S_DOMRF_COST
     level: 3
+    scope: global
     title: "ДОМ.РФ — средняя и медианная себестоимость строительства 1 м² в новостройках (публикация ЕРЗ.РФ)"
     issuer: "ДОМ.РФ / ЕРЗ.РФ"
     url: "https://erzrf.ru/news/analitiki-domrf-opredelili-srednyuyu-i-mediannuyu-stoimost-stroitelstva-1-kv-m-v-rossiyskikh-novostroykakh"
@@ -512,6 +663,7 @@ sources:
 
   - id: S_BANK_PF_DOMRF
     level: 3
+    scope: global
     title: "Банк ДОМ.РФ — условия проектного финансирования"
     issuer: "Банк ДОМ.РФ"
     url: "https://domrfbank.ru/for-developers/project-finance/"
@@ -522,6 +674,7 @@ sources:
 
   - id: S_BANK_PF_RSHB
     level: 3
+    scope: global
     title: "Россельхозбанк — кредитование застройщиков с использованием счетов эскроу"
     issuer: "АО «Россельхозбанк»"
     url: "https://www.rshb.ru/business/credits/escrow"
@@ -533,6 +686,7 @@ sources:
 
   - id: S_PROJECT_DOCS
     level: 4
+    scope: project
     title: "Документы по участку: ГПЗУ, ППТ, выписка ЕГРН, ТУ, договоры"
     issuer: "Проект"
     url: null
@@ -542,6 +696,7 @@ sources:
 
   - id: S_BANK_TERMSHEET
     level: 4
+    scope: project
     title: "Term sheet / кредитное решение банка по проекту"
     issuer: "Проект"
     url: null
@@ -551,6 +706,7 @@ sources:
 
   - id: S_COMPANY_ACTUALS
     level: 4
+    scope: global
     title: "Фактические затраты компании по завершённым проектам (сметы, КС-2, договоры)"
     issuer: "Компания"
     url: null
@@ -560,6 +716,7 @@ sources:
 
   - id: S_EXPERT
     level: 5
+    scope: project
     title: "Экспертная оценка"
     issuer: "Сотрудник компании (ФИО, должность — обязательны)"
     url: null

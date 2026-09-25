@@ -3,7 +3,7 @@
 Проверяет:
   1. Уникальность ID источников, параметров, формул, статей.
   2. У каждого параметра/формулы/статьи есть source_ids, и все они существуют в sources.yaml.
-  3. У источников уровня 1–3 есть URL.
+  3. У источников уровня 1–3 есть URL; scope: global | project (проектные — уровень 4–5, без URL).
   4. depends_on формул ссылается на существующие параметры/формулы; граф без циклов.
   5. Каждый параметр имеет basis; project-параметры без default или с обоснованием.
   6. Карта исходного Excel полная: нет UNMAPPED в legacy/*.csv; все target_id существуют.
@@ -44,6 +44,12 @@ for s in src:
         errors.append(f"источник {s['id']} уровня {s['level']} без URL")
     if s.get("url") and not re.match(r"^https?://", s["url"]):
         errors.append(f"источник {s['id']}: некорректный URL")
+    if s.get("scope") not in ("global", "project"):
+        errors.append(f"источник {s['id']}: scope должен быть global или project")
+    elif s["scope"] == "project" and (s["level"] < 4 or s.get("url")):
+        errors.append(f"источник {s['id']}: проектный источник (scope: project) — только уровень 4–5 и без URL")
+    elif s["scope"] == "global" and s["level"] == 5:
+        errors.append(f"источник {s['id']}: экспертная оценка (уровень 5) может быть только проектной")
     if s.get("verified") is False:
         warns.append(f"источник {s['id']}: не сверен ({s.get('note', '')})")
 
@@ -84,11 +90,13 @@ for f in forms:
     if f.get("status") == "needs_verification":
         warns.append(f"формула {f['id']}: needs_verification")
 
-# циклы: рёбра только между формулами; ссылки на t-1 разрываются в реализации — в YAML допускаются
-# циклы только через явно помеченные лаговые зависимости (coverage[t-1] и т.п.)
-LAG_OK = {("F.FIN.RATE", "F.ESC.COVERAGE"), ("F.ESC.COVERAGE", "F.FIN.DEBT"), ("F.ESC.COVERAGE", "F.FIN.INTEREST"),
-          ("F.FIN.DEBT", "F.FIN.REPAYMENT"), ("F.FIN.FUNDING_NEED", "F.TAX.PAYMENTS"),
-          ("F.SALES.PRICE", "F.CAPEX.ITEM_CASH"), ("F.TAX.PROFIT_BASE", "F.FIN.INTEREST")}
+# циклы: рёбра только между формулами; зависимости за прошлый месяц (lag_depends_on в formulas.yaml, X[t-1])
+# разрывают цикл в реализации и в проверке не участвуют
+for f in forms:
+    for d in f.get("lag_depends_on") or []:
+        if d not in (f.get("depends_on") or []):
+            errors.append(f"формула {f['id']}: lag_depends_on {d} нет в depends_on")
+LAG_OK = {(f["id"], d) for f in forms for d in (f.get("lag_depends_on") or [])}
 graph = {f["id"]: [d for d in (f.get("depends_on") or []) if d in F and (f["id"], d) not in LAG_OK] for f in forms}
 state = {}
 def dfs(n, stack):
@@ -153,6 +161,12 @@ checks = {
                                  + (e["input"]["key"] + e["input"]["spread"]) * (1 - min(e["input"]["coverage"], 1))
                                  - e["input"]["skr"], e["input"]["min"]),
     "F.TAX.OUTPUT_VAT": lambda e: e["input"]["value"] * e["input"]["rate"] / (1 + e["input"]["rate"]),
+    "F.TEP.APT_COUNT": lambda e: (e["input"]["area_share"] * e["input"]["apt_area_total"] / e["input"]["avg_area"]) // 1,
+    "F.TEP.PARKING_SPACE_MIN_AREA": lambda e: e["input"]["length"] * e["input"]["width"],
+    "F.BENCH.APART_DISCOUNT": lambda e: sorted(1 - a / f for a, f in zip(e["input"]["apart_prices"], e["input"]["flat_prices"]))[1],
+    "F.BENCH.COMP_PRICE": lambda e: sum(e["input"]["deal_values"]) / sum(e["input"]["deal_areas"]),
+    "F.BENCH.MARKET_PRICE": lambda e: (lambda w: sum(p * x for p, x in zip(e["input"]["prices"], w)) / sum(w))(
+        [1 / (1 + a) for a in e["input"]["adj_total"]]),
 }
 for fid, fn in checks.items():
     e = ex.get(fid)

@@ -18,6 +18,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "02"
@@ -31,6 +32,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "03"
@@ -44,6 +46,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "04"
@@ -57,6 +60,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "05"
@@ -70,6 +74,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "06"
@@ -83,6 +88,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "07"
@@ -96,6 +102,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "08"
@@ -109,6 +116,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "09"
@@ -122,6 +130,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "10"
@@ -135,6 +144,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "11"
@@ -148,6 +158,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "12"
@@ -161,6 +172,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "13"
@@ -174,6 +186,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "14"
@@ -187,6 +200,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "15"
@@ -200,6 +214,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "16"
@@ -213,6 +228,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "17"
@@ -226,6 +242,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "18"
@@ -239,6 +256,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "19"
@@ -252,6 +270,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "20"
@@ -265,6 +284,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "21"
@@ -278,6 +298,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "22"
@@ -291,6 +312,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "23"
@@ -304,6 +326,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "24"
@@ -317,6 +340,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "25"
@@ -330,6 +354,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "26"
@@ -343,6 +368,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "27"
@@ -356,6 +382,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "28"
@@ -369,6 +396,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "29"
@@ -382,6 +410,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "30"
@@ -395,6 +424,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "31"
@@ -408,6 +438,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "32"
@@ -421,6 +452,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "33"
@@ -434,6 +466,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "34"
@@ -447,6 +480,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "35"
@@ -460,6 +494,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "36"
@@ -473,6 +508,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "37"
@@ -486,6 +522,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "38"
@@ -499,6 +536,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "39"
@@ -512,6 +550,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "40"
@@ -525,6 +564,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "41"
@@ -538,6 +578,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "42"
@@ -551,6 +592,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "43"
@@ -564,6 +606,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "44"
@@ -577,6 +620,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "45"
@@ -590,6 +634,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "46"
@@ -603,6 +648,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "47"
@@ -616,6 +662,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "48"
@@ -629,6 +676,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "49"
@@ -642,6 +690,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "50"
@@ -655,6 +704,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "51"
@@ -668,6 +718,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "52"
@@ -681,6 +732,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "53"
@@ -694,6 +746,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "54"
@@ -707,6 +760,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "55"
@@ -720,6 +774,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "56"
@@ -733,6 +788,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "57"
@@ -746,6 +802,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "58"
@@ -759,6 +816,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "59"
@@ -772,6 +830,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "60"
@@ -785,6 +844,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "61"
@@ -798,6 +858,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "62"
@@ -811,6 +872,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "63"
@@ -824,6 +886,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "64"
@@ -837,6 +900,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "65"
@@ -850,6 +914,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "66"
@@ -863,6 +928,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "67"
@@ -876,6 +942,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "68"
@@ -889,6 +956,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "69"
@@ -902,6 +970,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "70"
@@ -915,6 +984,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "71"
@@ -928,6 +998,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "72"
@@ -941,6 +1012,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "73"
@@ -954,6 +1026,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "74"
@@ -967,6 +1040,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "75"
@@ -980,6 +1054,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "76"
@@ -993,6 +1068,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "77"
@@ -1004,12 +1080,13 @@ regions:
     land_tax_level: город федерального значения (ставка — закон города)
     land_tax_source_ids: [S_MSK_LANDTAX_74, S_FNS_RATES]
     land_rent_source_ids: [S_MSK_RENT_273PP]
-    vri_fee: {exists: true, source_ids: [S_MSK_VRI_593PP], formula: "F.LAND.VRI_FEE_MSK"}
+    vri_fee: {exists: true, source_ids: [S_MSK_VRI_593PP], formula: "F.LAND.VRI_FEE"}
     parking_norm:
       source_ids: [S_MSK_PARKING_2118PP, S_MSK_NGP_TRANSPORT_945PP]
       rule: by_apartment_area
       values: [{max_area: 70, per_apt: 0.8}, {max_area: 100, per_apt: 1.2}, {max_area: null, per_apt: 1.6}]
       status: verified
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: [S_MSK_NGP_TRANSPORT_945PP]
     status: reference_filled
   - code: "78"
@@ -1027,6 +1104,7 @@ regions:
       rule: to_fill
       values: null
       status: needs_verification
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: [S_SPB_NGP_257]
     status: reference_partially_filled
   - code: "79"
@@ -1040,6 +1118,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "83"
@@ -1053,6 +1132,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "86"
@@ -1066,6 +1146,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "87"
@@ -1079,6 +1160,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "89"
@@ -1092,6 +1174,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "90"
@@ -1105,6 +1188,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "91"
@@ -1118,6 +1202,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "92"
@@ -1131,6 +1216,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "93"
@@ -1144,6 +1230,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "94"
@@ -1157,6 +1244,7 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only
   - code: "95"
@@ -1170,5 +1258,6 @@ regions:
     land_rent_source_ids: []
     vri_fee: {exists: null, source_ids: [], formula: null}
     parking_norm: {source_ids: [], rule: to_fill, values: null, status: to_fill}
+    parking_norm_apart: {source_ids: [], rule: to_fill, values: null, status: to_fill}  # НГП для объектов гостиничного назначения (апартаменты)
     ngp_source_ids: []
     status: structure_only

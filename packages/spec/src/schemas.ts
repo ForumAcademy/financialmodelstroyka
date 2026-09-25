@@ -12,11 +12,14 @@ const idList = z.array(z.string().min(1));
 // ---------- sources.yaml ----------
 
 export const SOURCE_LEVELS = [1, 2, 3, 4, 5] as const;
+export const SOURCE_SCOPES = ["global", "project"] as const;
 
 export const sourceSchema = z
   .object({
     id: z.string().regex(/^S_[A-Z0-9_]+$/, "ID источника: S_ВЕРХНИЙ_РЕГИСТР"),
     level: z.union(SOURCE_LEVELS.map((l) => z.literal(l))),
+    /** global — общий источник справочника; project — тип проектного источника (документ хранится в проекте). */
+    scope: z.enum(SOURCE_SCOPES),
     title: z.string().min(1),
     issuer: z.string().min(1),
     url: z.string().regex(/^https?:\/\//, "URL должен начинаться с http(s)://").nullable(),
@@ -122,6 +125,17 @@ export const capexItemSchema = z
 
 export const REGION_STATUSES = ["structure_only", "reference_partially_filled", "reference_filled"] as const;
 
+const parkingNormSchema = z
+  .object({
+    source_ids: idList,
+    rule: z.enum(["to_fill", "by_apartment_area"]),
+    values: z
+      .array(z.object({ max_area: z.number().positive().nullable(), per_apt: z.number().nonnegative() }).strict())
+      .nullable(),
+    status: z.enum(["to_fill", "needs_verification", "verified"]),
+  })
+  .strict();
+
 export const regionSchema = z
   .object({
     code: z.string().regex(/^\d{2}$/, "код субъекта — две цифры"),
@@ -141,13 +155,13 @@ export const regionSchema = z
         note: z.string().optional(),
       })
       .strict(),
-    parking_norm: z
+    parking_norm: parkingNormSchema,
+    /** Норматив машино-мест для объектов гостиничного назначения (апартаменты); единица — по акту региона. */
+    parking_norm_apart: z
       .object({
         source_ids: idList,
-        rule: z.enum(["to_fill", "by_apartment_area"]),
-        values: z
-          .array(z.object({ max_area: z.number().positive().nullable(), per_apt: z.number().nonnegative() }).strict())
-          .nullable(),
+        rule: z.enum(["to_fill", "per_unit", "per_m2"]),
+        values: z.array(z.record(z.string(), z.unknown())).nullable(),
         status: z.enum(["to_fill", "needs_verification", "verified"]),
       })
       .strict(),
@@ -170,6 +184,7 @@ export const FORMULA_MODULES = [
   "CF",
   "KPI",
   "CHECK",
+  "BENCH",
 ] as const;
 export const FORMULA_STATUSES = ["verified", "needs_verification"] as const;
 
@@ -182,6 +197,8 @@ export const formulaSchema = z
     dims: z.array(z.string()),
     expr: z.string().min(1),
     depends_on: idList,
+    /** Подмножество depends_on, для которого берётся значение прошлого месяца X[t-1]; разрывает цикл графа. */
+    lag_depends_on: idList.optional(),
     rationale: z.string().min(1, "нужно обоснование (rationale)"),
     rejected: z.array(z.string()),
     source_ids: idList.min(1, "нужен хотя бы один источник"),

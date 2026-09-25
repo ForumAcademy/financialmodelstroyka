@@ -1,7 +1,5 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { checkSpec, LAG_DEPENDENCIES, spec, type SpecData } from "../src/index";
+import { checkSpec, spec, type SpecData } from "../src/index";
 
 const clone = (): SpecData => structuredClone(spec) as unknown as SpecData;
 
@@ -55,6 +53,19 @@ describe("проверки ловят ошибки", () => {
     expect(checkSpec(s).errors).toContainEqual(`источник ${src.id} уровня 2 без URL`);
   });
 
+  it("проектный источник с URL или уровнем ниже 4", () => {
+    const s = clone();
+    const src = s.sources.find((x) => x.scope === "project")!;
+    src.url = "https://example.com";
+    expect(checkSpec(s).errors).toContainEqual(expect.stringContaining(`источник ${src.id}: проектный источник`));
+  });
+
+  it("общий источник уровня 5", () => {
+    const s = clone();
+    s.sources.find((x) => x.scope === "global")!.level = 5;
+    expect(checkSpec(s).errors).toContainEqual(expect.stringContaining("может быть только проектной"));
+  });
+
   it("зависимость формулы на несуществующий ID", () => {
     const s = clone();
     s.formulas[0]!.depends_on.push("GEN.НЕТ_ТАКОГО");
@@ -75,12 +86,21 @@ describe("проверки ловят ошибки", () => {
   });
 });
 
-describe("лаговые зависимости совпадают с scripts/validate_spec.py", () => {
-  it("LAG_DEPENDENCIES = LAG_OK", () => {
-    const py = readFileSync(resolve(import.meta.dirname, "../../../scripts/validate_spec.py"), "utf8");
-    const block = /LAG_OK = \{([\s\S]*?)\}/.exec(py)?.[1] ?? "";
-    const pairs = [...block.matchAll(/\("([^"]+)", "([^"]+)"\)/g)].map((m) => `${m[1]}|${m[2]}`).sort();
-    expect(pairs.length).toBeGreaterThan(0);
-    expect(LAG_DEPENDENCIES.map(([f, d]) => `${f}|${d}`).sort()).toEqual(pairs);
+describe("лаговые зависимости (lag_depends_on)", () => {
+  it("входят в depends_on", () => {
+    const bad = spec.formulas.flatMap((f) => (f.lag_depends_on ?? []).filter((d) => !f.depends_on.includes(d)));
+    expect(bad).toEqual([]);
+  });
+
+  it("лаг вне depends_on — ошибка", () => {
+    const s = clone();
+    s.formulas.find((f) => f.id === "F.FIN.RATE")!.lag_depends_on = ["F.TIME.DATE"];
+    expect(checkSpec(s).errors).toContainEqual("формула F.FIN.RATE: lag_depends_on F.TIME.DATE нет в depends_on");
+  });
+
+  it("без лаговых связей граф формул содержит цикл", () => {
+    const s = clone();
+    for (const f of s.formulas) delete f.lag_depends_on;
+    expect(checkSpec(s).errors).toContainEqual(expect.stringContaining("цикл без лага"));
   });
 });

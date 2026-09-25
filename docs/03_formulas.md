@@ -84,7 +84,7 @@ flag_dkp[p,t] = 1{ date[t] >= rnv_date[p] }
 ```
 flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M }
 ```
-**Зависит от:** `TIME.MILESTONES`, `TIME.ESCROW_RELEASE_LAG_M`
+**Зависит от:** `TIME.MILESTONES`, `TIME.ESCROW_RELEASE_LAG_M`, `F.TIME.DATE`
 
 **Почему так:** ч.6 ст.15.5 214-ФЗ — перечисление не позднее 10 рабочих дней после РНВ; раскрытие по каждой очереди отдельно
 
@@ -290,7 +290,7 @@ apt_diff_m2 = Σ_k apt_area[k] − apt_area_total;  apt_check = apt_diff_m2 / ap
 ### `F.TEP.PARKING_REQUIRED` — Требуемое количество машино-мест по нормативу региона
 **Единица:** шт · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA
+parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA. Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type), в обычном режиме запрещено
 ```
 **Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`, `TEP.PARKING_NORM`, `TEP.PARKING_NORM_APART`, `F.TEP.APART_AREA`
 
@@ -426,7 +426,7 @@ landscape = LAND.AREA × TEP.LANDSCAPE_SHARE; roads = landscape × TEP.ROAD_SHAR
 ```
 coef[t] = IF(NOT TAX.LAND_COEF_APPLY) 1 ELSE IF(years_since(land_acquired, date[t]) <= TIME.RNS_TO_RNV_TAX_YEARS) TAX.LAND_COEF_UP_TO_3Y ELSE TAX.LAND_COEF_OVER_3Y; действует до госрегистрации прав на объект (≈ handover_end последней очереди)
 ```
-**Зависит от:** `TAX.LAND_COEF_APPLY`, `TAX.LAND_COEF_UP_TO_3Y`, `TAX.LAND_COEF_OVER_3Y`, `TIME.MILESTONES`
+**Зависит от:** `TAX.LAND_COEF_APPLY`, `TAX.LAND_COEF_UP_TO_3Y`, `TAX.LAND_COEF_OVER_3Y`, `TIME.MILESTONES`, `TIME.RNS_TO_RNV_TAX_YEARS`, `F.TIME.DATE`
 
 **Почему так:** п.15 ст.396 НК РФ; для участков > 300 млн руб. — позиция ФНС (письмо 25.08.2026)
 
@@ -440,7 +440,7 @@ coef[t] = IF(NOT TAX.LAND_COEF_APPLY) 1 ELSE IF(years_since(land_acquired, date[
 ```
 IF LAND.TENURE = собственность: land_pay[t] = cad_value[year(t)] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{land_acquired <= date[t] <= handover_end_last} IF LAND.TENURE = аренда: land_pay[t] = LAND.RENT_ANNUAL × index[year(t)] / 12 × 1{lease period} cad_value = LAND.CADASTRAL_VALUE_AFTER_VRI после смены ВРИ, иначе LAND.CADASTRAL_VALUE
 ```
-**Зависит от:** `LAND.TENURE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `TAX.LAND_RATE`, `F.LAND.TAX_COEF`, `LAND.RENT_ANNUAL`
+**Зависит от:** `LAND.TENURE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `TAX.LAND_RATE`, `F.LAND.TAX_COEF`, `LAND.RENT_ANNUAL`, `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** Налог — от кадастровой стоимости (ст.390–391 НК РФ) по ставке муниципалитета; платёж только за период владения. Одна строка вместо двух в исходнике — нет двойного счёта
 
@@ -459,7 +459,7 @@ IF LAND.TENURE = собственность: land_pay[t] = cad_value[year(t)] ×
 ```
 vri_fee = region.vri_fee.exists ? region_formula(LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, ...) : 0;  Москва: от прироста кадастровой стоимости (КС2 − КС1) × коэффициент территории по приложению к ПП 593-ПП
 ```
-**Зависит от:** `GEN.REGION_CODE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`
+**Зависит от:** `GEN.REGION_CODE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `LAND.VRI_FEE`
 
 **Почему так:** Плата — региональная; привязка к приросту кадастровой стоимости делает её воспроизводимой
 

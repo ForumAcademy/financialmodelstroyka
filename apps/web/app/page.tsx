@@ -1,4 +1,5 @@
 import { ENGINE_MODULES } from "@fm/engine";
+import Link from "next/link";
 import { SPEC_FILES, spec } from "@fm/spec";
 
 const SPEC_COUNTS = [
@@ -16,8 +17,12 @@ export default function HomePage() {
     <main className="page">
       <h1>Финансовая модель девелопера</h1>
       <p className="lead">
-        Каркас сервиса (этап 1: справочник подключён и проверен). Расчётов пока нет: список проектов, ввод данных и дашборд появятся на
+        Этап 2: расчётное ядро считает время, ТЭП и участок. Расчётов пока нет: список проектов, ввод данных и дашборд появятся на
         следующих этапах.
+      </p>
+
+      <p>
+        <Link href="/demo/derbenevskaya">Дербеневская (демо): ТЭП →</Link>
       </p>
 
       <section>

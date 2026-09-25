@@ -38,6 +38,9 @@ importers:
       '@fm/spec':
         specifier: workspace:*
         version: link:../../packages/spec
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
       next:
         specifier: 16.3.6
         version: 16.3.6(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -47,6 +50,9 @@ importers:
       react-dom:
         specifier: ^19.3.0
         version: 19.3.0(react@19.3.0)
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -62,6 +68,13 @@ importers:
         version: 6.0.3
 
   packages/engine:
+    dependencies:
+      '@fm/spec':
+        specifier: workspace:*
+        version: link:../spec
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
@@ -72,6 +85,9 @@ importers:
       vitest:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@22.20.4)(vite@8.3.1(@types/node@22.20.4)(yaml@2.9.1))
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   packages/spec:
     dependencies:
@@ -660,6 +676,9 @@ packages:
     peerDependenciesMeta:
       supports-color:
         optional: true
+
+  decimal.js@10.6.0:
+    resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
 
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
@@ -1641,6 +1660,8 @@ snapshots:
   debug@4.4.3:
     dependencies:
       ms: 2.1.3
+
+  decimal.js@10.6.0: {}
 
   deep-is@0.1.4: {}
 

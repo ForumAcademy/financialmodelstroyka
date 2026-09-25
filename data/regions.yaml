@@ -1004,7 +1004,7 @@ regions:
     land_tax_level: город федерального значения (ставка — закон города)
     land_tax_source_ids: [S_MSK_LANDTAX_74, S_FNS_RATES]
     land_rent_source_ids: [S_MSK_RENT_273PP]
-    vri_fee: {exists: true, source_ids: [S_MSK_VRI_593PP], formula: "F.LAND.VRI_FEE_MSK"}
+    vri_fee: {exists: true, source_ids: [S_MSK_VRI_593PP], formula: "F.LAND.VRI_FEE"}
     parking_norm:
       source_ids: [S_MSK_PARKING_2118PP, S_MSK_NGP_TRANSPORT_945PP]
       rule: by_apartment_area

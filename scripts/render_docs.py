@@ -41,6 +41,8 @@ for f in forms:
     out.append("```\n" + str(f["expr"]).strip() + "\n```\n")
     if f.get("depends_on"):
         out.append("**Зависит от:** " + ", ".join(f"`{x}`" for x in f["depends_on"]) + "\n")
+    if f.get("lag_depends_on"):
+        out.append("\n**Значение за прошлый месяц (t−1):** " + ", ".join(f"`{x}`" for x in f["lag_depends_on"]) + "\n")
     out.append(f"\n**Почему так:** {f['rationale']}\n")
     if f.get("rejected"):
         out.append("\n**Отклонённые варианты:**\n")

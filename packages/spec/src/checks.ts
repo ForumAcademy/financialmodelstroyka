@@ -17,21 +17,6 @@ const REGIONS_EXPECTED = 89;
 /** Базы статей бюджета, которые не являются ID параметра/формулы (шапка capex_items.yaml). */
 const CAPEX_SPECIAL_BASES = new Set(["фикс", "фикс_в_месяц", "формула"]);
 
-/**
- * Зависимости «за прошлый месяц» (coverage[t-1] и т.п.): в YAML образуют цикл, в реализации он разрывается лагом.
- * Список 1:1 повторяет LAG_OK из scripts/validate_spec.py; совпадение проверяет тест test/checks.test.ts.
- * Пара [формула, зависимость].
- */
-export const LAG_DEPENDENCIES: ReadonlyArray<readonly [string, string]> = [
-  ["F.FIN.RATE", "F.ESC.COVERAGE"],
-  ["F.ESC.COVERAGE", "F.FIN.DEBT"],
-  ["F.ESC.COVERAGE", "F.FIN.INTEREST"],
-  ["F.FIN.DEBT", "F.FIN.REPAYMENT"],
-  ["F.FIN.FUNDING_NEED", "F.TAX.PAYMENTS"],
-  ["F.SALES.PRICE", "F.CAPEX.ITEM_CASH"],
-  ["F.TAX.PROFIT_BASE", "F.FIN.INTEREST"],
-];
-
 function duplicates(ids: string[]): string[] {
   const seen = new Set<string>();
   const dup = new Set<string>();
@@ -96,6 +81,9 @@ export function checkSpec(spec: SpecData): SpecCheckResult {
     for (const dep of f.depends_on) {
       if (!P.has(dep) && !F.has(dep)) errors.push(`формула ${f.id}: зависимость ${dep} не найдена`);
     }
+    for (const dep of f.lag_depends_on ?? []) {
+      if (!f.depends_on.includes(dep)) errors.push(`формула ${f.id}: lag_depends_on ${dep} нет в depends_on`);
+    }
   }
   const cycle = findCycle(spec);
   if (cycle) errors.push(`цикл без лага в графе формул: ${cycle.join(" → ")}`);
@@ -112,9 +100,9 @@ export function checkSpec(spec: SpecData): SpecCheckResult {
 
 /** Поиск цикла без лага в графе depends_on формул (DFS с раскраской). Возвращает путь цикла или null. */
 function findCycle(spec: SpecData): string[] | null {
-  const lag = new Set(LAG_DEPENDENCIES.map(([f, d]) => `${f}|${d}`));
+  // Зависимости за прошлый месяц (lag_depends_on) разрывают цикл и в проверке не участвуют.
   const deps = new Map(
-    spec.formulas.map((f) => [f.id, f.depends_on.filter((d) => d.startsWith("F.") && !lag.has(`${f.id}|${d}`))]),
+    spec.formulas.map((f) => [f.id, f.depends_on.filter((d) => d.startsWith("F.") && !f.lag_depends_on?.includes(d))]),
   );
   const state = new Map<string, "visiting" | "done">();
   const stack: string[] = [];

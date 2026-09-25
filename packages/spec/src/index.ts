@@ -21,7 +21,7 @@ import {
 import type { CapexItem, Formula, Parameter, Region, Source } from "./schemas";
 
 export * from "./generated/ids";
-export { checkSpec, LAG_DEPENDENCIES, type SpecCheckResult } from "./checks";
+export { checkSpec, type SpecCheckResult } from "./checks";
 export {
   CAPEX_SCHEDULE_RULES,
   FORMULA_MODULES,
@@ -48,10 +48,11 @@ export type SpecFile = (typeof SPEC_FILES)[number];
 
 export type SpecSource = Omit<Source, "id"> & { id: SourceId };
 export type SpecParameter = Omit<Parameter, "id" | "source_ids"> & { id: ParameterId; source_ids: SourceId[] };
-export type SpecFormula = Omit<Formula, "id" | "source_ids" | "depends_on"> & {
+export type SpecFormula = Omit<Formula, "id" | "source_ids" | "depends_on" | "lag_depends_on"> & {
   id: FormulaId;
   source_ids: SourceId[];
   depends_on: (ParameterId | FormulaId)[];
+  lag_depends_on?: FormulaId[];
 };
 export type SpecCapexItem = Omit<CapexItem, "item_id" | "source_ids" | "rate_param" | "formula"> & {
   item_id: CapexItemId;

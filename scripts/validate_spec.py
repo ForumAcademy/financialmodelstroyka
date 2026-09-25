@@ -84,11 +84,13 @@ for f in forms:
     if f.get("status") == "needs_verification":
         warns.append(f"формула {f['id']}: needs_verification")
 
-# циклы: рёбра только между формулами; ссылки на t-1 разрываются в реализации — в YAML допускаются
-# циклы только через явно помеченные лаговые зависимости (coverage[t-1] и т.п.)
-LAG_OK = {("F.FIN.RATE", "F.ESC.COVERAGE"), ("F.ESC.COVERAGE", "F.FIN.DEBT"), ("F.ESC.COVERAGE", "F.FIN.INTEREST"),
-          ("F.FIN.DEBT", "F.FIN.REPAYMENT"), ("F.FIN.FUNDING_NEED", "F.TAX.PAYMENTS"),
-          ("F.SALES.PRICE", "F.CAPEX.ITEM_CASH"), ("F.TAX.PROFIT_BASE", "F.FIN.INTEREST")}
+# циклы: рёбра только между формулами; зависимости за прошлый месяц (lag_depends_on в formulas.yaml, X[t-1])
+# разрывают цикл в реализации и в проверке не участвуют
+for f in forms:
+    for d in f.get("lag_depends_on") or []:
+        if d not in (f.get("depends_on") or []):
+            errors.append(f"формула {f['id']}: lag_depends_on {d} нет в depends_on")
+LAG_OK = {(f["id"], d) for f in forms for d in (f.get("lag_depends_on") or [])}
 graph = {f["id"]: [d for d in (f.get("depends_on") or []) if d in F and (f["id"], d) not in LAG_OK] for f in forms}
 state = {}
 def dfs(n, stack):
@@ -153,6 +155,8 @@ checks = {
                                  + (e["input"]["key"] + e["input"]["spread"]) * (1 - min(e["input"]["coverage"], 1))
                                  - e["input"]["skr"], e["input"]["min"]),
     "F.TAX.OUTPUT_VAT": lambda e: e["input"]["value"] * e["input"]["rate"] / (1 + e["input"]["rate"]),
+    "F.TEP.APT_COUNT": lambda e: (e["input"]["area_share"] * e["input"]["apt_area_total"] / e["input"]["avg_area"]) // 1,
+    "F.TEP.PARKING_SPACE_MIN_AREA": lambda e: e["input"]["length"] * e["input"]["width"],
 }
 for fid, fn in checks.items():
     e = ex.get(fid)

@@ -182,6 +182,8 @@ export const formulaSchema = z
     dims: z.array(z.string()),
     expr: z.string().min(1),
     depends_on: idList,
+    /** Подмножество depends_on, для которого берётся значение прошлого месяца X[t-1]; разрывает цикл графа. */
+    lag_depends_on: idList.optional(),
     rationale: z.string().min(1, "нужно обоснование (rationale)"),
     rejected: z.array(z.string()),
     source_ids: idList.min(1, "нужен хотя бы один источник"),

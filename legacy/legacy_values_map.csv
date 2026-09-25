@@ -14,7 +14,7 @@ sheet,cell,row_label,value,target_id,verdict,note
 ТЭПы,D29,Площадь благоустройства,0.3,TEP.LANDSCAPE_SHARE,keep,нужна ссылка на ППТ/НГП
 ТЭПы,D30,Внутриквартальный проезд,0.1,TEP.ROAD_SHARE,keep,нужна ссылка на ППТ
 ТЭПы,D31,Озеленение,0.1,TEP.GREEN_SHARE,keep,нужна ссылка на ППТ/НГП
-ТЭПы,C35,Продаваемая площадь,149281,TEP.UNCLEAR_LEGACY,clarify,149 281 ≠ 153 882 (кв+ком)
+ТЭПы,C35,Продаваемая площадь,149281,CAPEX.ITEMS,replace,база только для режима совместимости: перевод вбитых сумм бюджета в ставки на м²; продаваемая площадь — F.TEP.SALEABLE_AREA
 ТЭПы,C41,Квартиры Тип 1,0.4,TEP.APT_MIX,remove,доля вводилась вручную — теперь F.TEP.APT_SHARE
 ТЭПы,D41,Квартиры Тип 1,35.108,TEP.APT_MIX,keep,avg_area
 ТЭПы,F41,Квартиры Тип 1,961,TEP.APT_MIX,keep,count
@@ -35,7 +35,7 @@ sheet,cell,row_label,value,target_id,verdict,note
 ТЭПы,C48,ПСН,10332,TEP.COMM_AREA,remove,10 332 vs 10 322 в C23 — опечатка
 ТЭПы,D48,ПСН,80,SALES.PRODUCTS,keep,средняя площадь лота ПСН
 ТЭПы,G48,ПСН,600000,SALES.PRODUCTS,keep,цена ПСН руб/м²
-ТЭПы,C49,Машиноместа,5200,TEP.UNCLEAR_LEGACY,clarify,5 200 — назначение неизвестно
+ТЭПы,C49,Машиноместа,5200,TEP.PARKING_AREA_PER_SPACE,remove,"5 200 = 127 м/м × 40,945 м² — остаток прежней версии, в расчётах не участвует"
 ТЭПы,D49,Машиноместа,40.945,TEP.PARKING_AREA_PER_SPACE,keep,
 ТЭПы,G49,Машиноместа,270000,SALES.PRODUCTS,fix,"цена м/м в руб/м² × 40,945"
 ТЭПы,D50,Прочие помещения,0,TEP.STORAGE_COUNT,keep,прочие помещения = 0

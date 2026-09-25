@@ -1,4 +1,6 @@
 import Decimal from "decimal.js";
+import { getRegion, isRegionCode } from "@fm/spec";
+import type { DemoProject } from "./types";
 
 const RU = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
 const PERCENT = 100;
@@ -57,4 +59,9 @@ export function plural(n: number, forms: [string, string, string]): string {
   if (b === 1) return forms[0];
   if (b > 1 && b < 5) return forms[1];
   return forms[2];
+}
+
+export function regionName(p: DemoProject): string {
+  const code = p.input.values["GEN.REGION_CODE"];
+  return typeof code === "string" && isRegionCode(code) ? getRegion(code).name : "—";
 }

@@ -12,10 +12,10 @@ export function loadSeed(): Seed {
       {
         id: "derbenevskaya",
         name: "Дербеневская (демо)",
-        status: "in_progress",
         archived: false,
         input: { ...input, values: { ...input.values, "GEN.PROJECT_NAME": "Дербеневская (демо)" } },
-        sources: {},
+        sources: [],
+        paramSources: {},
         specVersion: spec.specVersion,
         updatedAt: "2026-09-25T09:00:00.000Z",
         note: String(c.project_inputs["TIME.MILESTONES_NOTE"] ?? ""),

@@ -2,58 +2,61 @@
 
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { spec, type ParameterId } from "@fm/spec";
-import type { DemoProject, ProjectSource, ProjectStatus, Seed } from "./types";
+import type { DemoProject, ProjectSource, Seed } from "./types";
 import { computeProject, type ProjectModel } from "./model";
 
 type Action =
   | { type: "create"; project: DemoProject }
-  | { type: "rename"; id: string; name: string }
   | { type: "copy"; id: string; newId: string }
   | { type: "archive"; id: string; archived: boolean }
-  | { type: "status"; id: string; status: ProjectStatus }
+  | { type: "delete"; id: string }
   | { type: "value"; id: string; param: ParameterId; value: unknown }
-  | { type: "source"; id: string; param: ParameterId; source: ProjectSource | null }
-  | { type: "milestone"; id: string; phase: number; key: string; date: string | null };
-
-const now = () => new Date().toISOString();
+  | { type: "addSource"; id: string; source: ProjectSource }
+  | { type: "removeSource"; id: string; sourceId: string }
+  | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null };
 
 function touch(p: DemoProject, patch: Partial<DemoProject>): DemoProject {
-  return { ...p, ...patch, updatedAt: now(), specVersion: spec.specVersion };
+  return { ...p, ...patch, updatedAt: new Date().toISOString(), specVersion: spec.specVersion };
 }
 
 function reducer(state: DemoProject[], a: Action): DemoProject[] {
-  const target = "id" in a ? a.id : null;
-  const map = (fn: (p: DemoProject) => DemoProject) => state.map((p) => (p.id === target ? fn(p) : p));
+  const map = (fn: (p: DemoProject) => DemoProject) => state.map((p) => ("id" in a && p.id === a.id ? fn(p) : p));
   switch (a.type) {
     case "create":
       return [...state, a.project];
-    case "rename":
-      return map((p) => touch(p, { name: a.name, input: { ...p.input, values: { ...p.input.values, "GEN.PROJECT_NAME": a.name } } }));
     case "copy": {
       const src = state.find((p) => p.id === a.id);
       if (!src) return state;
       const name = `${src.name} (копия)`;
-      return [...state, { ...structuredClone(src), id: a.newId, name, status: "draft", archived: false, copiedFrom: src.id, updatedAt: now(), specVersion: spec.specVersion, input: { ...structuredClone(src.input), values: { ...structuredClone(src.input.values), "GEN.PROJECT_NAME": name } } }];
+      const copy = structuredClone(src);
+      return [...state, { ...copy, id: a.newId, name, archived: false, updatedAt: new Date().toISOString(), input: { ...copy.input, values: { ...copy.input.values, "GEN.PROJECT_NAME": name } } }];
     }
     case "archive":
       return map((p) => touch(p, { archived: a.archived }));
-    case "status":
-      return map((p) => touch(p, { status: a.status }));
+    case "delete":
+      return state.filter((p) => p.id !== a.id);
     case "value":
-      return map((p) => touch(p, { input: { ...p.input, values: { ...p.input.values, [a.param]: a.value } } }));
-    case "source":
+      return map((p) =>
+        touch(p, {
+          ...(a.param === "GEN.PROJECT_NAME" && typeof a.value === "string" && a.value.trim() ? { name: a.value.trim() } : {}),
+          input: { ...p.input, values: { ...p.input.values, [a.param]: a.value } },
+        }),
+      );
+    case "addSource":
+      return map((p) => touch(p, { sources: [...p.sources, a.source] }));
+    case "removeSource":
+      return map((p) =>
+        touch(p, {
+          sources: p.sources.filter((s) => s.id !== a.sourceId),
+          paramSources: Object.fromEntries(Object.entries(p.paramSources).filter(([, v]) => v !== a.sourceId)),
+        }),
+      );
+    case "linkSource":
       return map((p) => {
-        const sources = { ...p.sources };
-        if (a.source) sources[a.param] = a.source;
-        else delete sources[a.param];
-        return touch(p, { sources });
-      });
-    case "milestone":
-      return map((p) => {
-        const rows = (p.input.values["TIME.MILESTONES"] as Record<string, unknown>[] | undefined) ?? [];
-        const exists = rows.some((r) => r.phase === a.phase);
-        const next = (exists ? rows : [...rows, { phase: a.phase }]).map((r) => (r.phase === a.phase ? { ...r, [a.key]: a.date } : r));
-        return touch(p, { input: { ...p.input, values: { ...p.input.values, "TIME.MILESTONES": next } } });
+        const paramSources = { ...p.paramSources };
+        if (a.sourceId) paramSources[a.param] = a.sourceId;
+        else delete paramSources[a.param];
+        return touch(p, { paramSources });
       });
   }
 }
@@ -69,10 +72,7 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ seed, children }: { seed: Seed; children: ReactNode }) {
   const [projects, dispatch] = useReducer(reducer, seed.projects);
   const models = useMemo(() => new Map(projects.map((p) => [p.id, computeProject(p)])), [projects]);
-  const store = useMemo<Store>(
-    () => ({ projects, dispatch, model: (p) => models.get(p.id) ?? computeProject(p) }),
-    [projects, models],
-  );
+  const store = useMemo<Store>(() => ({ projects, dispatch, model: (p) => models.get(p.id) ?? computeProject(p) }), [projects, models]);
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }
 

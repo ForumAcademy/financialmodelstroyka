@@ -1,7 +1,6 @@
-import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
-import { attentionItems } from "../lib/attention";
-import { computeProject, provisionalHorizon, STATUS_ORDER } from "../lib/model";
+import { describe, expect, it } from "vitest";
+import { aggregate, computeProject, periodKey, provisionalHorizon } from "../lib/model";
 import { loadSeed } from "../lib/seed";
 import type { DemoProject } from "../lib/types";
 
@@ -10,21 +9,15 @@ const demo = loadSeed().projects[0] as DemoProject;
 describe("модель проекта в интерфейсе", () => {
   const m = computeProject(demo);
 
-  it("счётчики карточки делят параметры расчёта без остатка", () => {
-    const total = STATUS_ORDER.reduce((s, k) => s + m.counters[k], 0);
-    expect(total).toBe(m.used.length);
-    expect(m.readiness).toBeCloseTo(m.counters.ok / m.used.length);
-  });
-
-  it("значения исходника без проектного источника — «без источника», с источником — «с источником»", () => {
-    expect(m.used.find((r) => r.param.id === "LAND.AREA")?.status).toBe("no_source");
-    const withSource = computeProject({ ...demo, sources: { "LAND.AREA": { level: 4, title: "Выписка ЕГРН", author: "Аналитик", date: "2026-09-25" } } });
-    expect(withSource.used.find((r) => r.param.id === "LAND.AREA")?.status).toBe("ok");
-  });
-
   it("ТЭП и машино-места показываются на стадии «Концепция»", () => {
     expect((m.result.formulas["F.TEP.SALEABLE_AREA"]?.value as Decimal).toNumber()).toBe(153882.388);
     expect((m.result.formulas["F.TEP.PARKING_COUNT"]?.value as Decimal).toNumber()).toBe(862);
+    expect((m.result.formulas["F.TEP.GFA_SPLIT"]?.value as { res: Decimal }).res.toNumber()).toBe(210458);
+  });
+
+  it("незаполненные обязательные параметры подсвечиваются", () => {
+    expect(m.missing.has("TAX.LAND_RATE")).toBe(true);
+    expect(m.missing.has("LAND.AREA")).toBe(false);
   });
 
   it("горизонт (предварительно) — до последней вехи + лаг раскрытия эскроу", () => {
@@ -44,10 +37,10 @@ describe("модель проекта в интерфейсе", () => {
     expect(release(moved)).toBe("2030-01-31");
   });
 
-  it("лента «Требует внимания» ведёт к параметрам без источника и к ошибкам расчёта", () => {
-    const items = attentionItems([demo], computeProject);
-    expect(items.find((i) => i.kind === "no_source")?.href).toBe("/projects/derbenevskaya?tab=inputs&status=no_source");
-    expect(items.some((i) => i.kind === "calc_error")).toBe(true);
-    expect(attentionItems([{ ...demo, archived: true }], computeProject)).toEqual([]);
+  it("периоды как в Excel: квартал по умолчанию, суммирование месяцев", () => {
+    const dates = ["2025-12-31", "2026-01-31", "2026-02-28", "2026-03-31", "2026-04-30"];
+    expect(periodKey("2026-02-28", "quarter")).toBe("1 кв 2026");
+    expect(aggregate([1, 2, 3, 4, 5], dates, "quarter")).toEqual({ keys: ["4 кв 2025", "1 кв 2026", "2 кв 2026"], sums: [1, 9, 5] });
+    expect(aggregate([1, 2, 3, 4, 5], dates, "year").sums).toEqual([1, 14]);
   });
 });

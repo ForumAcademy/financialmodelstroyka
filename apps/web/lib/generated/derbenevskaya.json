@@ -1,0 +1,130 @@
+{
+  "case_id": "derbenevskaya_legacy",
+  "description": "Входные данные исходного файла «Кальк Саевой привязка КОД.xlsx» (Дербеневская наб., Москва). Используется для сверки и регрессионных тестов.",
+  "project_inputs": {
+    "GEN.PROJECT_NAME": "Дербеневская набережная по калькулятору Саевой",
+    "GEN.REGION_CODE": "77",
+    "GEN.HOUSING_CLASS": "бизнес",
+    "GEN.MODEL_START_DATE": "2025-12-31",
+    "GEN.PHASES_COUNT": 3,
+    "GEN.PROJECT_STAGE": "концепция",
+    "LAND.AREA": 96572,
+    "LAND.CADASTRAL_VALUE": 5834907660,
+    "TEP.GFA_ABOVE": 221967,
+    "TEP.RES_GFA": 210458,
+    "TEP.NONRES_GFA": 19009,
+    "TEP.APT_AREA": 143560,
+    "TEP.COMM_AREA": 10322,
+    "TEP.MOP_AREA": 59494,
+    "TEP.GFA_BELOW": 35294.59,
+    "TEP.PARKING_COUNT_OVERRIDE": 862,
+    "TEP.PARKING_AREA_PER_SPACE": 40.945,
+    "TEP.LANDSCAPE_SHARE": 0.3,
+    "TEP.ROAD_SHARE": 0.1,
+    "TEP.GREEN_SHARE": 0.1,
+    "TEP.APT_MIX": [
+      {
+        "type_name": "Квартиры Тип 1",
+        "count": 961,
+        "avg_area": 35.108,
+        "start_price": 497703,
+        "parking_norm": 0.8
+      },
+      {
+        "type_name": "Квартиры Тип 2",
+        "count": 720,
+        "avg_area": 60.53,
+        "start_price": 497703,
+        "parking_norm": 1.2
+      },
+      {
+        "type_name": "Квартиры Тип 3",
+        "count": 720,
+        "avg_area": 92,
+        "start_price": 497703,
+        "parking_norm": 1.6
+      }
+    ],
+    "SALES.PRODUCTS.ПСН": {
+      "stock_area": 10322,
+      "avg_lot": 80,
+      "start_price": 600000
+    },
+    "SALES.PRODUCTS.машино-места": {
+      "price_per_m2": 270000,
+      "area_per_space": 40.945,
+      "price_per_space_calc": 11055150
+    },
+    "TIME.MILESTONES_TEXT": {
+      "land": "3 кв 2025-4 кв 2025",
+      "rns": "4 кв 2025",
+      "sales_start": "1 кв 2026",
+      "smr_end": "1 кв 2032",
+      "rnv": "30.09.2029;\n01.03.2031;\n01.07.2031;\n01.10.2031",
+      "sales_end": "4 кв 2033",
+      "pf_end": "2 кв 2032"
+    },
+    "TIME.MILESTONES": [
+      {
+        "phase": 1,
+        "land_acquired": "2025-12-31",
+        "rns_date": "2025-12-31",
+        "sales_start": "2026-03-31",
+        "construction_end": null,
+        "rnv_date": "2029-09-30"
+      },
+      {
+        "phase": 2,
+        "land_acquired": "2025-12-31",
+        "rns_date": "2025-12-31",
+        "sales_start": "2026-03-31",
+        "construction_end": null,
+        "rnv_date": "2031-03-01"
+      },
+      {
+        "phase": 3,
+        "land_acquired": "2025-12-31",
+        "rns_date": "2025-12-31",
+        "sales_start": "2026-03-31",
+        "construction_end": "2032-03-31",
+        "rnv_date": "2031-07-01"
+      }
+    ],
+    "TIME.MILESTONES_NOTE": "В исходнике 4 даты РНВ на 3 очереди; по очередям взяты первые 3, не распределены: 01.10.2031. Окончание СМР — одна дата на проект.",
+    "SALES.PAYMENT_MIX": {
+      "installment": 0,
+      "mortgage": 0.7,
+      "full": 0.1,
+      "down_payment": 0.2,
+      "installment_quarters": 6
+    },
+    "OPEX.MARKETING_RATE": 0.035,
+    "OPEX.BROKERAGE_RATE": 0.035,
+    "OPEX.DEV_FEE_RATE": 0.02,
+    "LAND.AGENT_FEE_RATE": 0.02,
+    "FIN.EQUITY_SHARE": 0.1,
+    "FIN.RATE_PREFERENTIAL": 0.05,
+    "FIN.RATE_BASE_legacy": 0.2,
+    "FIN.KEY_RATE_legacy": 0.1425,
+    "FIN.RATE_DISCOUNT_COEF": -0.02,
+    "FIN.RATE_MIN": 0.001,
+    "FIN.ESCROW_RESERVE_RATE": 0,
+    "FIN.FEE_ARRANGEMENT": 0.01,
+    "FIN.COLLATERAL_DISCOUNT": 0.15,
+    "VAL.COST_OF_EQUITY_legacy": 0.25,
+    "TAX.LAND_RATE_legacy": 0.002
+  },
+  "reconciliation_targets": {
+    "_how": "Ядро в режиме совместимости (квартальный ручной темп из sales_legacy, рост цены 2%/кв, цены из ТЭП) обязано воспроизвести эти числа исходника с точностью 1 руб / 0,01 м². Эти значения исходника считаются арифметически верными.",
+    "F.TEP.APT_TYPE_AREA_sum": 143560.388,
+    "F.TEP.PARKING_REQUIRED_by_legacy_norm": 2785,
+    "F.TEP.LANDSCAPE_AREA": 28971.6,
+    "F.TEP.GFA_BELOW_EST_legacy_parking": 35294.59,
+    "sales_value_type1": 22164066945.27,
+    "sales_value_type2": 28633525765,
+    "sales_value_type3": 43534978899.87,
+    "sales_value_psn": 10206468265.89,
+    "sales_value_parking": 13591248148.48,
+    "sales_value_total": 118130288024.5
+  }
+}

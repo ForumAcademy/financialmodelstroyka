@@ -5,6 +5,8 @@
   - sales_legacy: темпы продаж по кварталам
   - legacy_outputs: итоговые значения исходника (для сверки, НЕ эталон — многие неверны, см. docs/02_legacy_audit.md)
 """
+import re
+from datetime import datetime
 from pathlib import Path
 import datetime as dt
 import openpyxl, yaml
@@ -40,6 +42,44 @@ for it in capex:
                                               "sum": num(sum(series(cf, sched_rows[0], 6, 45)))}
     capex_legacy.append(entry)
 
+QUARTER_END = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}
+
+
+def quarter_end(text):
+    """«4 кв 2025» → «2025-12-31»: последний день квартала (решение владельца продукта 25.09.2026)."""
+    m = re.search(r"(\d)\s*кв\s*(\d{4})\s*$", str(text).strip())
+    return f"{m.group(2)}-{QUARTER_END[int(m.group(1))]}"
+
+
+def legacy_milestones(t):
+    """
+    Вехи исходника (ТЭПы!C6:C12) заданы текстом по проекту в целом → даты по очередям.
+    Приобретение участка, РНС и старт продаж — общие для всех очередей; окончание СМР (одна дата
+    на проект) — у последней очереди; даты РНВ — по порядку очередей. Прочие вехи в исходнике не заданы.
+    """
+    phases = int(t["C17"].value)
+    rnv = [datetime.strptime(x.strip(), "%d.%m.%Y").date().isoformat() for x in str(t["C10"].value).split(";") if x.strip()]
+    rows = []
+    for p in range(1, phases + 1):
+        rows.append({
+            "phase": p,
+            "land_acquired": quarter_end(t["C6"].value),
+            "rns_date": quarter_end(t["C7"].value),
+            "sales_start": quarter_end(t["C8"].value),
+            "construction_end": quarter_end(t["C9"].value) if p == phases else None,
+            "rnv_date": rnv[p - 1] if p <= len(rnv) else None,
+        })
+    return rows
+
+
+def legacy_milestones_note(t):
+    rnv = [x.strip() for x in str(t["C10"].value).split(";") if x.strip()]
+    phases = int(t["C17"].value)
+    extra = rnv[phases:]
+    return (f"В исходнике {len(rnv)} даты РНВ на {phases} очереди; по очередям взяты первые {phases}"
+            + (f", не распределены: {', '.join(extra)}" if extra else "") + ". Окончание СМР — одна дата на проект.")
+
+
 case = {
     "case_id": "derbenevskaya_legacy",
     "description": "Входные данные исходного файла «Кальк Саевой привязка КОД.xlsx» (Дербеневская наб., Москва). Используется для сверки и регрессионных тестов.",
@@ -72,6 +112,8 @@ case = {
                                          "price_per_space_calc": num(t["G49"].value * t["D49"].value)},
         "TIME.MILESTONES_TEXT": {k: t[c].value for k, c in [("land", "C6"), ("rns", "C7"), ("sales_start", "C8"),
                                   ("smr_end", "C9"), ("rnv", "C10"), ("sales_end", "C11"), ("pf_end", "C12")]},
+        "TIME.MILESTONES": legacy_milestones(t),
+        "TIME.MILESTONES_NOTE": legacy_milestones_note(t),
         "SALES.PAYMENT_MIX": {"installment": es["C5"].value, "mortgage": es["C6"].value, "full": es["C7"].value, "down_payment": es["C8"].value,
                                "installment_quarters": es["D3"].value},
         "OPEX.MARKETING_RATE": b["D51"].value, "OPEX.BROKERAGE_RATE": b["D52"].value, "OPEX.DEV_FEE_RATE": b["D48"].value,

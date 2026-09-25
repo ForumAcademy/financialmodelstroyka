@@ -60,6 +60,26 @@ project_inputs:
       01.10.2031'
     sales_end: 4 кв 2033
     pf_end: 2 кв 2032
+  TIME.MILESTONES:
+  - phase: 1
+    land_acquired: '2025-12-31'
+    rns_date: '2025-12-31'
+    sales_start: '2026-03-31'
+    construction_end: null
+    rnv_date: '2029-09-30'
+  - phase: 2
+    land_acquired: '2025-12-31'
+    rns_date: '2025-12-31'
+    sales_start: '2026-03-31'
+    construction_end: null
+    rnv_date: '2031-03-01'
+  - phase: 3
+    land_acquired: '2025-12-31'
+    rns_date: '2025-12-31'
+    sales_start: '2026-03-31'
+    construction_end: '2032-03-31'
+    rnv_date: '2031-07-01'
+  TIME.MILESTONES_NOTE: 'В исходнике 4 даты РНВ на 3 очереди; по очередям взяты первые 3, не распределены: 01.10.2031. Окончание СМР — одна дата на проект.'
   SALES.PAYMENT_MIX:
     installment: 0
     mortgage: 0.7

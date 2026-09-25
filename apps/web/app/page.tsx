@@ -1,68 +1,72 @@
-import { ENGINE_MODULES } from "@fm/engine";
+"use client";
+
 import Link from "next/link";
-import { SPEC_FILES, spec } from "@fm/spec";
+import { useState } from "react";
+import { Breadcrumbs } from "@/components/AppShell";
+import { NewProjectModal } from "@/components/NewProjectModal";
+import { ProjectCard } from "@/components/ProjectCard";
+import { useStore } from "@/lib/store";
 
-const SPEC_COUNTS = [
-  { file: "sources.yaml", label: "источников", count: spec.sources.length },
-  { file: "parameters.yaml", label: "параметров", count: spec.parameters.length },
-  { file: "capex_items.yaml", label: "статей бюджета", count: spec.capexItems.length },
-  { file: "regions.yaml", label: "регионов", count: spec.regions.length },
-  { file: "formulas.yaml", label: "формул", count: spec.formulas.length },
-] as const satisfies ReadonlyArray<{ file: (typeof SPEC_FILES)[number]; label: string; count: number }>;
+type Sort = "updated" | "npv" | "name";
+const SORT_LABEL: Record<Sort, string> = { updated: "по дате изменения", npv: "по NPV", name: "по названию" };
 
-const formatDate = (iso: string) => iso.split("-").reverse().join(".");
+export default function ProjectsPage() {
+  const { projects, model } = useStore();
+  const [archived, setArchived] = useState(false);
+  const [sort, setSort] = useState<Sort>("updated");
+  const [creating, setCreating] = useState(false);
 
-export default function HomePage() {
+  const list = projects
+    .filter((p) => p.archived === archived)
+    .sort((a, b) => (sort === "name" ? a.name.localeCompare(b.name, "ru") : sort === "updated" ? b.updatedAt.localeCompare(a.updatedAt) : 0));
+
   return (
-    <main className="page">
-      <h1>Финансовая модель девелопера</h1>
-      <p className="lead">
-        Этап 2: расчётное ядро считает время, ТЭП и участок. Расчётов пока нет: список проектов, ввод данных и дашборд появятся на
-        следующих этапах.
-      </p>
-
-      <p>
-        <Link href="/demo/derbenevskaya">Дербеневская (демо): ТЭП →</Link>
-      </p>
-
-      <section>
-        <h2>Справочник — единственный источник правды</h2>
-        <p className="lead">
-          Версия справочника <code>{spec.specVersion}</code>
-          {spec.actualizedAt ? <>, актуализирован {formatDate(spec.actualizedAt)}</> : null}.
-        </p>
-        <ul>
-          {SPEC_COUNTS.map((c) => (
-            <li key={c.file}>
-              <code>data/{c.file}</code> — {c.count} {c.label}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section>
-        <h2>Модули расчётного ядра</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Модуль</th>
-              <th>Что считает</th>
-              <th>Этап</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ENGINE_MODULES.map((m) => (
-              <tr key={m.id}>
-                <td>
-                  <code>{m.id}</code>
-                </td>
-                <td>{m.title}</td>
-                <td>{m.stage}</td>
-              </tr>
+    <>
+      <Breadcrumbs items={[{ label: "Проекты" }]} />
+      <main className="page wide">
+        <div className="page-head">
+          <h1>Проекты</h1>
+          <div className="row">
+            <Link href="/reference" className="btn dark">
+              Справочник
+            </Link>
+            <button className="btn primary" onClick={() => setCreating(true)}>
+              + Новый проект
+            </button>
+          </div>
+        </div>
+        <div className="toolbar">
+          <div className="seg">
+            <button className={!archived ? "on" : ""} onClick={() => setArchived(false)}>
+              Активные
+            </button>
+            <button className={archived ? "on" : ""} onClick={() => setArchived(true)}>
+              Архив
+            </button>
+          </div>
+          <label className="sort">
+            ⇅ Сортировка:
+            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+              {(Object.keys(SORT_LABEL) as Sort[]).map((s) => (
+                <option key={s} value={s}>
+                  {SORT_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {sort === "npv" ? <span className="small muted">NPV появится на этапе 6 — порядок пока прежний</span> : null}
+        </div>
+        {list.length === 0 ? (
+          <p className="muted">{archived ? "В архиве пусто." : "Проектов нет — создайте первый."}</p>
+        ) : (
+          <div className="grid">
+            {list.map((p) => (
+              <ProjectCard key={p.id} project={p} model={model(p)} />
             ))}
-          </tbody>
-        </table>
-      </section>
-    </main>
+          </div>
+        )}
+      </main>
+      {creating ? <NewProjectModal onClose={() => setCreating(false)} /> : null}
+    </>
   );
 }

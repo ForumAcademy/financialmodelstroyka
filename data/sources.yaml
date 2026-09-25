@@ -597,6 +597,17 @@ sources:
     accessed: 2026-09-25
     verified: true
 
+  - id: S_ERZ_LGOTNAYA_2024
+    level: 3
+    scope: global
+    title: "ЕРЗ.РФ: Минфин — льготная ипотека под 8% заканчивается 1 июля (2024)"
+    issuer: "ДОМ.РФ / ЕРЗ.РФ"
+    url: "https://erzrf.ru/news/minfin-lgotnaya-ipoteka-pod-8-zakanchivayetsya-1-iyulya"
+    used_for: "дата структурного сдвига рынка 01.07.2024 (BENCH.STRUCTURAL_BREAK_DATES): данные аналогов раньше этой даты не используются"
+    accessed: 2026-09-25
+    verified: false
+    note: "Новостной источник, временно. При релизе заменить на страницу Минфина https://minfin.gov.ru/ru/perfomance/govsupport/lgota/uslovie/ (уровень 1–2) и отметить verified"
+
   - id: S_ROSSTAT_PRICES
     level: 2
     scope: global

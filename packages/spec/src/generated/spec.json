@@ -1,5 +1,5 @@
 {
-  "specVersion": "396e648e8e0e",
+  "specVersion": "07f6b82f887b",
   "actualizedAt": "2026-09-25",
   "sources": [
     {
@@ -629,6 +629,18 @@
       "used_for": "динамика цен ДДУ по регионам — калибровка роста цены",
       "accessed": "2026-09-25",
       "verified": true
+    },
+    {
+      "id": "S_ERZ_LGOTNAYA_2024",
+      "level": 3,
+      "scope": "global",
+      "title": "ЕРЗ.РФ: Минфин — льготная ипотека под 8% заканчивается 1 июля (2024)",
+      "issuer": "ДОМ.РФ / ЕРЗ.РФ",
+      "url": "https://erzrf.ru/news/minfin-lgotnaya-ipoteka-pod-8-zakanchivayetsya-1-iyulya",
+      "used_for": "дата структурного сдвига рынка 01.07.2024 (BENCH.STRUCTURAL_BREAK_DATES): данные аналогов раньше этой даты не используются",
+      "accessed": "2026-09-25",
+      "verified": false,
+      "note": "Новостной источник, временно. При релизе заменить на страницу Минфина https://minfin.gov.ru/ru/perfomance/govsupport/lgota/uslovie/ (уровень 1–2) и отметить verified"
     },
     {
       "id": "S_ROSSTAT_PRICES",
@@ -2392,7 +2404,7 @@
         "S_ROSSTAT_PRICES",
         "S_PROJECT_DOCS"
       ],
-      "basis": "Стартовая цена — по аналогам (ЕИСЖС: цены ДДУ проектов того же класса в радиусе), минимум 3 аналога с ссылками в карточке параметра. Машино-места и кладовые — цена за штуку (руб/шт) по аналогам; пересчёт руб/м² × площадь машино-места с проездами запрещён (в исходнике так получалось ≈ 11 млн руб за место). Запас площади (stock_area) по квартирам, ПСН, апартаментам и кладовым берётся из F.TEP.* (раздел TEP), чтобы план продаж сходился с продаваемой площадью",
+      "basis": "Стартовая цена — по выборке аналогов (F.BENCH.MARKET_PRICE по BENCH.MARKET_SAMPLE: ЕИСЖС, проекты того же класса), не менее BENCH.MARKET_MIN_COMPS аналогов со ссылками; такое значение имеет уровень 3. Машино-места и кладовые — цена за штуку (руб/шт) по аналогам; пересчёт руб/м² × площадь машино-места с проездами запрещён (в исходнике так получалось ≈ 11 млн руб за место). Запас площади (stock_area) по квартирам, ПСН, апартаментам и кладовым берётся из F.TEP.* (раздел TEP), чтобы план продаж сходился с продаваемой площадью",
       "status": "project_input",
       "legacy": [
         {
@@ -2445,7 +2457,7 @@
         "S_EISZHS_SALES",
         "S_COMPANY_ACTUALS"
       ],
-      "basis": "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — темпы аналогов по ЕИСЖС",
+      "basis": "Задаётся одним из способов: (а) доля от остатка в месяц по стадиям, (б) м²/мес, (в) ручной ряд. Ограничение: продано ≤ запас (F.SALES.SOLD_AREA). Калибровка — нормированный темп аналогов F.BENCH.MARKET_PACE (доля от экспозиции в месяц, медиана по BENCH.MARKET_SAMPLE); такое значение имеет уровень 3",
       "status": "project_input",
       "legacy": [
         {
@@ -3183,6 +3195,550 @@
       "legacy": [
         {
           "cell": "Бюджет!G63",
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.MARKET_MIN_COMPS",
+      "name": "Минимум аналогов в выборке",
+      "unit": "шт",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 3,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Меньше трёх аналогов — выборку нельзя сохранить без экспертного обоснования: цена и темп по одному-двум ЖК случайны. Совпадает с требованием к источникам уровня 3 (docs/00: не менее 3 аналогов)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.MARKET_MEDIAN_MIN_COMPS",
+      "name": "Число аналогов, с которого используется медиана",
+      "unit": "шт",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 5,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). С пяти аналогов медиана устойчива к выбросам (премиальный или демпингующий ЖК); на меньшей выборке — средневзвешенная по близости аналога (F.BENCH.MARKET_PRICE). Этот же порог включает расширенное окно цен (F.BENCH.WINDOW_FILTER)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PRICE_WINDOW_M",
+      "name": "Окно цен аналогов, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 6,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Цены ДДУ за последние 6 месяцев до даты оценки отражают текущий рынок и дают достаточно сделок",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PRICE_WINDOW_EXT_M",
+      "name": "Расширенное окно цен, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 12,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Применяется, если в основном окне меньше BENCH.MARKET_MEDIAN_MIN_COMPS аналогов со сделками; цены приводятся к дате оценки индексом (F.BENCH.PRICE_INDEXED)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PRICE_MAX_AGE_M",
+      "name": "Предельная давность цены аналога, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 12,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Цены старше 12 месяцев не используются даже с индексацией: состав предложения и условия ипотеки успевают измениться",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PACE_WINDOW_M",
+      "name": "Окно темпов продаж аналогов, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 12,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Темп усредняется за 12 месяцев, чтобы сгладить сезонность продаж",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.START_PHASE_M",
+      "name": "Начальная фаза продаж аналога для стартовой цены, месяцев",
+      "unit": "мес",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 6,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Для стартовой цены проекта берутся только сделки аналогов в первые 6 месяцев от старта их продаж — цена на старте ниже цены готового дома",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.STRUCTURAL_BREAK_DATES",
+      "name": "Даты структурных сдвигов рынка",
+      "unit": "дата",
+      "kind": "table",
+      "scope": "template",
+      "default": [
+        {
+          "date": "2024-07-01",
+          "event": "Завершение программы массовой льготной ипотеки",
+          "source_id": "S_ERZ_LGOTNAYA_2024"
+        }
+      ],
+      "columns": [
+        {
+          "key": "date",
+          "unit": "дата"
+        },
+        {
+          "key": "event",
+          "unit": "текст"
+        },
+        {
+          "key": "source_id",
+          "unit": "текст"
+        }
+      ],
+      "source_ids": [
+        "S_ERZ_LGOTNAYA_2024"
+      ],
+      "basis": "Данные рынка раньше последней даты сдвига не используются: до 01.07.2024 цены и темпы формировались при массовой льготной ипотеке и несопоставимы с текущим рынком. Новая дата добавляется методологом с источником",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.COST_MIN_PROJECTS",
+      "name": "Минимум проектов для бенчмарка затрат",
+      "unit": "шт",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 3,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Если сопоставимых проектов меньше трёх, предлагается значение по НЦС (F.CAPEX.NCS_BENCH), а параметр помечается экспертным (уровень 5)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.COST_MAX_AGE_Y",
+      "name": "Предельная давность договоров для бенчмарка затрат, лет",
+      "unit": "год",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 5,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Договоры старше 5 лет не используются: технологии, нормы и структура затрат меняются сильнее, чем компенсирует индекс",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.COST_FLOORS_TOLERANCE",
+      "name": "Допустимое отличие этажности проекта-аналога",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 0.3,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Проект сопоставим по затратам, если его этажность отличается от этажности оцениваемого проекта не более чем на ±30%",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.WARN_MEAN_MEDIAN_GAP",
+      "name": "Порог расхождения среднего и медианы выборки",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 0.1,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Если |среднее / медиана − 1| больше 10%, распределение скошено выбросами — требуется комментарий аналитика",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.WARN_CV",
+      "name": "Порог коэффициента вариации выборки",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 0.2,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Коэффициент вариации больше 20% — аналоги слишком разнородны, требуется комментарий аналитика",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.OUTLIER_IQR_K",
+      "name": "Множитель межквартильного размаха для выбросов",
+      "unit": "коэф",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 1.5,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Значение за пределами Q1 − k·IQR … Q3 + k·IQR подсвечивается как выброс (правило Тьюки, k = 1,5), но из выборки автоматически не удаляется",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.DDU_PRICE_INDEX",
+      "name": "Индекс цен ДДУ региона (помесячный ряд)",
+      "unit": "коэф",
+      "kind": "series",
+      "scope": "region",
+      "default": null,
+      "source_ids": [
+        "S_EISZHS_SERIES"
+      ],
+      "basis": "Приведение цены аналога к дате оценки (F.BENCH.PRICE_INDEXED): отношение средней цены ДДУ региона на дату оценки к цене на дату сделки. Ряд — из статистических рядов ЕИСЖС; пока не загружен — обязательный ввод с выгрузкой",
+      "how_to_fill": "ЕИСЖС → статистические ряды → средняя цена ДДУ по субъекту, помесячно; приложить выгрузку с датой",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.COST_INDEX_HIST",
+      "name": "Индексы изменения сметной стоимости Минстроя (фактические, по кварталам)",
+      "unit": "коэф",
+      "kind": "series",
+      "scope": "region",
+      "default": null,
+      "source_ids": [
+        "S_FGISCS"
+      ],
+      "basis": "Приведение расценки проекта-аналога от даты договора к дате оценки (F.BENCH.COST_INDEXED). Фактические индексы Минстроя; не путать с прогнозным CAPEX.COST_INDEX для будущих затрат проекта",
+      "how_to_fill": "ФГИС ЦС → индексы изменения сметной стоимости по субъекту; приложить выгрузку с датой",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.MARKET_SAMPLE",
+      "name": "Выборка аналогов рынка (сохранённая в проекте)",
+      "unit": "table",
+      "kind": "table",
+      "scope": "project",
+      "default": null,
+      "columns": [
+        {
+          "key": "comp_id",
+          "unit": "текст",
+          "note": "ЖК из Справочник → Бенчмарки → Аналоги рынка (market_comps)"
+        },
+        {
+          "key": "purpose",
+          "unit": "enum",
+          "options": [
+            "стартовая цена",
+            "цена",
+            "темп"
+          ]
+        },
+        {
+          "key": "deals",
+          "unit": "таблица",
+          "note": "сделки за окно: дата, стоимость, руб; площадь, м² (ЕИСЖС или другой источник)"
+        },
+        {
+          "key": "exposure_m2",
+          "unit": "таблица",
+          "note": "площадь в экспозиции на начало каждого месяца, м²"
+        },
+        {
+          "key": "sales_start",
+          "unit": "дата"
+        },
+        {
+          "key": "excluded",
+          "unit": "bool",
+          "note": "исключён вручную"
+        },
+        {
+          "key": "exclusion_reason",
+          "unit": "текст",
+          "note": "обязательна при excluded; фиксируется в журнале"
+        },
+        {
+          "key": "source_id",
+          "unit": "текст"
+        },
+        {
+          "key": "url",
+          "unit": "текст"
+        }
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES",
+        "S_EISZHS_SERIES"
+      ],
+      "basis": "Проектный источник «выборка аналогов»: список ЖК со ссылками, сделки, корректировки, итоговая статистика и дата выборки. Замораживается в версии проекта — обновление базы аналогов не меняет посчитанную модель без пересчёта. Параметр, взятый из выборки, имеет уровень 3",
+      "how_to_fill": "Выбрать аналоги в Справочник → Бенчмарки → Аналоги рынка; сервис подтянет сделки и покажет статистику",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PRICE_ADJUSTMENTS",
+      "name": "Корректировки цены аналогов на отличия от проекта",
+      "unit": "table",
+      "kind": "table",
+      "scope": "project",
+      "default": null,
+      "columns": [
+        {
+          "key": "comp_id",
+          "unit": "текст"
+        },
+        {
+          "key": "factor",
+          "unit": "enum",
+          "options": [
+            "локация",
+            "класс",
+            "отделка",
+            "стадия готовности"
+          ]
+        },
+        {
+          "key": "value",
+          "unit": "доля",
+          "note": "со знаком: +0,05 — аналог хуже проекта, цена повышается"
+        },
+        {
+          "key": "rationale",
+          "unit": "текст"
+        },
+        {
+          "key": "source_id",
+          "unit": "текст"
+        }
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES",
+        "S_EXPERT"
+      ],
+      "basis": "Каждая корректировка — строка с величиной, обоснованием и источником (F.BENCH.PRICE_ADJUSTED). Суммарная корректировка аналога = Σ |корректировок| определяет его вес на малой выборке",
+      "how_to_fill": "Для каждого аналога и фактора — величина в долях, обоснование и источник; без обоснования строка не сохраняется",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.COST_SAMPLE",
+      "name": "Выборка проектов-аналогов для расценки статьи бюджета",
+      "unit": "table",
+      "kind": "table",
+      "scope": "project",
+      "default": null,
+      "columns": [
+        {
+          "key": "benchmark_id",
+          "unit": "текст",
+          "note": "запись из Справочник → Бенчмарки → Расценки компании (company_benchmarks)"
+        },
+        {
+          "key": "capex_item_id",
+          "unit": "текст"
+        },
+        {
+          "key": "contract_amount",
+          "unit": "руб",
+          "note": "без НДС"
+        },
+        {
+          "key": "base_qty",
+          "unit": "по базе статьи",
+          "note": "м² ГНС; для паркинга — м²; для сетей — по типу статьи"
+        },
+        {
+          "key": "contract_date",
+          "unit": "дата"
+        },
+        {
+          "key": "region_code",
+          "unit": "текст"
+        },
+        {
+          "key": "housing_class",
+          "unit": "текст"
+        },
+        {
+          "key": "floors",
+          "unit": "шт"
+        },
+        {
+          "key": "structural_system",
+          "unit": "текст"
+        },
+        {
+          "key": "completed",
+          "unit": "bool",
+          "note": "незавершённый — только по сумме договора, с пометкой"
+        },
+        {
+          "key": "excluded",
+          "unit": "bool"
+        },
+        {
+          "key": "exclusion_reason",
+          "unit": "текст"
+        },
+        {
+          "key": "attachment_id",
+          "unit": "текст",
+          "note": "смета, договор или КС-2"
+        }
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS"
+      ],
+      "basis": "Сохранённая выборка расценок компании для статьи бюджета (F.BENCH.COST_BENCH). Замораживается в версии проекта. Параметр, взятый из выборки, имеет уровень 4",
+      "how_to_fill": "Выбрать статью бюджета — сервис предложит сопоставимые проекты по фильтру; при необходимости исключить с причиной",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.STRUCTURAL_SYSTEM",
+      "name": "Конструктивная схема здания",
+      "unit": "текст",
+      "kind": "text",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Фильтр сопоставимости проектов-аналогов по затратам (F.BENCH.COST_BENCH). Перечень значений утверждает методолог",
+      "how_to_fill": "По концепции / эскизу",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
           "verdict": "new"
         }
       ]
@@ -8506,6 +9062,352 @@
       "depends_on": [],
       "rationale": "Ни одна из этих ошибок исходника не должна повториться незаметно",
       "rejected": [],
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.WINDOW_FILTER",
+      "module": "BENCH",
+      "name": "Отбор данных аналогов по датам",
+      "unit": "bool",
+      "dims": [
+        "i"
+      ],
+      "expr": "break  = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)\noldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)\nцены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break );\n        если аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:\n          from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_EXT_M), oldest, break )\n        сделка входит, если from <= дата <= GEN.VALUATION_DATE\nстартовая цена: дополнительно дата сделки < EDATE(sales_start аналога, BENCH.START_PHASE_M)\nтемп:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break ); только месяцы активной фазы продаж аналога\nаналоги с excluded = true не входят (исключение — только вручную с причиной)\n",
+      "depends_on": [
+        "BENCH.MARKET_SAMPLE",
+        "GEN.VALUATION_DATE",
+        "BENCH.STRUCTURAL_BREAK_DATES",
+        "BENCH.PRICE_MAX_AGE_M",
+        "BENCH.PRICE_WINDOW_M",
+        "BENCH.PRICE_WINDOW_EXT_M",
+        "BENCH.MARKET_MEDIAN_MIN_COMPS",
+        "BENCH.START_PHASE_M",
+        "BENCH.PACE_WINDOW_M"
+      ],
+      "rationale": "В расчёт попадает только сопоставимый с текущим рынок: свежие сделки, после последнего структурного сдвига (завершение массовой льготной ипотеки 01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Стартовая цена берётся по сделкам на старте продаж аналогов, темп — в активной фазе",
+      "rejected": [
+        "Все доступные сделки без окна — смешивает рынки с разной ипотекой и ценами",
+        "Сделки до 01.07.2024 с индексацией — индекс не компенсирует смену условий ипотеки",
+        "Стартовая цена по текущим ценам аналогов на поздней стадии — завышает старт"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES",
+        "S_ERZ_LGOTNAYA_2024",
+        "S_EXPERT"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "needs_verification"
+    },
+    {
+      "id": "F.BENCH.COMP_PRICE",
+      "module": "BENCH",
+      "name": "Цена аналога (средневзвешенная по проданной площади)",
+      "unit": "руб/м2",
+      "dims": [
+        "i"
+      ],
+      "expr": "comp_price[i] = Σ стоимость сделок[i] / Σ площадь сделок[i]  — по сделкам, прошедшим F.BENCH.WINDOW_FILTER",
+      "depends_on": [
+        "F.BENCH.WINDOW_FILTER",
+        "BENCH.MARKET_SAMPLE"
+      ],
+      "rationale": "Так считается средняя цена ДДУ в ЕИСЖС: крупные лоты весят больше, цена отражает реально проданные метры",
+      "rejected": [
+        "Простое среднее цен лотов — дорогие маленькие лоты завышают цену м²"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified",
+      "example": {
+        "input": {
+          "deal_values": [
+            10000000,
+            15000000
+          ],
+          "deal_areas": [
+            40,
+            50
+          ]
+        },
+        "output": 277777.78
+      }
+    },
+    {
+      "id": "F.BENCH.PRICE_INDEXED",
+      "module": "BENCH",
+      "name": "Цена аналога на дату оценки",
+      "unit": "руб/м2",
+      "dims": [
+        "i"
+      ],
+      "expr": "price_idx[i] = comp_price[i] × BENCH.DDU_PRICE_INDEX[GEN.VALUATION_DATE] / BENCH.DDU_PRICE_INDEX[средняя дата сделок аналога, взвешенная по площади]",
+      "depends_on": [
+        "F.BENCH.COMP_PRICE",
+        "BENCH.DDU_PRICE_INDEX",
+        "GEN.VALUATION_DATE"
+      ],
+      "rationale": "Сделки в окне идут в разные месяцы; приведение к одной дате по индексу цен ДДУ региона делает аналоги сравнимыми",
+      "rejected": [
+        "Без индексации — в расширенном окне 12 месяцев разница цен может быть существенной"
+      ],
+      "source_ids": [
+        "S_EISZHS_SERIES"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.PRICE_ADJUSTED",
+      "module": "BENCH",
+      "name": "Цена аналога после корректировок на отличия от проекта",
+      "unit": "руб/м2",
+      "dims": [
+        "i"
+      ],
+      "expr": "price_adj[i] = price_idx[i] × (1 + Σ_j adj[i,j]);  adj_total[i] = Σ_j |adj[i,j]|;  j — строки BENCH.PRICE_ADJUSTMENTS (локация, класс, отделка, стадия готовности), у каждой — величина, обоснование, источник",
+      "depends_on": [
+        "F.BENCH.PRICE_INDEXED",
+        "BENCH.PRICE_ADJUSTMENTS"
+      ],
+      "rationale": "Сравнительный подход: цена аналога поправляется на отличия от оцениваемого проекта. Каждая поправка видна и обоснована; сумма модулей поправок показывает, насколько аналог непохож на проект",
+      "rejected": [
+        "Одна общая поправка без разбивки по факторам — непроверяемо",
+        "Суммарная корректировка как алгебраическая сумма — разнонаправленные поправки взаимно гасятся и скрывают непохожесть аналога"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES",
+        "S_EXPERT"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.MARKET_PRICE",
+      "module": "BENCH",
+      "name": "Рыночная цена по выборке аналогов",
+      "unit": "руб/м2",
+      "dims": [],
+      "expr": "n = число аналогов после F.BENCH.WINDOW_FILTER\nn >= BENCH.MARKET_MEDIAN_MIN_COMPS:                     market_price = MEDIAN(price_adj)\nBENCH.MARKET_MIN_COMPS <= n < BENCH.MARKET_MEDIAN_MIN_COMPS: market_price = Σ_i w[i] × price_adj[i],\n                                                          w[i] = (1 / (1 + adj_total[i])) / Σ_i (1 / (1 + adj_total[i]))\nn < BENCH.MARKET_MIN_COMPS:                              ошибка — сохранить только с экспертным обоснованием\n",
+      "depends_on": [
+        "F.BENCH.PRICE_ADJUSTED",
+        "F.BENCH.WINDOW_FILTER",
+        "BENCH.MARKET_MIN_COMPS",
+        "BENCH.MARKET_MEDIAN_MIN_COMPS"
+      ],
+      "rationale": "Медиана устойчива к выбросам (премиальный или демпингующий ЖК). На малой выборке медиана неустойчива, поэтому больший вес получает самый похожий аналог (с наименьшей суммарной корректировкой) — логика сравнительного подхода в оценке. Результат подставляется в SALES.PRODUCTS.start_price как значение уровня 3",
+      "rejected": [
+        "Простое среднее по аналогам — один выброс сдвигает цену проекта"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES",
+        "S_EXPERT"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified",
+      "example": {
+        "input": {
+          "prices": [
+            300000,
+            320000,
+            280000
+          ],
+          "adj_total": [
+            0.1,
+            0,
+            0.2
+          ]
+        },
+        "output": 301215.47,
+        "note": "n = 3 — средневзвешенная, веса 0,331 / 0,365 / 0,304"
+      }
+    },
+    {
+      "id": "F.BENCH.COMP_PACE",
+      "module": "BENCH",
+      "name": "Нормированный темп продаж аналога",
+      "unit": "доля",
+      "dims": [
+        "i"
+      ],
+      "expr": "pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i] = СРЕДНЕЕ_m(pace_norm[i,m]) за месяцы окна F.BENCH.WINDOW_FILTER (BENCH.PACE_WINDOW_M)",
+      "depends_on": [
+        "F.BENCH.WINDOW_FILTER",
+        "BENCH.MARKET_SAMPLE",
+        "BENCH.PACE_WINDOW_M"
+      ],
+      "rationale": "Темп в доле от предложения сравним между ЖК разного масштаба; среднее за 12 месяцев сглаживает сезонность",
+      "rejected": [
+        "Абсолютный темп м²/мес — у крупного ЖК он выше просто из-за объёма предложения"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.MARKET_PACE",
+      "module": "BENCH",
+      "name": "Рыночный темп продаж по выборке аналогов",
+      "unit": "доля",
+      "dims": [],
+      "expr": "market_pace = MEDIAN(comp_pace);  ошибка, если аналогов < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)",
+      "depends_on": [
+        "F.BENCH.COMP_PACE",
+        "BENCH.MARKET_MIN_COMPS"
+      ],
+      "rationale": "Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. Результат подставляется в SALES.PACE (способ «доля от остатка в месяц») как значение уровня 3",
+      "rejected": [
+        "Сравнение абсолютных м²/мес между ЖК разного масштаба",
+        "Среднее — чувствительно к одному аномальному ЖК"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.COST_UNIT",
+      "module": "BENCH",
+      "name": "Расценка проекта-аналога на дату договора",
+      "unit": "руб/м2",
+      "dims": [
+        "i"
+      ],
+      "expr": "cost_unit[i] = contract_amount[i] (без НДС) / base_qty[i];  база — по базе статьи: м² ГНС; для паркинга — м² подземной части; для сетей — по типу статьи (capex_items.yaml → base)",
+      "depends_on": [
+        "BENCH.COST_SAMPLE"
+      ],
+      "rationale": "Ставка на единицу базы статьи — то, что подставляется в бюджет проекта (ставка × база × индекс). Без НДС — как все затраты в модели (docs/00, соглашения)",
+      "rejected": [
+        "Сумма договора без деления на базу — не переносится на проект другого размера"
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.COST_INDEXED",
+      "module": "BENCH",
+      "name": "Расценка аналога на дату оценки и в регионе проекта",
+      "unit": "руб/м2",
+      "dims": [
+        "i"
+      ],
+      "expr": "cost_idx[i] = cost_unit[i] × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС)",
+      "depends_on": [
+        "F.BENCH.COST_UNIT",
+        "BENCH.COST_INDEX_HIST",
+        "GEN.VALUATION_DATE",
+        "GEN.REGION_CODE"
+      ],
+      "rationale": "Время приводится официальными индексами изменения сметной стоимости Минстроя, регион — отношением коэффициентов перехода НЦС (регион проекта / регион аналога). Оба показателя — государственные и одинаковы для всех проектов",
+      "rejected": [
+        "Индекс потребительских цен — не отражает стоимость строительства",
+        "Без регионального пересчёта — московская расценка переносится в регион без поправки"
+      ],
+      "source_ids": [
+        "S_FGISCS",
+        "S_NCS_2026_01"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.COST_BENCH",
+      "module": "BENCH",
+      "name": "Бенчмарк расценки статьи бюджета",
+      "unit": "руб/м2",
+      "dims": [
+        "item"
+      ],
+      "expr": "сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  |floors / TEP.AVG_FLOORS − 1| <= BENCH.COST_FLOORS_TOLERANCE;\n                      structural_system = TEP.STRUCTURAL_SYSTEM;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false\nn >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)\nn <  BENCH.COST_MIN_PROJECTS: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)\nнезавершённые проекты (completed = false) — только по сумме договора, с пометкой\n",
+      "depends_on": [
+        "F.BENCH.COST_INDEXED",
+        "BENCH.COST_SAMPLE",
+        "GEN.HOUSING_CLASS",
+        "TEP.AVG_FLOORS",
+        "TEP.STRUCTURAL_SYSTEM",
+        "BENCH.COST_FLOORS_TOLERANCE",
+        "BENCH.COST_MAX_AGE_Y",
+        "BENCH.COST_MIN_PROJECTS",
+        "GEN.VALUATION_DATE",
+        "F.CAPEX.NCS_BENCH"
+      ],
+      "rationale": "При оценке нового участка каждый проект компании — одно наблюдение: крупный проект не должен перевешивать. Медиана устойчива к нетипичному проекту",
+      "rejected": [
+        "Средневзвешенная по площади — подходит для портфельного отчёта, не для оценки нового проекта"
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS",
+        "S_NCS_2026_01"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.BENCH.STATS",
+      "module": "BENCH",
+      "name": "Статистика выборки и предупреждения",
+      "unit": "руб/м2",
+      "dims": [],
+      "expr": "для любой выборки x (price_adj, comp_pace, cost_idx): n, MEDIAN, СРЕДНЕЕ, MIN, MAX, Q1, Q3 (QUARTILE.INC), CV = STDEV.S / СРЕДНЕЕ\n|СРЕДНЕЕ / MEDIAN − 1| > BENCH.WARN_MEAN_MEDIAN_GAP → требуется комментарий аналитика\nCV > BENCH.WARN_CV                                  → требуется комментарий аналитика\nIQR = Q3 − Q1;  x < Q1 − BENCH.OUTLIER_IQR_K × IQR  или  x > Q3 + BENCH.OUTLIER_IQR_K × IQR → выброс: подсвечивается,\nНЕ удаляется автоматически; исключение — только вручную с причиной (excluded, exclusion_reason), фиксируется в журнале\n",
+      "depends_on": [
+        "F.BENCH.PRICE_ADJUSTED",
+        "F.BENCH.COMP_PACE",
+        "F.BENCH.COST_INDEXED",
+        "BENCH.WARN_MEAN_MEDIAN_GAP",
+        "BENCH.WARN_CV",
+        "BENCH.OUTLIER_IQR_K"
+      ],
+      "rationale": "Аналитик и проверяющий видят не только итог, но и качество выборки: разброс, скошенность, выбросы. Автоматическое удаление выбросов скрыло бы решение, влияющее на цену; ручное исключение с причиной остаётся в журнале",
+      "rejected": [
+        "Автоматически удалять выбросы — меняет результат без следа в журнале",
+        "Показывать только итоговое значение — нельзя оценить надёжность",
+        "Квартили по методу QUARTILE.EXC — на малых выборках не определены и не совпадают с формулами Excel в выгрузке"
+      ],
       "source_ids": [
         "S_EXPERT"
       ],

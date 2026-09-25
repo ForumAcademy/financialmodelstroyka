@@ -1,7 +1,7 @@
 // Файл сгенерирован packages/spec/scripts/build-spec.ts из data/*.yaml. Не редактировать вручную.
 
 /** Версия справочника: хеш содержимого data/*.yaml. Сохраняется в каждой версии расчёта. */
-export const SPEC_VERSION = "396e648e8e0e";
+export const SPEC_VERSION = "07f6b82f887b";
 /** Дата актуализации справочника: самая поздняя дата проверки источника. */
 export const SPEC_ACTUALIZED_AT = "2026-09-25";
 
@@ -63,6 +63,7 @@ export const SOURCE_IDS = [
   "S_EISZHS_SALES",
   "S_EISZHS_INDICATORS",
   "S_EISZHS_SERIES",
+  "S_ERZ_LGOTNAYA_2024",
   "S_ROSSTAT_PRICES",
   "S_DOMRF_COST",
   "S_BANK_PF_DOMRF",
@@ -162,6 +163,26 @@ export const PARAMETER_IDS = [
   "VAL.RISK_FREE",
   "VAL.EQUITY_PREMIUM",
   "VAL.HURDLE_IRR",
+  "BENCH.MARKET_MIN_COMPS",
+  "BENCH.MARKET_MEDIAN_MIN_COMPS",
+  "BENCH.PRICE_WINDOW_M",
+  "BENCH.PRICE_WINDOW_EXT_M",
+  "BENCH.PRICE_MAX_AGE_M",
+  "BENCH.PACE_WINDOW_M",
+  "BENCH.START_PHASE_M",
+  "BENCH.STRUCTURAL_BREAK_DATES",
+  "BENCH.COST_MIN_PROJECTS",
+  "BENCH.COST_MAX_AGE_Y",
+  "BENCH.COST_FLOORS_TOLERANCE",
+  "BENCH.WARN_MEAN_MEDIAN_GAP",
+  "BENCH.WARN_CV",
+  "BENCH.OUTLIER_IQR_K",
+  "BENCH.DDU_PRICE_INDEX",
+  "BENCH.COST_INDEX_HIST",
+  "BENCH.MARKET_SAMPLE",
+  "BENCH.PRICE_ADJUSTMENTS",
+  "BENCH.COST_SAMPLE",
+  "TEP.STRUCTURAL_SYSTEM",
 ] as const;
 export type ParameterId = (typeof PARAMETER_IDS)[number];
 
@@ -239,6 +260,17 @@ export const FORMULA_IDS = [
   "F.KPI.LLCR",
   "F.KPI.UNFORECASTED_REVENUE",
   "F.CHECK.ALL",
+  "F.BENCH.WINDOW_FILTER",
+  "F.BENCH.COMP_PRICE",
+  "F.BENCH.PRICE_INDEXED",
+  "F.BENCH.PRICE_ADJUSTED",
+  "F.BENCH.MARKET_PRICE",
+  "F.BENCH.COMP_PACE",
+  "F.BENCH.MARKET_PACE",
+  "F.BENCH.COST_UNIT",
+  "F.BENCH.COST_INDEXED",
+  "F.BENCH.COST_BENCH",
+  "F.BENCH.STATS",
 ] as const;
 export type FormulaId = (typeof FORMULA_IDS)[number];
 

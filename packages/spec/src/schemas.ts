@@ -173,6 +173,7 @@ export const FORMULA_MODULES = [
   "CF",
   "KPI",
   "CHECK",
+  "BENCH",
 ] as const;
 export const FORMULA_STATUSES = ["verified", "needs_verification"] as const;
 

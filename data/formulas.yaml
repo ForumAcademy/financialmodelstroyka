@@ -1089,3 +1089,192 @@ formulas:
     source_ids: [S_EXPERT]
     legacy: {cells: null, verdict: new}
     status: verified
+
+  # =====================================================================
+  # BENCH — статистика бенчмарков (Справочник → Бенчмарки)
+  # Аналоги рынка → стартовая цена и темп продаж; расценки компании → ставки статей бюджета.
+  # Выборка сохраняется в проекте (BENCH.MARKET_SAMPLE, BENCH.COST_SAMPLE) и замораживается в его версии.
+  # Квартили и медиана — линейная интерполяция (как PERCENTILE.INC / QUARTILE.INC в Excel);
+  # стандартное отклонение — выборочное (как STDEV.S), чтобы расчёт повторялся в выгрузке Excel.
+  # =====================================================================
+
+  - id: F.BENCH.WINDOW_FILTER
+    module: BENCH
+    name: "Отбор данных аналогов по датам"
+    unit: bool
+    dims: [i]
+    expr: |
+      break  = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)
+      oldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)
+      цены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break );
+              если аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:
+                from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_EXT_M), oldest, break )
+              сделка входит, если from <= дата <= GEN.VALUATION_DATE
+      стартовая цена: дополнительно дата сделки < EDATE(sales_start аналога, BENCH.START_PHASE_M)
+      темп:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break ); только месяцы активной фазы продаж аналога
+      аналоги с excluded = true не входят (исключение — только вручную с причиной)
+    depends_on: [BENCH.MARKET_SAMPLE, GEN.VALUATION_DATE, BENCH.STRUCTURAL_BREAK_DATES, BENCH.PRICE_MAX_AGE_M, BENCH.PRICE_WINDOW_M, BENCH.PRICE_WINDOW_EXT_M, BENCH.MARKET_MEDIAN_MIN_COMPS, BENCH.START_PHASE_M, BENCH.PACE_WINDOW_M]
+    rationale: "В расчёт попадает только сопоставимый с текущим рынок: свежие сделки, после последнего структурного сдвига (завершение массовой льготной ипотеки 01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Стартовая цена берётся по сделкам на старте продаж аналогов, темп — в активной фазе"
+    rejected:
+      - "Все доступные сделки без окна — смешивает рынки с разной ипотекой и ценами"
+      - "Сделки до 01.07.2024 с индексацией — индекс не компенсирует смену условий ипотеки"
+      - "Стартовая цена по текущим ценам аналогов на поздней стадии — завышает старт"
+    source_ids: [S_EISZHS_SALES, S_ERZ_LGOTNAYA_2024, S_EXPERT]
+    legacy: {cells: null, verdict: new}
+    status: needs_verification
+
+  - id: F.BENCH.COMP_PRICE
+    module: BENCH
+    name: "Цена аналога (средневзвешенная по проданной площади)"
+    unit: руб/м2
+    dims: [i]
+    expr: "comp_price[i] = Σ стоимость сделок[i] / Σ площадь сделок[i]  — по сделкам, прошедшим F.BENCH.WINDOW_FILTER"
+    depends_on: [F.BENCH.WINDOW_FILTER, BENCH.MARKET_SAMPLE]
+    rationale: "Так считается средняя цена ДДУ в ЕИСЖС: крупные лоты весят больше, цена отражает реально проданные метры"
+    rejected: ["Простое среднее цен лотов — дорогие маленькие лоты завышают цену м²"]
+    source_ids: [S_EISZHS_SALES]
+    legacy: {cells: null, verdict: new}
+    status: verified
+    example: {input: {deal_values: [10000000, 15000000], deal_areas: [40, 50]}, output: 277777.78}
+
+  - id: F.BENCH.PRICE_INDEXED
+    module: BENCH
+    name: "Цена аналога на дату оценки"
+    unit: руб/м2
+    dims: [i]
+    expr: "price_idx[i] = comp_price[i] × BENCH.DDU_PRICE_INDEX[GEN.VALUATION_DATE] / BENCH.DDU_PRICE_INDEX[средняя дата сделок аналога, взвешенная по площади]"
+    depends_on: [F.BENCH.COMP_PRICE, BENCH.DDU_PRICE_INDEX, GEN.VALUATION_DATE]
+    rationale: "Сделки в окне идут в разные месяцы; приведение к одной дате по индексу цен ДДУ региона делает аналоги сравнимыми"
+    rejected: ["Без индексации — в расширенном окне 12 месяцев разница цен может быть существенной"]
+    source_ids: [S_EISZHS_SERIES]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.PRICE_ADJUSTED
+    module: BENCH
+    name: "Цена аналога после корректировок на отличия от проекта"
+    unit: руб/м2
+    dims: [i]
+    expr: "price_adj[i] = price_idx[i] × (1 + Σ_j adj[i,j]);  adj_total[i] = Σ_j |adj[i,j]|;  j — строки BENCH.PRICE_ADJUSTMENTS (локация, класс, отделка, стадия готовности), у каждой — величина, обоснование, источник"
+    depends_on: [F.BENCH.PRICE_INDEXED, BENCH.PRICE_ADJUSTMENTS]
+    rationale: "Сравнительный подход: цена аналога поправляется на отличия от оцениваемого проекта. Каждая поправка видна и обоснована; сумма модулей поправок показывает, насколько аналог непохож на проект"
+    rejected:
+      - "Одна общая поправка без разбивки по факторам — непроверяемо"
+      - "Суммарная корректировка как алгебраическая сумма — разнонаправленные поправки взаимно гасятся и скрывают непохожесть аналога"
+    source_ids: [S_EISZHS_SALES, S_EXPERT]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.MARKET_PRICE
+    module: BENCH
+    name: "Рыночная цена по выборке аналогов"
+    unit: руб/м2
+    dims: []
+    expr: |
+      n = число аналогов после F.BENCH.WINDOW_FILTER
+      n >= BENCH.MARKET_MEDIAN_MIN_COMPS:                     market_price = MEDIAN(price_adj)
+      BENCH.MARKET_MIN_COMPS <= n < BENCH.MARKET_MEDIAN_MIN_COMPS: market_price = Σ_i w[i] × price_adj[i],
+                                                                w[i] = (1 / (1 + adj_total[i])) / Σ_i (1 / (1 + adj_total[i]))
+      n < BENCH.MARKET_MIN_COMPS:                              ошибка — сохранить только с экспертным обоснованием
+    depends_on: [F.BENCH.PRICE_ADJUSTED, F.BENCH.WINDOW_FILTER, BENCH.MARKET_MIN_COMPS, BENCH.MARKET_MEDIAN_MIN_COMPS]
+    rationale: "Медиана устойчива к выбросам (премиальный или демпингующий ЖК). На малой выборке медиана неустойчива, поэтому больший вес получает самый похожий аналог (с наименьшей суммарной корректировкой) — логика сравнительного подхода в оценке. Результат подставляется в SALES.PRODUCTS.start_price как значение уровня 3"
+    rejected: ["Простое среднее по аналогам — один выброс сдвигает цену проекта"]
+    source_ids: [S_EISZHS_SALES, S_EXPERT]
+    legacy: {cells: null, verdict: new}
+    status: verified
+    example: {input: {prices: [300000, 320000, 280000], adj_total: [0.10, 0.0, 0.20]}, output: 301215.47, note: "n = 3 — средневзвешенная, веса 0,331 / 0,365 / 0,304"}
+
+  - id: F.BENCH.COMP_PACE
+    module: BENCH
+    name: "Нормированный темп продаж аналога"
+    unit: доля
+    dims: [i]
+    expr: "pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i] = СРЕДНЕЕ_m(pace_norm[i,m]) за месяцы окна F.BENCH.WINDOW_FILTER (BENCH.PACE_WINDOW_M)"
+    depends_on: [F.BENCH.WINDOW_FILTER, BENCH.MARKET_SAMPLE, BENCH.PACE_WINDOW_M]
+    rationale: "Темп в доле от предложения сравним между ЖК разного масштаба; среднее за 12 месяцев сглаживает сезонность"
+    rejected: ["Абсолютный темп м²/мес — у крупного ЖК он выше просто из-за объёма предложения"]
+    source_ids: [S_EISZHS_SALES]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.MARKET_PACE
+    module: BENCH
+    name: "Рыночный темп продаж по выборке аналогов"
+    unit: доля
+    dims: []
+    expr: "market_pace = MEDIAN(comp_pace);  ошибка, если аналогов < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)"
+    depends_on: [F.BENCH.COMP_PACE, BENCH.MARKET_MIN_COMPS]
+    rationale: "Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. Результат подставляется в SALES.PACE (способ «доля от остатка в месяц») как значение уровня 3"
+    rejected:
+      - "Сравнение абсолютных м²/мес между ЖК разного масштаба"
+      - "Среднее — чувствительно к одному аномальному ЖК"
+    source_ids: [S_EISZHS_SALES]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.COST_UNIT
+    module: BENCH
+    name: "Расценка проекта-аналога на дату договора"
+    unit: руб/м2
+    dims: [i]
+    expr: "cost_unit[i] = contract_amount[i] (без НДС) / base_qty[i];  база — по базе статьи: м² ГНС; для паркинга — м² подземной части; для сетей — по типу статьи (capex_items.yaml → base)"
+    depends_on: [BENCH.COST_SAMPLE]
+    rationale: "Ставка на единицу базы статьи — то, что подставляется в бюджет проекта (ставка × база × индекс). Без НДС — как все затраты в модели (docs/00, соглашения)"
+    rejected: ["Сумма договора без деления на базу — не переносится на проект другого размера"]
+    source_ids: [S_COMPANY_ACTUALS]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.COST_INDEXED
+    module: BENCH
+    name: "Расценка аналога на дату оценки и в регионе проекта"
+    unit: руб/м2
+    dims: [i]
+    expr: "cost_idx[i] = cost_unit[i] × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС)"
+    depends_on: [F.BENCH.COST_UNIT, BENCH.COST_INDEX_HIST, GEN.VALUATION_DATE, GEN.REGION_CODE]
+    rationale: "Время приводится официальными индексами изменения сметной стоимости Минстроя, регион — отношением коэффициентов перехода НЦС (регион проекта / регион аналога). Оба показателя — государственные и одинаковы для всех проектов"
+    rejected:
+      - "Индекс потребительских цен — не отражает стоимость строительства"
+      - "Без регионального пересчёта — московская расценка переносится в регион без поправки"
+    source_ids: [S_FGISCS, S_NCS_2026_01]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.COST_BENCH
+    module: BENCH
+    name: "Бенчмарк расценки статьи бюджета"
+    unit: руб/м2
+    dims: [item]
+    expr: |
+      сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  |floors / TEP.AVG_FLOORS − 1| <= BENCH.COST_FLOORS_TOLERANCE;
+                            structural_system = TEP.STRUCTURAL_SYSTEM;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false
+      n >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)
+      n <  BENCH.COST_MIN_PROJECTS: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)
+      незавершённые проекты (completed = false) — только по сумме договора, с пометкой
+    depends_on: [F.BENCH.COST_INDEXED, BENCH.COST_SAMPLE, GEN.HOUSING_CLASS, TEP.AVG_FLOORS, TEP.STRUCTURAL_SYSTEM, BENCH.COST_FLOORS_TOLERANCE, BENCH.COST_MAX_AGE_Y, BENCH.COST_MIN_PROJECTS, GEN.VALUATION_DATE, F.CAPEX.NCS_BENCH]
+    rationale: "При оценке нового участка каждый проект компании — одно наблюдение: крупный проект не должен перевешивать. Медиана устойчива к нетипичному проекту"
+    rejected: ["Средневзвешенная по площади — подходит для портфельного отчёта, не для оценки нового проекта"]
+    source_ids: [S_COMPANY_ACTUALS, S_NCS_2026_01]
+    legacy: {cells: null, verdict: new}
+    status: verified
+
+  - id: F.BENCH.STATS
+    module: BENCH
+    name: "Статистика выборки и предупреждения"
+    unit: руб/м2
+    dims: []
+    expr: |
+      для любой выборки x (price_adj, comp_pace, cost_idx): n, MEDIAN, СРЕДНЕЕ, MIN, MAX, Q1, Q3 (QUARTILE.INC), CV = STDEV.S / СРЕДНЕЕ
+      |СРЕДНЕЕ / MEDIAN − 1| > BENCH.WARN_MEAN_MEDIAN_GAP → требуется комментарий аналитика
+      CV > BENCH.WARN_CV                                  → требуется комментарий аналитика
+      IQR = Q3 − Q1;  x < Q1 − BENCH.OUTLIER_IQR_K × IQR  или  x > Q3 + BENCH.OUTLIER_IQR_K × IQR → выброс: подсвечивается,
+      НЕ удаляется автоматически; исключение — только вручную с причиной (excluded, exclusion_reason), фиксируется в журнале
+    depends_on: [F.BENCH.PRICE_ADJUSTED, F.BENCH.COMP_PACE, F.BENCH.COST_INDEXED, BENCH.WARN_MEAN_MEDIAN_GAP, BENCH.WARN_CV, BENCH.OUTLIER_IQR_K]
+    rationale: "Аналитик и проверяющий видят не только итог, но и качество выборки: разброс, скошенность, выбросы. Автоматическое удаление выбросов скрыло бы решение, влияющее на цену; ручное исключение с причиной остаётся в журнале"
+    rejected:
+      - "Автоматически удалять выбросы — меняет результат без следа в журнале"
+      - "Показывать только итоговое значение — нельзя оценить надёжность"
+      - "Квартили по методу QUARTILE.EXC — на малых выборках не определены и не совпадают с формулами Excel в выгрузке"
+    source_ids: [S_EXPERT]
+    legacy: {cells: null, verdict: new}
+    status: verified

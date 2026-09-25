@@ -9,11 +9,17 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "spec:build": "node scripts/build-spec.ts",
+    "spec:check": "node scripts/build-spec.ts --check"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "~6.0.3",
     "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
   }
 }

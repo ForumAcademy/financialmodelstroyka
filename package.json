@@ -8,6 +8,8 @@
   },
   "scripts": {
     "validate:spec": "python3 scripts/validate_spec.py",
+    "spec:build": "pnpm --filter @fm/spec spec:build",
+    "spec:check": "pnpm --filter @fm/spec spec:check",
     "typecheck": "pnpm -r --parallel typecheck",
     "lint": "eslint .",
     "test": "vitest run",

@@ -32,6 +32,7 @@ python scripts/validate_spec.py      # проверка реестров, ссы
 python scripts/render_docs.py        # пересборка docs/03–05 из YAML
 python scripts/build_legacy_map.py   # пересборка карты исходного Excel (код выхода 0 = всё сопоставлено)
 python scripts/build_legacy_case.py  # пересборка tests/cases/derbenevskaya_legacy.yaml
+pnpm spec:build                      # data/*.yaml → packages/spec/src/generated (после любого изменения data/)
 pnpm test                            # vitest: примеры формул + золотые кейсы + сверка с legacy
 pnpm typecheck && pnpm lint
 ```

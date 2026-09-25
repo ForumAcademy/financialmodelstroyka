@@ -94,7 +94,7 @@ formulas:
     unit: "0/1"
     dims: [p, t]
     expr: "flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M }"
-    depends_on: [TIME.MILESTONES, TIME.ESCROW_RELEASE_LAG_M]
+    depends_on: [TIME.MILESTONES, TIME.ESCROW_RELEASE_LAG_M, F.TIME.DATE]
     rationale: "ч.6 ст.15.5 214-ФЗ — перечисление не позднее 10 рабочих дней после РНВ; раскрытие по каждой очереди отдельно"
     rejected:
       - "Раскрытие одной датой для всех очередей по «окончанию ПФ» (исходник) — завышает процентные расходы по ранним очередям"
@@ -292,7 +292,7 @@ formulas:
     name: "Требуемое количество машино-мест по нормативу региона"
     unit: шт
     dims: []
-    expr: "parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA"
+    expr: "parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA. Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type), в обычном режиме запрещено"
     depends_on: [F.TEP.APT_COUNT, TEP.APT_MIX, TEP.PARKING_NORM, TEP.PARKING_NORM_APART, F.TEP.APART_AREA]
     rationale: "Нормативы обеспеченности — обязательное требование РНГП; число мест определяет подземную часть и выручку"
     rejected: ["Вбитое число без документа (862 в исходнике при нормативе ≈ 2 785)"]
@@ -414,7 +414,7 @@ formulas:
     unit: коэф
     dims: [t]
     expr: "coef[t] = IF(NOT TAX.LAND_COEF_APPLY) 1 ELSE IF(years_since(land_acquired, date[t]) <= TIME.RNS_TO_RNV_TAX_YEARS) TAX.LAND_COEF_UP_TO_3Y ELSE TAX.LAND_COEF_OVER_3Y; действует до госрегистрации прав на объект (≈ handover_end последней очереди)"
-    depends_on: [TAX.LAND_COEF_APPLY, TAX.LAND_COEF_UP_TO_3Y, TAX.LAND_COEF_OVER_3Y, TIME.MILESTONES]
+    depends_on: [TAX.LAND_COEF_APPLY, TAX.LAND_COEF_UP_TO_3Y, TAX.LAND_COEF_OVER_3Y, TIME.MILESTONES, TIME.RNS_TO_RNV_TAX_YEARS, F.TIME.DATE]
     rationale: "п.15 ст.396 НК РФ; для участков > 300 млн руб. — позиция ФНС (письмо 25.08.2026)"
     rejected: ["Отсутствие коэффициентов (исходник) — налог занижен в 2–4 раза"]
     source_ids: [S_NK_396, S_FNS_LANDCOEF_2026]
@@ -429,7 +429,7 @@ formulas:
     expr: "IF LAND.TENURE = собственность: land_pay[t] = cad_value[year(t)] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{land_acquired <= date[t] <= handover_end_last}
            IF LAND.TENURE = аренда: land_pay[t] = LAND.RENT_ANNUAL × index[year(t)] / 12 × 1{lease period}
            cad_value = LAND.CADASTRAL_VALUE_AFTER_VRI после смены ВРИ, иначе LAND.CADASTRAL_VALUE"
-    depends_on: [LAND.TENURE, LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, TAX.LAND_RATE, F.LAND.TAX_COEF, LAND.RENT_ANNUAL]
+    depends_on: [LAND.TENURE, LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, TAX.LAND_RATE, F.LAND.TAX_COEF, LAND.RENT_ANNUAL, TIME.MILESTONES, F.TIME.DATE]
     rationale: "Налог — от кадастровой стоимости (ст.390–391 НК РФ) по ставке муниципалитета; платёж только за период владения. Одна строка вместо двух в исходнике — нет двойного счёта"
     rejected:
       - "Равномерное деление итоговой суммы на 7,25 года (CF1!F24, F84) — игнорирует даты владения и коэффициенты"
@@ -445,7 +445,7 @@ formulas:
     unit: руб
     dims: []
     expr: "vri_fee = region.vri_fee.exists ? region_formula(LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, ...) : 0;  Москва: от прироста кадастровой стоимости (КС2 − КС1) × коэффициент территории по приложению к ПП 593-ПП"
-    depends_on: [GEN.REGION_CODE, LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI]
+    depends_on: [GEN.REGION_CODE, LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, LAND.VRI_FEE]
     rationale: "Плата — региональная; привязка к приросту кадастровой стоимости делает её воспроизводимой"
     rejected: ["5 000 руб/м² ГНС (исходник Бюджет!D22) — экспертно, без источника"]
     source_ids: [S_MSK_VRI_593PP]

@@ -1,5 +1,5 @@
 {
-  "specVersion": "b3d91bd56e4f",
+  "specVersion": "aa8f0f046bb9",
   "actualizedAt": "2026-09-25",
   "sources": [
     {
@@ -8570,7 +8570,8 @@
       "expr": "flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M }",
       "depends_on": [
         "TIME.MILESTONES",
-        "TIME.ESCROW_RELEASE_LAG_M"
+        "TIME.ESCROW_RELEASE_LAG_M",
+        "F.TIME.DATE"
       ],
       "rationale": "ч.6 ст.15.5 214-ФЗ — перечисление не позднее 10 рабочих дней после РНВ; раскрытие по каждой очереди отдельно",
       "rejected": [
@@ -8902,7 +8903,7 @@
       "name": "Требуемое количество машино-мест по нормативу региона",
       "unit": "шт",
       "dims": [],
-      "expr": "parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA",
+      "expr": "parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA. Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type), в обычном режиме запрещено",
       "depends_on": [
         "F.TEP.APT_COUNT",
         "TEP.APT_MIX",
@@ -9153,7 +9154,9 @@
         "TAX.LAND_COEF_APPLY",
         "TAX.LAND_COEF_UP_TO_3Y",
         "TAX.LAND_COEF_OVER_3Y",
-        "TIME.MILESTONES"
+        "TIME.MILESTONES",
+        "TIME.RNS_TO_RNV_TAX_YEARS",
+        "F.TIME.DATE"
       ],
       "rationale": "п.15 ст.396 НК РФ; для участков > 300 млн руб. — позиция ФНС (письмо 25.08.2026)",
       "rejected": [
@@ -9184,7 +9187,9 @@
         "LAND.CADASTRAL_VALUE_AFTER_VRI",
         "TAX.LAND_RATE",
         "F.LAND.TAX_COEF",
-        "LAND.RENT_ANNUAL"
+        "LAND.RENT_ANNUAL",
+        "TIME.MILESTONES",
+        "F.TIME.DATE"
       ],
       "rationale": "Налог — от кадастровой стоимости (ст.390–391 НК РФ) по ставке муниципалитета; платёж только за период владения. Одна строка вместо двух в исходнике — нет двойного счёта",
       "rejected": [
@@ -9223,7 +9228,8 @@
       "depends_on": [
         "GEN.REGION_CODE",
         "LAND.CADASTRAL_VALUE",
-        "LAND.CADASTRAL_VALUE_AFTER_VRI"
+        "LAND.CADASTRAL_VALUE_AFTER_VRI",
+        "LAND.VRI_FEE"
       ],
       "rationale": "Плата — региональная; привязка к приросту кадастровой стоимости делает её воспроизводимой",
       "rejected": [

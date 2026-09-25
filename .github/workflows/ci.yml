@@ -26,6 +26,8 @@ jobs:
           cache: pnpm
       - name: Установка зависимостей
         run: pnpm install --frozen-lockfile
+      - name: Справочник собран и актуален (packages/spec)
+        run: pnpm spec:check
       - name: Проверка типов
         run: pnpm typecheck
       - name: Линтер

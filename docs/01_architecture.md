@@ -33,7 +33,7 @@
 ├─ tests/cases/               # золотые кейсы (входы + ожидаемые выходы)
 ├─ scripts/                   # validate_spec.py, render_docs.py, build_legacy_*.py
 ├─ packages/
-│  ├─ spec/                   # загрузка и проверка YAML, генерация TS-типов
+│  ├─ spec/                   # загрузка и проверка YAML, генерация TS-типов (src/generated — коммитится, CI сверяет с data/)
 │  ├─ engine/                 # расчёт: modules/time, tep, land, capex, sales, escrow, fin, tax, cf, kpi, checks
 │  └─ export/                 # выгрузка проекта в .xlsx (exceljs), без зависимостей от UI/БД
 └─ apps/web/                  # Next.js: список проектов, ввод, расчёт, паспорт показателя, дашборд, экспорт

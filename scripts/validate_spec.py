@@ -163,6 +163,7 @@ checks = {
     "F.TAX.OUTPUT_VAT": lambda e: e["input"]["value"] * e["input"]["rate"] / (1 + e["input"]["rate"]),
     "F.TEP.APT_COUNT": lambda e: (e["input"]["area_share"] * e["input"]["apt_area_total"] / e["input"]["avg_area"]) // 1,
     "F.TEP.PARKING_SPACE_MIN_AREA": lambda e: e["input"]["length"] * e["input"]["width"],
+    "F.BENCH.APART_DISCOUNT": lambda e: sorted(1 - a / f for a, f in zip(e["input"]["apart_prices"], e["input"]["flat_prices"]))[1],
     "F.BENCH.COMP_PRICE": lambda e: sum(e["input"]["deal_values"]) / sum(e["input"]["deal_areas"]),
     "F.BENCH.MARKET_PRICE": lambda e: (lambda w: sum(p * x for p, x in zip(e["input"]["prices"], w)) / sum(w))(
         [1 / (1 + a) for a in e["input"]["adj_total"]]),

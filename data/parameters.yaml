@@ -168,7 +168,7 @@ parameters:
     scope: project
     default: null
     source_ids: [S_ROSREESTR_P0412, S_NSPD, S_PROJECT_DOCS]
-    basis: "Коды ВРИ по классификатору (Приказ Росреестра от 10.11.2020 № П/0412) из ЕГРН/ГПЗУ. Код 4.7 «Гостиничное обслуживание» — условие для продукта «апартаменты» (F.CHECK.ALL → APART_ALLOWED)"
+    basis: "Коды ВРИ по классификатору (Приказ Росреестра от 10.11.2020 № П/0412) из ЕГРН/ГПЗУ. Справочная информация и подсказка: код 4.7 «Гостиничное обслуживание» обычно означает, что ГПЗУ допускает апартаменты. Решающее условие для апартаментов — GPZU.APART_ALLOWED по ГПЗУ проекта"
     how_to_fill: "Выписка ЕГРН / НСПД / ГПЗУ по кадастровому номеру; приложить документ"
     status: project_input
     legacy: [{cell: null, verdict: new}]
@@ -398,6 +398,18 @@ parameters:
     status: project_input
     legacy: [{cell: null, verdict: new}]
 
+  - id: GPZU.APART_ALLOWED
+    name: "ГПЗУ допускает объекты гостиничного назначения / апартаменты"
+    unit: bool
+    kind: bool
+    scope: project
+    default: false
+    source_ids: [S_PROJECT_DOCS, S_ROSREESTR_P0412]
+    basis: "Апартаменты доступны, только если ГПЗУ проекта (вложение, уровень 4) допускает размещение объектов гостиничного назначения / апартаментов. Подсказка в интерфейсе: обычно это ВРИ 4.7 «Гостиничное обслуживание» (П/0412). Слово «апартаменты» в классификаторе ВРИ не используется; связь апартаментов с кодом 4.7 — практика, решающий документ — ГПЗУ"
+    how_to_fill: "Отметить по ГПЗУ участка (виды разрешённого использования); приложить ГПЗУ (обязательно)"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
   - id: GPZU.DEVIATION_PERMIT
     name: "Разрешение на отклонение от предельных параметров"
     unit: table
@@ -475,6 +487,31 @@ parameters:
     status: project_input
     legacy: [{cell: "ТЭПы!C34", value: "=E49 (= 40,945 × 862)", verdict: fix, note: "подземная площадь выводилась из числа машино-мест; СМР подземной части имеет объём 0 (Бюджет!E33)"}]
 
+  - id: TEP.PARKING_AREA_TEP
+    name: "Площадь паркинга по ТЭП архитектора (если указана отдельно)"
+    unit: м2
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Стадия «Концепция», необязательный. Если указан — площадь на одно машино-место (TEP.PARKING_AREA_TEP / число мест) сравнивается с диапазоном бенчмарка Q1–Q3 (F.CHECK.UNDERGROUND_CAPACITY)"
+    how_to_fill: "ТЭП концепции, раздел подземной части; приложить документ"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: TEP.TECH_ROOMS_SHARE_BELOW
+    name: "Доля техпомещений в подземной части"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    range: [0, 1]
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "Для предупреждения о вместимости подземной части (F.CHECK.UNDERGROUND_CAPACITY): часть подземной площади занята техпомещениями (ИТП, насосные, венткамеры, электрощитовые). Уровень 4 — концепции и факт компании; диапазон min–max обязателен"
+    how_to_fill: "Концепции компании по сопоставимым проектам (ссылка на проект), с диапазоном min–max"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
   - id: TEP.RES_GFA
     name: "ГНС жилой части по ТЭП архитектора / ГПЗУ / ППТ"
     unit: м2
@@ -519,7 +556,7 @@ parameters:
     scope: project
     default: 0
     source_ids: [S_PROJECT_DOCS, S_ROSREESTR_P0412]
-    basis: "Апартаменты разрешены, только если ВРИ участка включает код 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412; LAND.VRI_CODES), иначе продукт недоступен (F.CHECK.ALL → APART_ALLOWED). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — из ГПЗУ/ППТ, а если там не задано — долей TEP.APART_GFA_SHARE (F.TEP.GFA_SPLIT). 0 — апартаментов нет"
+    basis: "Апартаменты доступны, только если ГПЗУ проекта допускает размещение объектов гостиничного назначения / апартаментов (GPZU.APART_ALLOWED, вложение ГПЗУ), иначе продукт недоступен (F.CHECK.ALL → APART_ALLOWED). Подсказка: обычно это ВРИ 4.7 «Гостиничное обслуживание» (П/0412). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — из ГПЗУ/ППТ, а если там не задано — долей TEP.APART_GFA_SHARE (F.TEP.GFA_SPLIT). 0 — апартаментов нет"
     how_to_fill: "ТЭП концепции / ГПЗУ / ППТ; приложить документ"
     status: project_input
     legacy: [{cell: null, verdict: new}]
@@ -532,7 +569,7 @@ parameters:
     default: 0
     range: [0, 1]
     source_ids: [S_COMPANY_ACTUALS, S_EXPERT]
-    basis: "Только стадия «Оценка участка», если ГПЗУ/ППТ не выделяют апартаментную часть и ВРИ включает код 4.7. TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE ≤ 1, остаток — нежилая (коммерческая) часть"
+    basis: "Только стадия «Оценка участка», если ГПЗУ/ППТ не выделяют апартаментную часть и ГПЗУ допускает апартаменты (GPZU.APART_ALLOWED). TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE ≤ 1, остаток — нежилая (коммерческая) часть"
     how_to_fill: "Уровень 4 — концепции и факт компании (ссылка на проект); уровень 5 — эксперт (автор, обоснование, диапазон min–max)"
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
@@ -1356,6 +1393,28 @@ parameters:
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
+  - id: BENCH.MIN_PAIRS
+    name: "Минимум пар «квартиры / апартаменты» для скидки апартаментов"
+    unit: шт
+    kind: scalar
+    scope: template
+    default: 3
+    source_ids: [S_EXPERT]
+    basis: "Методологическое значение (автор — методолог компании). При трёх и более парах скидка апартаментов — медиана по парам (F.BENCH.APART_DISCOUNT); при меньшем числе — экспертная оценка (уровень 5: автор, обоснование, диапазон), расчёт не блокируется"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.PAIR_RADIUS_KM
+    name: "Радиус поиска пары «квартиры / апартаменты», км"
+    unit: км
+    kind: scalar
+    scope: template
+    default: 2
+    source_ids: [S_EXPERT]
+    basis: "Методологическое значение (автор — методолог компании). Пара — квартиры и апартаменты в одном ЖК, а если в одном ЖК нет — на расстоянии не более 2 км: так локация почти одинакова и разница цены отражает продукт, а не место"
+    status: expert_allowed
+    legacy: [{cell: null, verdict: new}]
+
   - id: BENCH.PRICE_WINDOW_M
     name: "Окно цен аналогов, месяцев"
     unit: мес
@@ -1479,17 +1538,6 @@ parameters:
     default: 5
     source_ids: [S_EXPERT]
     basis: "Методологическое значение (автор — методолог компании). Договоры старше 5 лет не используются: технологии, нормы и структура затрат меняются сильнее, чем компенсирует индекс"
-    status: expert_allowed
-    legacy: [{cell: null, verdict: new}]
-
-  - id: BENCH.COST_FLOORS_TOLERANCE
-    name: "Допустимое отличие этажности проекта-аналога"
-    unit: доля
-    kind: scalar
-    scope: template
-    default: 0.3
-    source_ids: [S_EXPERT]
-    basis: "Методологическое значение (автор — методолог компании). Проект сопоставим по затратам, если его этажность отличается от этажности оцениваемого проекта не более чем на ±30%"
     status: expert_allowed
     legacy: [{cell: null, verdict: new}]
 
@@ -1665,7 +1713,7 @@ parameters:
       - {key: contract_date, unit: дата}
       - {key: region_code, unit: текст}
       - {key: housing_class, unit: текст}
-      - {key: floors, unit: шт, note: "максимальная этажность"}
+      - {key: floors, unit: шт, note: "максимальная этажность — показывается в выборке по каждому аналогу; фильтр — только группа высотности"}
       - {key: height_m, unit: м}
       - {key: structural_system, unit: enum, note: "BENCH.STRUCT_SYSTEM — жёсткий фильтр"}
       - {key: facade_type, unit: enum, note: "BENCH.FACADE_TYPE"}
@@ -1683,23 +1731,48 @@ parameters:
     status: project_input
     legacy: [{cell: null, verdict: new}]
 
-  - id: BENCH.APART_PAIRS_SAMPLE
-    name: "Пары «квартиры / апартаменты» в одной локации"
+  - id: BENCH.PARKING_AREA_SAMPLE
+    name: "Выборка площади паркинга на одно машино-место (с проездами) по проектам компании"
     unit: table
     kind: table
     columns:
-      - {key: location, unit: текст}
+      - {key: project_name, unit: текст}
+      - {key: parking_area_m2, unit: м2, note: "площадь паркинга без техпомещений и кладовых"}
+      - {key: parking_spaces, unit: шт}
+      - {key: area_per_space_m2, unit: м2, note: "= parking_area_m2 / parking_spaces"}
+      - {key: height_band, unit: enum, note: "BENCH.HEIGHT_BAND"}
+      - {key: attachment_id, unit: текст, note: "ТЭП или рабочая документация проекта"}
+    scope: project
+    default: null
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "Бенчмарк площади на одно машино-место с проездами и пандусами по реализованным проектам и концепциям компании (уровень 4). Статистика — F.BENCH.STATS; нижний квартиль и диапазон Q1–Q3 используются в F.CHECK.UNDERGROUND_CAPACITY"
+    how_to_fill: "Справочник → Бенчмарки → Расценки компании (площади паркингов) — сервис предложит проекты; при необходимости исключить с причиной"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: BENCH.APART_PAIRS_SAMPLE
+    name: "Пары «квартиры / апартаменты» для скидки апартаментов"
+    unit: table
+    kind: table
+    columns:
       - {key: flat_comp_id, unit: текст}
       - {key: apart_comp_id, unit: текст}
-      - {key: flat_price_m2, unit: руб/м2, note: "по F.BENCH.COMP_PRICE → PRICE_INDEXED"}
-      - {key: apart_price_m2, unit: руб/м2}
+      - {key: housing_class, unit: текст, note: "один класс у квартир и апартаментов пары"}
+      - {key: same_complex, unit: bool, note: "один ЖК"}
+      - {key: distance_km, unit: км, note: "если не один ЖК — не более BENCH.PAIR_RADIUS_KM"}
+      - {key: readiness_flat, unit: текст, note: "стадия готовности"}
+      - {key: readiness_apart, unit: текст, note: "стадия готовности; близость стадий обосновывает аналитик"}
+      - {key: flat_price_m2, unit: руб/м2, note: "цена для покупателя (как в договоре), средневзвешенная по проданной площади за окно"}
+      - {key: apart_price_m2, unit: руб/м2, note: "цена для покупателя с НДС (как в договоре), средневзвешенная по проданной площади за окно"}
+      - {key: excluded, unit: bool}
+      - {key: exclusion_reason, unit: текст}
       - {key: source_id, unit: текст}
       - {key: url, unit: текст}
     scope: project
     default: null
     source_ids: [S_EISZHS_SALES]
-    basis: "Используется, только если аналогов-апартаментов меньше BENCH.MARKET_MIN_COMPS: дисконт апартаментов к квартирам считается по парам в одной локации (уровень 3, F.BENCH.APART_PRICE), значение помечается. Фиксированный процент дисконта без выборки запрещён"
-    how_to_fill: "Подобрать ЖК с квартирами и апартаменты в той же локации; сервис подтянет цены"
+    basis: "Используется, если аналогов-апартаментов меньше BENCH.MARKET_MIN_COMPS: скидка апартаментов к квартирам — по парам F.BENCH.APART_DISCOUNT (уровень 3). Фиксированный процент скидки без выборки запрещён; при парах меньше BENCH.MIN_PAIRS — экспертная оценка (уровень 5)"
+    how_to_fill: "Подобрать ЖК с квартирами и апартаментами одного класса в одном ЖК или в радиусе BENCH.PAIR_RADIUS_KM; сервис подтянет цены за окно"
     status: project_input
     legacy: [{cell: null, verdict: new}]
 

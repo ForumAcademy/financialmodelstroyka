@@ -1,7 +1,7 @@
 // Файл сгенерирован packages/spec/scripts/build-spec.ts из data/*.yaml. Не редактировать вручную.
 
 /** Версия справочника: хеш содержимого data/*.yaml. Сохраняется в каждой версии расчёта. */
-export const SPEC_VERSION = "95bd6768c94d";
+export const SPEC_VERSION = "b3d91bd56e4f";
 /** Дата актуализации справочника: самая поздняя дата проверки источника. */
 export const SPEC_ACTUALIZED_AT = "2026-09-25";
 
@@ -110,12 +110,15 @@ export const PARAMETER_IDS = [
   "GPZU.MAX_BUILT_SHARE",
   "GPZU.MAX_FLOORS",
   "GPZU.MAX_HEIGHT_M",
+  "GPZU.APART_ALLOWED",
   "GPZU.DEVIATION_PERMIT",
   "TEP.FOOTPRINT_AREA",
   "TEP.AVG_FLOORS",
   "TEP.MAX_FLOORS",
   "TEP.BUILDING_HEIGHT_M",
   "TEP.GFA_BELOW",
+  "TEP.PARKING_AREA_TEP",
+  "TEP.TECH_ROOMS_SHARE_BELOW",
   "TEP.RES_GFA",
   "TEP.NONRES_GFA",
   "TEP.RES_GFA_SHARE",
@@ -180,6 +183,8 @@ export const PARAMETER_IDS = [
   "VAL.HURDLE_IRR",
   "BENCH.MARKET_MIN_COMPS",
   "BENCH.MARKET_MEDIAN_MIN_COMPS",
+  "BENCH.MIN_PAIRS",
+  "BENCH.PAIR_RADIUS_KM",
   "BENCH.PRICE_WINDOW_M",
   "BENCH.PRICE_WINDOW_EXT_M",
   "BENCH.PRICE_MAX_AGE_M",
@@ -191,7 +196,6 @@ export const PARAMETER_IDS = [
   "BENCH.STRUCTURAL_BREAK_DATES",
   "BENCH.COST_MIN_PROJECTS",
   "BENCH.COST_MAX_AGE_Y",
-  "BENCH.COST_FLOORS_TOLERANCE",
   "BENCH.WARN_MEAN_MEDIAN_GAP",
   "BENCH.WARN_CV",
   "BENCH.OUTLIER_IQR_K",
@@ -204,6 +208,7 @@ export const PARAMETER_IDS = [
   "BENCH.MARKET_SAMPLE",
   "BENCH.PRICE_ADJUSTMENTS",
   "BENCH.COST_SAMPLE",
+  "BENCH.PARKING_AREA_SAMPLE",
   "BENCH.APART_PAIRS_SAMPLE",
   "TEP.STRUCTURAL_SYSTEM",
   "TEP.FACADE_TYPE",
@@ -287,6 +292,7 @@ export const FORMULA_IDS = [
   "F.KPI.UNFORECASTED_REVENUE",
   "F.CHECK.ALL",
   "F.CHECK.GPZU_LIMITS",
+  "F.CHECK.UNDERGROUND_CAPACITY",
   "F.BENCH.WINDOW_FILTER",
   "F.BENCH.COMP_PRICE",
   "F.BENCH.PRICE_INDEXED",
@@ -299,6 +305,7 @@ export const FORMULA_IDS = [
   "F.BENCH.COST_BENCH",
   "F.BENCH.STATS",
   "F.BENCH.HEIGHT_BAND",
+  "F.BENCH.APART_DISCOUNT",
   "F.BENCH.APART_PRICE",
 ] as const;
 export type FormulaId = (typeof FORMULA_IDS)[number];

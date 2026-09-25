@@ -1,5 +1,5 @@
 {
-  "specVersion": "95bd6768c94d",
+  "specVersion": "b3d91bd56e4f",
   "actualizedAt": "2026-09-25",
   "sources": [
     {
@@ -221,10 +221,9 @@
       "title": "ГрК РФ ст.40 «Отклонение от предельных параметров разрешенного строительства, реконструкции объектов капитального строительства»",
       "issuer": "Федеральный закон от 29.12.2004 № 190-ФЗ",
       "url": "https://www.consultant.ru/document/cons_doc_LAW_51040/91122874bbcf628c0e5c6bceb7fe613ee682fc73/",
-      "used_for": "снятие блокирующей ошибки F.CHECK.GPZU_LIMITS решением о разрешении на отклонение (GPZU.DEVIATION_PERMIT); ч.1.1 — однократное отклонение до 10% без публичных слушаний; ч.2 — в исторических поселениях отклонение по этажности и высоте не допускается",
+      "used_for": "снятие блокирующей ошибки F.CHECK.GPZU_LIMITS решением о разрешении на отклонение (GPZU.DEVIATION_PERMIT); ч.1.1 — однократное изменение одного или нескольких предельных параметров не более чем на 10% без публичных слушаний; ч.2 — отклонение по предельной этажности / высоте в границах исторических поселений федерального и регионального значения не допускается",
       "accessed": "2026-09-25",
-      "verified": false,
-      "note": "Содержание ч.1.1 и ч.2 указано владельцем продукта 25.09.2026; сверить формулировки с текстом статьи и отметить verified"
+      "verified": true
     },
     {
       "id": "S_GRK_48_1",
@@ -288,10 +287,10 @@
       "title": "Приказ Росреестра от 10.11.2020 № П/0412 «Об утверждении классификатора видов разрешенного использования земельных участков»",
       "issuer": "Росреестр",
       "url": "https://www.consultant.ru/document/cons_doc_LAW_371246/",
-      "used_for": "код ВРИ 4.7 «Гостиничное обслуживание» — условие для продукта «апартаменты» (LAND.VRI_CODES, F.TEP.APART_AREA)",
+      "used_for": "подсказка для продукта «апартаменты»: обычно это ВРИ 4.7 «Гостиничное обслуживание» (LAND.VRI_CODES). Решающий документ — ГПЗУ проекта (GPZU.APART_ALLOWED)",
       "accessed": "2026-09-25",
       "verified": false,
-      "note": "URL и код 4.7 указаны владельцем продукта 25.09.2026; сверить с актуальной редакцией классификатора и отметить verified"
+      "note": "Сверены реквизиты: Минюст 15.12.2020 № 61482, ред. от 02.06.2026. Текст кода 4.7 на официальных ресурсах не открылся; по вторичному источнику: 4.7 «Гостиничное обслуживание — размещение гостиниц». Сверить текст при релизе"
     },
     {
       "id": "S_NCS_2026_01",
@@ -1031,7 +1030,7 @@
         "S_NSPD",
         "S_PROJECT_DOCS"
       ],
-      "basis": "Коды ВРИ по классификатору (Приказ Росреестра от 10.11.2020 № П/0412) из ЕГРН/ГПЗУ. Код 4.7 «Гостиничное обслуживание» — условие для продукта «апартаменты» (F.CHECK.ALL → APART_ALLOWED)",
+      "basis": "Коды ВРИ по классификатору (Приказ Росреестра от 10.11.2020 № П/0412) из ЕГРН/ГПЗУ. Справочная информация и подсказка: код 4.7 «Гостиничное обслуживание» обычно означает, что ГПЗУ допускает апартаменты. Решающее условие для апартаментов — GPZU.APART_ALLOWED по ГПЗУ проекта",
       "how_to_fill": "Выписка ЕГРН / НСПД / ГПЗУ по кадастровому номеру; приложить документ",
       "status": "project_input",
       "legacy": [
@@ -1448,6 +1447,27 @@
       ]
     },
     {
+      "id": "GPZU.APART_ALLOWED",
+      "name": "ГПЗУ допускает объекты гостиничного назначения / апартаменты",
+      "unit": "bool",
+      "kind": "bool",
+      "scope": "project",
+      "default": false,
+      "source_ids": [
+        "S_PROJECT_DOCS",
+        "S_ROSREESTR_P0412"
+      ],
+      "basis": "Апартаменты доступны, только если ГПЗУ проекта (вложение, уровень 4) допускает размещение объектов гостиничного назначения / апартаментов. Подсказка в интерфейсе: обычно это ВРИ 4.7 «Гостиничное обслуживание» (П/0412). Слово «апартаменты» в классификаторе ВРИ не используется; связь апартаментов с кодом 4.7 — практика, решающий документ — ГПЗУ",
+      "how_to_fill": "Отметить по ГПЗУ участка (виды разрешённого использования); приложить ГПЗУ (обязательно)",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "GPZU.DEVIATION_PERMIT",
       "name": "Разрешение на отклонение от предельных параметров",
       "unit": "table",
@@ -1602,6 +1622,50 @@
       ]
     },
     {
+      "id": "TEP.PARKING_AREA_TEP",
+      "name": "Площадь паркинга по ТЭП архитектора (если указана отдельно)",
+      "unit": "м2",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_PROJECT_DOCS"
+      ],
+      "basis": "Стадия «Концепция», необязательный. Если указан — площадь на одно машино-место (TEP.PARKING_AREA_TEP / число мест) сравнивается с диапазоном бенчмарка Q1–Q3 (F.CHECK.UNDERGROUND_CAPACITY)",
+      "how_to_fill": "ТЭП концепции, раздел подземной части; приложить документ",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "TEP.TECH_ROOMS_SHARE_BELOW",
+      "name": "Доля техпомещений в подземной части",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "range": [
+        0,
+        1
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS"
+      ],
+      "basis": "Для предупреждения о вместимости подземной части (F.CHECK.UNDERGROUND_CAPACITY): часть подземной площади занята техпомещениями (ИТП, насосные, венткамеры, электрощитовые). Уровень 4 — концепции и факт компании; диапазон min–max обязателен",
+      "how_to_fill": "Концепции компании по сопоставимым проектам (ссылка на проект), с диапазоном min–max",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "TEP.RES_GFA",
       "name": "ГНС жилой части по ТЭП архитектора / ГПЗУ / ППТ",
       "unit": "м2",
@@ -1679,7 +1743,7 @@
         "S_PROJECT_DOCS",
         "S_ROSREESTR_P0412"
       ],
-      "basis": "Апартаменты разрешены, только если ВРИ участка включает код 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412; LAND.VRI_CODES), иначе продукт недоступен (F.CHECK.ALL → APART_ALLOWED). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — из ГПЗУ/ППТ, а если там не задано — долей TEP.APART_GFA_SHARE (F.TEP.GFA_SPLIT). 0 — апартаментов нет",
+      "basis": "Апартаменты доступны, только если ГПЗУ проекта допускает размещение объектов гостиничного назначения / апартаментов (GPZU.APART_ALLOWED, вложение ГПЗУ), иначе продукт недоступен (F.CHECK.ALL → APART_ALLOWED). Подсказка: обычно это ВРИ 4.7 «Гостиничное обслуживание» (П/0412). Стадия «Концепция» — из ТЭП архитектора; стадия «Оценка участка» — из ГПЗУ/ППТ, а если там не задано — долей TEP.APART_GFA_SHARE (F.TEP.GFA_SPLIT). 0 — апартаментов нет",
       "how_to_fill": "ТЭП концепции / ГПЗУ / ППТ; приложить документ",
       "status": "project_input",
       "legacy": [
@@ -1704,7 +1768,7 @@
         "S_COMPANY_ACTUALS",
         "S_EXPERT"
       ],
-      "basis": "Только стадия «Оценка участка», если ГПЗУ/ППТ не выделяют апартаментную часть и ВРИ включает код 4.7. TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE ≤ 1, остаток — нежилая (коммерческая) часть",
+      "basis": "Только стадия «Оценка участка», если ГПЗУ/ППТ не выделяют апартаментную часть и ГПЗУ допускает апартаменты (GPZU.APART_ALLOWED). TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE ≤ 1, остаток — нежилая (коммерческая) часть",
       "how_to_fill": "Уровень 4 — концепции и факт компании (ссылка на проект); уровень 5 — эксперт (автор, обоснование, диапазон min–max)",
       "status": "expert_allowed",
       "legacy": [
@@ -3566,6 +3630,44 @@
       ]
     },
     {
+      "id": "BENCH.MIN_PAIRS",
+      "name": "Минимум пар «квартиры / апартаменты» для скидки апартаментов",
+      "unit": "шт",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 3,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). При трёх и более парах скидка апартаментов — медиана по парам (F.BENCH.APART_DISCOUNT); при меньшем числе — экспертная оценка (уровень 5: автор, обоснование, диапазон), расчёт не блокируется",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.PAIR_RADIUS_KM",
+      "name": "Радиус поиска пары «квартиры / апартаменты», км",
+      "unit": "км",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 2,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Методологическое значение (автор — методолог компании). Пара — квартиры и апартаменты в одном ЖК, а если в одном ЖК нет — на расстоянии не более 2 км: так локация почти одинакова и разница цены отражает продукт, а не место",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
       "id": "BENCH.PRICE_WINDOW_M",
       "name": "Окно цен аналогов, месяцев",
       "unit": "мес",
@@ -3786,25 +3888,6 @@
         "S_EXPERT"
       ],
       "basis": "Методологическое значение (автор — методолог компании). Договоры старше 5 лет не используются: технологии, нормы и структура затрат меняются сильнее, чем компенсирует индекс",
-      "status": "expert_allowed",
-      "legacy": [
-        {
-          "cell": null,
-          "verdict": "new"
-        }
-      ]
-    },
-    {
-      "id": "BENCH.COST_FLOORS_TOLERANCE",
-      "name": "Допустимое отличие этажности проекта-аналога",
-      "unit": "доля",
-      "kind": "scalar",
-      "scope": "template",
-      "default": 0.3,
-      "source_ids": [
-        "S_EXPERT"
-      ],
-      "basis": "Методологическое значение (автор — методолог компании). Проект сопоставим по затратам, если его этажность отличается от этажности оцениваемого проекта не более чем на ±30%",
       "status": "expert_allowed",
       "legacy": [
         {
@@ -4261,7 +4344,7 @@
         {
           "key": "floors",
           "unit": "шт",
-          "note": "максимальная этажность"
+          "note": "максимальная этажность — показывается в выборке по каждому аналогу; фильтр — только группа высотности"
         },
         {
           "key": "height_m",
@@ -4320,17 +4403,63 @@
       ]
     },
     {
-      "id": "BENCH.APART_PAIRS_SAMPLE",
-      "name": "Пары «квартиры / апартаменты» в одной локации",
+      "id": "BENCH.PARKING_AREA_SAMPLE",
+      "name": "Выборка площади паркинга на одно машино-место (с проездами) по проектам компании",
       "unit": "table",
       "kind": "table",
       "scope": "project",
       "default": null,
       "columns": [
         {
-          "key": "location",
+          "key": "project_name",
           "unit": "текст"
         },
+        {
+          "key": "parking_area_m2",
+          "unit": "м2",
+          "note": "площадь паркинга без техпомещений и кладовых"
+        },
+        {
+          "key": "parking_spaces",
+          "unit": "шт"
+        },
+        {
+          "key": "area_per_space_m2",
+          "unit": "м2",
+          "note": "= parking_area_m2 / parking_spaces"
+        },
+        {
+          "key": "height_band",
+          "unit": "enum",
+          "note": "BENCH.HEIGHT_BAND"
+        },
+        {
+          "key": "attachment_id",
+          "unit": "текст",
+          "note": "ТЭП или рабочая документация проекта"
+        }
+      ],
+      "source_ids": [
+        "S_COMPANY_ACTUALS"
+      ],
+      "basis": "Бенчмарк площади на одно машино-место с проездами и пандусами по реализованным проектам и концепциям компании (уровень 4). Статистика — F.BENCH.STATS; нижний квартиль и диапазон Q1–Q3 используются в F.CHECK.UNDERGROUND_CAPACITY",
+      "how_to_fill": "Справочник → Бенчмарки → Расценки компании (площади паркингов) — сервис предложит проекты; при необходимости исключить с причиной",
+      "status": "project_input",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new"
+        }
+      ]
+    },
+    {
+      "id": "BENCH.APART_PAIRS_SAMPLE",
+      "name": "Пары «квартиры / апартаменты» для скидки апартаментов",
+      "unit": "table",
+      "kind": "table",
+      "scope": "project",
+      "default": null,
+      "columns": [
         {
           "key": "flat_comp_id",
           "unit": "текст"
@@ -4340,13 +4469,47 @@
           "unit": "текст"
         },
         {
+          "key": "housing_class",
+          "unit": "текст",
+          "note": "один класс у квартир и апартаментов пары"
+        },
+        {
+          "key": "same_complex",
+          "unit": "bool",
+          "note": "один ЖК"
+        },
+        {
+          "key": "distance_km",
+          "unit": "км",
+          "note": "если не один ЖК — не более BENCH.PAIR_RADIUS_KM"
+        },
+        {
+          "key": "readiness_flat",
+          "unit": "текст",
+          "note": "стадия готовности"
+        },
+        {
+          "key": "readiness_apart",
+          "unit": "текст",
+          "note": "стадия готовности; близость стадий обосновывает аналитик"
+        },
+        {
           "key": "flat_price_m2",
           "unit": "руб/м2",
-          "note": "по F.BENCH.COMP_PRICE → PRICE_INDEXED"
+          "note": "цена для покупателя (как в договоре), средневзвешенная по проданной площади за окно"
         },
         {
           "key": "apart_price_m2",
-          "unit": "руб/м2"
+          "unit": "руб/м2",
+          "note": "цена для покупателя с НДС (как в договоре), средневзвешенная по проданной площади за окно"
+        },
+        {
+          "key": "excluded",
+          "unit": "bool"
+        },
+        {
+          "key": "exclusion_reason",
+          "unit": "текст"
         },
         {
           "key": "source_id",
@@ -4360,8 +4523,8 @@
       "source_ids": [
         "S_EISZHS_SALES"
       ],
-      "basis": "Используется, только если аналогов-апартаментов меньше BENCH.MARKET_MIN_COMPS: дисконт апартаментов к квартирам считается по парам в одной локации (уровень 3, F.BENCH.APART_PRICE), значение помечается. Фиксированный процент дисконта без выборки запрещён",
-      "how_to_fill": "Подобрать ЖК с квартирами и апартаменты в той же локации; сервис подтянет цены",
+      "basis": "Используется, если аналогов-апартаментов меньше BENCH.MARKET_MIN_COMPS: скидка апартаментов к квартирам — по парам F.BENCH.APART_DISCOUNT (уровень 3). Фиксированный процент скидки без выборки запрещён; при парах меньше BENCH.MIN_PAIRS — экспертная оценка (уровень 5)",
+      "how_to_fill": "Подобрать ЖК с квартирами и апартаментами одного класса в одном ЖК или в радиусе BENCH.PAIR_RADIUS_KM; сервис подтянет цены за окно",
       "status": "project_input",
       "legacy": [
         {
@@ -8460,7 +8623,7 @@
       "name": "ГНС жилой, апартаментной и нежилой части в модели",
       "unit": "м2",
       "dims": [],
-      "expr": "стадия «концепция»: res_gfa = TEP.RES_GFA;  apart_gfa = TEP.APART_GFA;  nonres_gfa = TEP.NONRES_GFA\nстадия «оценка участка»:\n  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA, TEP.NONRES_GFA, при апартаментах — TEP.APART_GFA) — они же;\n  иначе res_gfa    = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE\n        apart_gfa  = F.TEP.GFA_ABOVE × TEP.APART_GFA_SHARE\n        nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE − TEP.APART_GFA_SHARE)\n  ошибка, если TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE > 1\napart_gfa > 0 допускается, только если ВРИ участка включает код 4.7 (F.CHECK.ALL → APART_ALLOWED)\n",
+      "expr": "стадия «концепция»: res_gfa = TEP.RES_GFA;  apart_gfa = TEP.APART_GFA;  nonres_gfa = TEP.NONRES_GFA\nстадия «оценка участка»:\n  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA, TEP.NONRES_GFA, при апартаментах — TEP.APART_GFA) — они же;\n  иначе res_gfa    = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE\n        apart_gfa  = F.TEP.GFA_ABOVE × TEP.APART_GFA_SHARE\n        nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE − TEP.APART_GFA_SHARE)\n  ошибка, если TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE > 1\napart_gfa > 0 допускается, только если ГПЗУ допускает апартаменты — GPZU.APART_ALLOWED (F.CHECK.ALL → APART_ALLOWED)\n",
       "depends_on": [
         "GEN.PROJECT_STAGE",
         "TEP.RES_GFA",
@@ -8555,30 +8718,32 @@
       "name": "Площадь апартаментов в модели",
       "unit": "м2",
       "dims": [],
-      "expr": "стадия «концепция»:      apart_area = TEP.APART_AREA\nстадия «оценка участка»: apart_area = apart_gfa × TEP.APART_EFFICIENCY   (apart_gfa — из F.TEP.GFA_SPLIT)\napart_area = 0, если «4.7» ∉ LAND.VRI_CODES\n",
+      "expr": "стадия «концепция»:      apart_area = TEP.APART_AREA\nстадия «оценка участка»: apart_area = apart_gfa × TEP.APART_EFFICIENCY   (apart_gfa — из F.TEP.GFA_SPLIT)\napart_area = 0, если GPZU.APART_ALLOWED = false (ГПЗУ не допускает объекты гостиничного назначения / апартаменты)\nподсказка в интерфейсе: обычно это ВРИ 4.7 «Гостиничное обслуживание» (LAND.VRI_CODES, П/0412)\n",
       "depends_on": [
         "GEN.PROJECT_STAGE",
         "TEP.APART_AREA",
         "F.TEP.GFA_SPLIT",
         "TEP.APART_EFFICIENCY",
+        "GPZU.APART_ALLOWED",
         "LAND.VRI_CODES"
       ],
-      "rationale": "Апартаменты — нежилые помещения гостиничного назначения: допустимы только при ВРИ 4.7 «Гостиничное обслуживание» (классификатор ВРИ, Приказ Росреестра № П/0412). Площадь — по той же логике, что квартиры, со своим коэффициентом; обмер — П/0393",
+      "rationale": "Апартаменты — нежилые помещения гостиничного назначения. Разрешение подтверждается ГПЗУ проекта (уровень 4, вложение): слово «апартаменты» в классификаторе ВРИ (П/0412) не используется, связь апартаментов с кодом 4.7 «Гостиничное обслуживание» — практика, поэтому код 4.7 — только подсказка, а решающий документ — ГПЗУ. Площадь — по той же логике, что квартиры, со своим коэффициентом; обмер — П/0393",
       "rejected": [
-        "Разрешать апартаменты без проверки ВРИ — продукт может оказаться недопустимым на участке",
+        "Разрешать апартаменты без проверки ГПЗУ — продукт может оказаться недопустимым на участке",
+        "Решать по наличию кода 4.7 в ВРИ — классификатор не упоминает апартаменты, решающий документ — ГПЗУ",
         "Применять к апартаментам коэффициент квартир — другая планировочная эффективность"
       ],
       "source_ids": [
+        "S_PROJECT_DOCS",
         "S_ROSREESTR_P0412",
         "S_ROSREESTR_P0393",
-        "S_PROJECT_DOCS",
         "S_COMPANY_ACTUALS"
       ],
       "legacy": {
         "cells": null,
         "verdict": "new"
       },
-      "status": "needs_verification"
+      "status": "verified"
     },
     {
       "id": "F.TEP.STORAGE",
@@ -10339,9 +10504,10 @@
       "name": "Свод проверок",
       "unit": "bool",
       "dims": [],
-      "expr": "PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9\nSCHEDULE_SUM      : для каждой статьи |Σ_t w − 1| < 1e-9\nSOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]\nUNSOLD_AT_END     : остаток > 0 в последнем месяце → предупреждение\nREVENUE_EQ_CF     : Σ план продаж = Σ поступления (эскроу + ДКП) + дебиторка на конец\nBUDGET_EQ_CF      : Σ бюджет по статьям = Σ затрат в CF\nESCROW_NONNEG     : esc_bal >= 0\nDEBT_LE_LIMIT     : Σ draw <= limit\nDEBT_REPAID       : debt[T] + accrued[T] = 0\nCASH_NONNEG       : cash[t] >= 0 (иначе cash gap)\nSOURCES_PRESENT   : у каждого параметра и формулы есть source_ids, у level 5 — автор и диапазон\nPARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) или override с вложенным документом\nNCS_DEVIATION     : |deviation| <= tolerance или есть обоснование\nAPT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE (иначе предупреждение с разницей в м² и %)\nSTAGE_INPUTS      : для стадии GEN.PROJECT_STAGE заполнены обязательные входы раздела TEP с документом\nGPZU_LIMITS       : F.CHECK.GPZU_LIMITS — превышение пределов ГПЗУ без решения об отклонении блокирует отчёт\nAPART_ALLOWED     : F.TEP.APART_AREA > 0 → «4.7» ∈ LAND.VRI_CODES (иначе продукт «апартаменты» недоступен)\nGFA_SHARES_SUM    : стадия «оценка участка»: TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1\nSTORAGE_FIT       : storage_area + F.TEP.PARKING_COUNT × F.TEP.PARKING_SPACE_MIN_AREA <= F.TEP.GFA_BELOW\nBENCH_MIN_COMPS   : выборки аналогов и пар — не меньше BENCH.MARKET_MIN_COMPS или есть экспертное обоснование\nAPT_MIX_SHARE_SUM : стадия «оценка участка»: |Σ_k area_share[k] − 1| < 1e-9\nPARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA\n",
+      "expr": "PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9\nSCHEDULE_SUM      : для каждой статьи |Σ_t w − 1| < 1e-9\nSOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]\nUNSOLD_AT_END     : остаток > 0 в последнем месяце → предупреждение\nREVENUE_EQ_CF     : Σ план продаж = Σ поступления (эскроу + ДКП) + дебиторка на конец\nBUDGET_EQ_CF      : Σ бюджет по статьям = Σ затрат в CF\nESCROW_NONNEG     : esc_bal >= 0\nDEBT_LE_LIMIT     : Σ draw <= limit\nDEBT_REPAID       : debt[T] + accrued[T] = 0\nCASH_NONNEG       : cash[t] >= 0 (иначе cash gap)\nSOURCES_PRESENT   : у каждого параметра и формулы есть source_ids, у level 5 — автор и диапазон\nPARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) или override с вложенным документом\nNCS_DEVIATION     : |deviation| <= tolerance или есть обоснование\nAPT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE (иначе предупреждение с разницей в м² и %)\nSTAGE_INPUTS      : для стадии GEN.PROJECT_STAGE заполнены обязательные входы раздела TEP с документом\nGPZU_LIMITS       : F.CHECK.GPZU_LIMITS — превышение пределов ГПЗУ без решения об отклонении блокирует отчёт\nAPART_ALLOWED     : F.TEP.APART_AREA > 0 → GPZU.APART_ALLOWED = true по вложенному ГПЗУ (иначе продукт «апартаменты» недоступен)\nGFA_SHARES_SUM    : стадия «оценка участка»: TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1\nUNDERGROUND_CAP   : F.CHECK.UNDERGROUND_CAPACITY — стадия «концепция»: ошибка / предупреждение по вместимости подземной части\nBENCH_MIN_COMPS   : выборка аналогов — не меньше BENCH.MARKET_MIN_COMPS или есть экспертное обоснование; пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS → скидка экспертная (уровень 5), без блокировки\nAPT_MIX_SHARE_SUM : стадия «оценка участка»: |Σ_k area_share[k] − 1| < 1e-9\nPARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA\n",
       "depends_on": [
-        "F.CHECK.GPZU_LIMITS"
+        "F.CHECK.GPZU_LIMITS",
+        "F.CHECK.UNDERGROUND_CAPACITY"
       ],
       "rationale": "Ни одна из этих ошибок исходника не должна повториться незаметно",
       "rejected": [],
@@ -10384,6 +10550,41 @@
       "source_ids": [
         "S_GRK_38",
         "S_GRK_40",
+        "S_PROJECT_DOCS"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.CHECK.UNDERGROUND_CAPACITY",
+      "module": "CHECK",
+      "name": "Вместимость подземной части (стадия «Концепция»)",
+      "unit": "bool",
+      "dims": [],
+      "expr": "parking = F.TEP.PARKING_COUNT;  storage_area — из F.TEP.STORAGE (storage_count × TEP.STORAGE_AVG_AREA, на концепции — по ТЭП)\nОШИБКА:         parking × F.TEP.PARKING_SPACE_MIN_AREA + storage_area > TEP.GFA_BELOW\nПРЕДУПРЕЖДЕНИЕ: parking × Q1(BENCH.PARKING_AREA_SAMPLE.area_per_space_m2) + storage_area + TEP.GFA_BELOW × TEP.TECH_ROOMS_SHARE_BELOW > TEP.GFA_BELOW\nесли задан TEP.PARKING_AREA_TEP: area_per_space = TEP.PARKING_AREA_TEP / parking;\n  вне [Q1; Q3] бенчмарка → ПРЕДУПРЕЖДЕНИЕ «площадь на место вне диапазона компании»\nквартили — по F.BENCH.STATS; если в выборке меньше BENCH.COST_MIN_PROJECTS проектов — проверки по бенчмарку не выполняются (сообщение «нет бенчмарка»)\n",
+      "depends_on": [
+        "GEN.PROJECT_STAGE",
+        "F.TEP.PARKING_COUNT",
+        "F.TEP.PARKING_SPACE_MIN_AREA",
+        "F.TEP.STORAGE",
+        "TEP.GFA_BELOW",
+        "TEP.TECH_ROOMS_SHARE_BELOW",
+        "TEP.PARKING_AREA_TEP",
+        "BENCH.PARKING_AREA_SAMPLE",
+        "F.BENCH.STATS",
+        "BENCH.COST_MIN_PROJECTS"
+      ],
+      "rationale": "Два уровня: ошибка — если физически не помещаются даже машино-места минимального размера (5,3 × 2,5 м, Приказ Росреестра № П/0316) и кладовые; предупреждение — по реалистичной площади с проездами, пандусами и техпомещениями из бенчмарка компании. Проверка только по 13,25 м² почти никогда не срабатывает, так как не учитывает проезды, пандусы и техпомещения",
+      "rejected": [
+        "Только минимальный размер машино-места 13,25 м² — почти никогда не срабатывает",
+        "Фиксированная площадь на место с проездами одним числом — без связи с фактом компании"
+      ],
+      "source_ids": [
+        "S_ROSREESTR_P0316",
+        "S_COMPANY_ACTUALS",
         "S_PROJECT_DOCS"
       ],
       "legacy": {
@@ -10693,15 +10894,13 @@
       "dims": [
         "item"
       ],
-      "expr": "сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  |floors / TEP.AVG_FLOORS − 1| <= BENCH.COST_FLOORS_TOLERANCE;\n                      structural_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = группа проекта;  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false\nn >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)\nn <  BENCH.COST_MIN_PROJECTS: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)\nнезавершённые проекты (completed = false) — только по сумме договора, с пометкой\n",
+      "expr": "сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  structural_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = группа проекта (единственный фильтр по высотности; этажность каждого аналога показывается в выборке);  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false\nn >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)\nn <  BENCH.COST_MIN_PROJECTS в группе: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)\nнезавершённые проекты (completed = false) — только по сумме договора, с пометкой\n",
       "depends_on": [
         "F.BENCH.COST_INDEXED",
         "BENCH.COST_SAMPLE",
         "GEN.HOUSING_CLASS",
-        "TEP.AVG_FLOORS",
         "TEP.STRUCTURAL_SYSTEM",
         "F.BENCH.HEIGHT_BAND",
-        "BENCH.COST_FLOORS_TOLERANCE",
         "BENCH.COST_MAX_AGE_Y",
         "BENCH.COST_MIN_PROJECTS",
         "GEN.VALUATION_DATE",
@@ -10709,7 +10908,8 @@
       ],
       "rationale": "При оценке нового участка каждый проект компании — одно наблюдение: крупный проект не должен перевешивать. Медиана устойчива к нетипичному проекту",
       "rejected": [
-        "Средневзвешенная по площади — подходит для портфельного отчёта, не для оценки нового проекта"
+        "Средневзвешенная по площади — подходит для портфельного отчёта, не для оценки нового проекта",
+        "Двойной фильтр «группа высотности + этажность ±30%» — противоречит группам: 18 и 25 этажей из одной группы отсекаются, 10 и 13 из разных групп проходят"
       ],
       "source_ids": [
         "S_COMPANY_ACTUALS",
@@ -10779,20 +10979,66 @@
       "status": "needs_verification"
     },
     {
+      "id": "F.BENCH.APART_DISCOUNT",
+      "module": "BENCH",
+      "name": "Скидка апартаментов к квартирам по парам",
+      "unit": "доля",
+      "dims": [],
+      "expr": "пара j входит, если: один класс; один ЖК или distance_km <= BENCH.PAIR_RADIUS_KM; сделки обеих сторон — в одном окне\n  (BENCH.PRICE_WINDOW_M, правило BENCH.STRUCTURAL_BREAK_DATES, как в F.BENCH.WINDOW_FILTER); близкая стадия готовности; excluded = false\ndiscount[j] = 1 − apart_price_m2[j] / flat_price_m2[j]   (обе цены — для покупателя, как в договоре; средневзвешенные по проданной площади)\nпар >= BENCH.MIN_PAIRS: apart_discount = MEDIAN_j(discount[j])  (уровень 3)\nпар <  BENCH.MIN_PAIRS: apart_discount — экспертная оценка (уровень 5: автор, обоснование, диапазон min–max); расчёт не блокируется\n",
+      "depends_on": [
+        "BENCH.APART_PAIRS_SAMPLE",
+        "BENCH.PAIR_RADIUS_KM",
+        "BENCH.PRICE_WINDOW_M",
+        "BENCH.STRUCTURAL_BREAK_DATES",
+        "BENCH.MIN_PAIRS"
+      ],
+      "rationale": "Скидка апартаментов наблюдается напрямую: в одной локации, одном классе и одно время разница цены отражает продукт (без семейной ипотеки, с НДС, нежилой статус), а не место или рынок. Цены берутся такими, как платит покупатель: НДС из выручки апартаментов выделяется отдельно в F.TAX.OUTPUT_VAT и в скидке повторно не учитывается. Медиана по парам устойчива к одной нетипичной паре",
+      "rejected": [
+        "Фиксированный процент скидки без выборки — непроверяемое допущение",
+        "Сравнивать цену апартаментов без НДС с ценой квартир — НДС учитывался бы дважды: в скидке и в F.TAX.OUTPUT_VAT",
+        "Пары из разных локаций, классов или периодов — в скидку попадает разница места, класса или рынка"
+      ],
+      "source_ids": [
+        "S_EISZHS_SALES",
+        "S_EXPERT"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified",
+      "example": {
+        "input": {
+          "apart_prices": [
+            270000,
+            255000,
+            290000
+          ],
+          "flat_prices": [
+            300000,
+            300000,
+            310000
+          ]
+        },
+        "output": 0.1,
+        "note": "скидки пар 0,10 / 0,15 / 0,0645 → медиана 0,10"
+      }
+    },
+    {
       "id": "F.BENCH.APART_PRICE",
       "module": "BENCH",
       "name": "Цена апартаментов",
       "unit": "руб/м2",
       "dims": [],
-      "expr": "аналогов-апартаментов (продукт = апартаменты) >= BENCH.MARKET_MIN_COMPS: apart_price = F.BENCH.MARKET_PRICE по этим аналогам\nиначе: discount = MEDIAN_j( apart_price_m2[j] / flat_price_m2[j] − 1 ) по парам BENCH.APART_PAIRS_SAMPLE в одной локации;\n       apart_price = F.BENCH.MARKET_PRICE (квартиры) × (1 + discount), пометка «дисконт по парам»;\n       ошибка, если пар < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)\n",
+      "expr": "аналогов-апартаментов (продукт = апартаменты) >= BENCH.MARKET_MIN_COMPS: apart_price = F.BENCH.MARKET_PRICE по этим аналогам\nиначе: apart_price = F.BENCH.MARKET_PRICE (квартиры) × (1 − F.BENCH.APART_DISCOUNT), пометка «скидка по парам» (или «экспертная», если пар меньше BENCH.MIN_PAIRS)\nцена — для покупателя (с НДС, как в договоре); НДС выделяется в F.TAX.OUTPUT_VAT\n",
       "depends_on": [
         "F.BENCH.MARKET_PRICE",
-        "BENCH.APART_PAIRS_SAMPLE",
+        "F.BENCH.APART_DISCOUNT",
         "BENCH.MARKET_MIN_COMPS"
       ],
-      "rationale": "Апартаменты — отдельный продукт: без семейной ипотеки, с НДС, с другим спросом. Цена — по прямым аналогам; если их мало — по наблюдаемому соотношению цен квартир и апартаментов в одной локации (уровень 3), а не по допущению",
+      "rationale": "Апартаменты — отдельный продукт: без семейной ипотеки, с НДС, с другим спросом. Цена — по прямым аналогам; если их мало — через наблюдаемую скидку к квартирам в той же локации (уровень 3), а не по допущению",
       "rejected": [
-        "Фиксированный процент дисконта к квартирам без выборки — непроверяемое допущение"
+        "Фиксированный процент скидки к квартирам без выборки — непроверяемое допущение"
       ],
       "source_ids": [
         "S_EISZHS_SALES"

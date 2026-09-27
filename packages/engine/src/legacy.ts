@@ -13,6 +13,8 @@ export interface LegacyCapexItem {
   qty_E?: number | null;
   amount_F?: number | null;
   manual_schedule_quarterly?: { cf_row: number; values_F_to_AS: number[]; sum: number };
+  /** Суммы CF1 по кварталам — для статей со своей формулой без ряда «темп» (аренда/налог ЗУ, CF1!F24:AH24). */
+  cf_amounts_quarterly?: { cf_row: number; values_F_to_AS: number[]; sum: number };
 }
 
 /** Кейс исходного Excel (структура tests/cases/*_legacy.yaml). */
@@ -39,30 +41,33 @@ const RECALCULATED = new Set(["CONTINGENCY"]);
 /**
  * Бюджет исходника → CAPEX.ITEMS:
  * - сумма статьи — вбитая сумма Бюджет!F (база «фикс»; для статей с параметром-суммой — сам параметр); пустая — 0;
- * - сумма уже в том виде, в каком шла в CF1 (vat_included = да), уровень цен — дата начала модели;
+ * - сумма с НДС — допущение CAPEX.LEGACY_AMOUNTS_WITH_VAT (S_EXPERT): в исходнике не указано; без индексации (F.CAPEX.INDEX);
  * - график — ручной квартальный ряд CF1, если он равен 100%; иначе правило справочника;
  *   статья с суммой, но без ряда (УДС: в CF1 её нет) — вслед за СМР, чтобы она попала в денежный поток;
- * - статьи со своей формулой (земельный налог, ВРИ) и с графиком по продажам (маркетинг, брокеридж — этап 4) не заменяются.
+ * - статьи со своей формулой (аренда/налог ЗУ, ВРИ) — тоже суммой исходника (Бюджет!F21, F22), распределение — как в CF1
+ *   (строка 24 — равномерно по кварталам, ряд CF1!K26); в обычном режиме они считаются формулой и требуют ввода;
+ * - статьи с графиком по продажам (маркетинг, брокеридж — этап 4) не заменяются.
  */
 function legacyCapex(c: LegacyCase, values: Partial<Record<ParameterId, unknown>>): Record<string, unknown>[] {
   const start = c.project_inputs["GEN.MODEL_START_DATE"];
   const quarters = c.timeline_quarters_F_to_AS ?? [];
   const tol = Number(getParameter("CAPEX.SCHEDULE_SUM_TOLERANCE").default);
+  const withVat = getParameter("CAPEX.LEGACY_AMOUNTS_WITH_VAT").default === true;
   const rows: Record<string, unknown>[] = [];
   for (const lg of c.capex_legacy ?? []) {
     if (!isCapexItemId(lg.item_id)) continue;
     const item = getCapexItem(lg.item_id);
+    const manualRow = (weights: number[]) => ({ schedule_rule: "manual", schedule_manual: { from: quarters[0], step_months: LEGACY_STEP_MONTHS, weights } });
     const series = lg.manual_schedule_quarterly;
+    const amounts = lg.cf_amounts_quarterly;
     const manual =
       series && quarters[0] && Math.abs(series.sum - 1) < tol
-        ? { schedule_rule: "manual", schedule_manual: { from: quarters[0], step_months: LEGACY_STEP_MONTHS, weights: series.values_F_to_AS } }
-        : null;
-    if (item.base === "формула") {
-      if (manual) rows.push({ item_id: lg.item_id, ...manual });
-      continue;
-    }
+        ? manualRow(series.values_F_to_AS)
+        : amounts && quarters[0] && amounts.sum > 0
+          ? manualRow(amounts.values_F_to_AS.map((v) => v / amounts.sum))
+          : null;
     if (item.schedule_rule === "follow_sales") continue;
-    const row: Record<string, unknown> = { item_id: lg.item_id, price_date: start, vat_included: true };
+    const row: Record<string, unknown> = { item_id: lg.item_id, price_date: start, vat_included: withVat };
     if (RECALCULATED.has(lg.item_id)) {
       rows.push(row);
       continue;

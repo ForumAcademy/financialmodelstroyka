@@ -361,7 +361,8 @@ export function F_CAPEX_INDEX(ctx: FormulaContext): Series {
   const out: Series = {};
   for (const item of items(ctx)) {
     const type = item.catalogue.index_type;
-    if (type === "none") {
+    // Режим совместимости — без индексации: суммы исходника в ценах исходника (сверка с Excel)
+    if (type === "none" || ctx.mode === "legacy") {
       out[item.id] = ones;
       continue;
     }
@@ -449,6 +450,17 @@ export function F_CAPEX_NCS_BENCH(ctx: FormulaContext): Decimal | null {
   return null;
 }
 
+export function F_CAPEX_INDEX_EFFECT(ctx: FormulaContext): Decimal {
+  const cash = ctx.formula<Series>("F.CAPEX.ITEM_CASH");
+  const index = ctx.formula<Series>("F.CAPEX.INDEX");
+  let effect = ZERO;
+  for (const [id, s] of Object.entries(cash) as [CapexItemId, Decimal[]][]) {
+    const k = index[id] as Decimal[];
+    s.forEach((x, t) => (effect = effect.add(x.mul(ONE.sub(ONE.div(k[t] as Decimal))))));
+  }
+  return effect;
+}
+
 export function F_CAPEX_TOTAL(ctx: FormulaContext): Decimal {
   const cash = ctx.formula<Series>("F.CAPEX.ITEM_CASH");
   let total = ZERO;
@@ -465,6 +477,7 @@ export const CAPEX_FORMULAS = {
   "F.CAPEX.ITEM_CASH": F_CAPEX_ITEM_CASH,
   "F.CAPEX.SMR_TOTAL": F_CAPEX_SMR_TOTAL,
   "F.CAPEX.NCS_BENCH": F_CAPEX_NCS_BENCH,
+  "F.CAPEX.INDEX_EFFECT": F_CAPEX_INDEX_EFFECT,
   "F.CAPEX.TOTAL": F_CAPEX_TOTAL,
 } as const;
 

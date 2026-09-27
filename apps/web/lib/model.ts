@@ -18,9 +18,21 @@ export function provisionalHorizon(project: DemoProject): number | null {
   );
   if (dates.length === 0) return null;
   const last = dates.reduce((a, b) => (b > a ? b : a));
-  const months = (Number(last.slice(0, 4)) - Number(start.slice(0, 4))) * 12 + (Number(last.slice(5, 7)) - Number(start.slice(5, 7)));
+  const monthsTo = (d: string) => (Number(d.slice(0, 4)) - Number(start.slice(0, 4))) * 12 + (Number(d.slice(5, 7)) - Number(start.slice(5, 7)));
   const lag = Number(getParameter("TIME.ESCROW_RELEASE_LAG_M").default ?? 0);
-  return Math.max(months + 1 + lag, 1);
+  return Math.max(monthsTo(last) + 1 + lag, manualScheduleEnd(project, monthsTo) + 1, 1);
+}
+
+/** Последний месяц ручных графиков статей бюджета (CAPEX.ITEMS → schedule_manual): горизонт не должен их обрезать. */
+function manualScheduleEnd(project: DemoProject, monthsTo: (d: string) => number): number {
+  const rows = project.input.values["CAPEX.ITEMS"];
+  if (!Array.isArray(rows)) return 0;
+  return rows.reduce((max: number, r) => {
+    const m = (r as { schedule_manual?: { from?: string; step_months?: number; weights?: number[] } }).schedule_manual;
+    if (!m?.from || !m.step_months || !m.weights) return max;
+    const lastPeriod = m.weights.reduce((acc: number, w, p) => (w ? p : acc), -1);
+    return lastPeriod < 0 ? max : Math.max(max, monthsTo(m.from) + lastPeriod * m.step_months);
+  }, 0);
 }
 
 /**

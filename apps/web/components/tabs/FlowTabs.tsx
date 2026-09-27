@@ -139,6 +139,7 @@ export function DashboardTab({ project, model }: Props) {
     { label: "Цена квартир в конце продаж", unit: "руб/м2", formula: "F.SALES.END_PRICE" },
     { section: "Расходы и маржа" },
     { label: "Затраты", unit: "руб", formula: "F.CAPEX.TOTAL", total: val(model, "F.CAPEX.TOTAL"), bold: true },
+    { label: "Эффект индексации затрат", unit: "руб", formula: "F.CAPEX.INDEX_EFFECT", total: val(model, "F.CAPEX.INDEX_EFFECT") },
     { label: "Себестоимость 1 м² и наценка", unit: "руб/м2", formula: "F.KPI.COST_PER_M2" },
     { label: "Маржа", unit: "доля", formula: "F.KPI.MARGIN", bold: true },
     { label: "Налоги", unit: "руб", formula: "F.TAX.PAYMENTS" },

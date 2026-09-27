@@ -1,5 +1,5 @@
 {
-  "specVersion": "194d9f6422e0",
+  "specVersion": "2c3979296761",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -2899,6 +2899,26 @@
           "value": "=(D32+D33+D34)*10%",
           "verdict": "fix",
           "note": "10% от суммы расценок, затем F42 = E42 + D42 (площадь + ставка) → 0,2 млн вместо ~7,5 млрд по замыслу автора"
+        }
+      ]
+    },
+    {
+      "id": "CAPEX.LEGACY_AMOUNTS_WITH_VAT",
+      "name": "Режим совместимости: суммы бюджета исходника включают НДС",
+      "unit": "bool",
+      "kind": "bool",
+      "scope": "template",
+      "default": true,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Допущение: в исходнике не указано, с НДС ли суммы бюджета (Бюджет!F); принято, т.к. бюджеты девелопера обычно ведутся с НДС. В режиме совместимости у статей из исходника vat_included = да — НДС сверху не начисляется (решение владельца продукта 27.09.2026)",
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": "Бюджет!F17:F52",
+          "verdict": "fix",
+          "note": "с НДС или без — в исходнике не указано; допущение — с НДС"
         }
       ]
     },
@@ -9907,12 +9927,14 @@
       "dims": [
         "t"
       ],
-      "expr": "ЕСЛИ LAND.TENURE = собственность:\n  land_pay[t] = cad_value[t] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{ land_acquired <= date[t] <= handover_end_last }\nЕСЛИ LAND.TENURE = аренда:\n  rent_month[t] = LAND.RENT_ANNUAL × (1 + LAND.RENT_INDEXATION) ^ FLOOR(years_since(land_acquired, date[t])) / 12 × 1{ land_acquired <= date[t] < rent_end }\n  ЕСЛИ LAND.RENT_PAYMENT_FREQ = ежемесячно:                          land_pay[t] = rent_month[t]\n  ЕСЛИ LAND.RENT_PAYMENT_FREQ = поквартально авансом:                land_pay[t] = Σ_{m ∈ квартал(t)} rent_month[m] × 1{ t — первый месяц квартала }\n  ЕСЛИ LAND.RENT_PAYMENT_FREQ = поквартально по окончании квартала:  land_pay[t] = Σ_{m ∈ квартал(t)} rent_month[m] × 1{ t — последний месяц квартала }\n\nЕСЛИ vri_change_date задана И date[t] >= vri_change_date:  cad_value[t] = LAND.CADASTRAL_VALUE_AFTER_VRI\nИНАЧЕ:                                                     cad_value[t] = LAND.CADASTRAL_VALUE\nrent_end = MIN_p TIME.MILESTONES[p][LAND.RENT_END_MILESTONE]\n",
-      "note": "Аренда (решение владельца продукта 27.09.2026): ставка — по договору (уровень 4) или региональной методике; платёж по умолчанию поквартально авансом; индексация — по договору (раз в год с даты приобретения, если договор не говорит иное); аренда прекращается с даты передачи первого помещения — участок переходит в общую долевую собственность собственников помещений МКД (LAND.RENT_END_MILESTONE, по умолчанию handover_start первой очереди; needs_verification). Смена ВРИ: с месяца вехи vri_change_date — новая кадастровая стоимость; дата начала применения новой кадастровой стоимости (ст.391 НК РФ) — needs_verification.",
+      "expr": "ЕСЛИ LAND.TENURE = собственность:\n  land_pay[t] = cad_value[t] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{ land_acquired <= date[t] <= handover_end_last }\nЕСЛИ LAND.TENURE = аренда:\n  rent_month[t] = LAND.RENT_ANNUAL × (1 + LAND.RENT_INDEXATION) ^ FLOOR(years_since(land_acquired, date[t])) / 12 × rent_days[t]\n  ЕСЛИ LAND.RENT_PAYMENT_FREQ = ежемесячно:                          land_pay[t] = rent_month[t]\n  ЕСЛИ LAND.RENT_PAYMENT_FREQ = поквартально авансом:                land_pay[t] = Σ_{m ∈ квартал(t), m >= t} rent_month[m] × 1{ t — первый месяц квартала ИЛИ t = t_start }\n  ЕСЛИ LAND.RENT_PAYMENT_FREQ = поквартально по окончании квартала:  land_pay[t] = Σ_{m ∈ квартал(t)} rent_month[m] × 1{ t — последний месяц квартала }\n\nЕСЛИ vri_change_date задана И date[t] >= vri_change_date:  cad_value[t] = LAND.CADASTRAL_VALUE_AFTER_VRI\nИНАЧЕ:                                                     cad_value[t] = LAND.CADASTRAL_VALUE\nrent_end = MIN_p TIME.MILESTONES[p][LAND.RENT_END_MILESTONE]\n",
+      "note": "Аренда (решение владельца продукта 27.09.2026): ставка — по договору (уровень 4) или региональной методике; платёж по умолчанию поквартально авансом; неполные первый и последний кварталы — пропорционально дням, платёж за неполный первый квартал — в первый месяц аренды (решение владельца продукта 27.09.2026); индексация — по договору (раз в год с даты приобретения, если договор не говорит иное); аренда прекращается с даты передачи первого помещения — участок переходит в общую долевую собственность собственников помещений МКД (LAND.RENT_END_MILESTONE, по умолчанию handover_start первой очереди; needs_verification). Смена ВРИ: с месяца вехи vri_change_date — новая кадастровая стоимость; дата начала применения новой кадастровой стоимости (ст.391 НК РФ) — needs_verification.",
       "terms": {
         "land_pay[t]": "результат: земельный налог или арендная плата за месяц t, руб",
         "cad_value[t]": "кадастровая стоимость участка, действующая в месяце t, руб",
         "rent_month[t]": "арендная плата, приходящаяся на месяц t (до группировки платежей по периодичности), руб",
+        "rent_days[t]": "доля дней месяца t внутри аренды [land_acquired; rent_end): 1 — полный месяц; неполные первый и последний месяцы — по дням",
+        "t_start": "месяц начала аренды (месяц land_acquired): если аренда начинается внутри квартала, платёж за неполный первый квартал — в этот месяц",
         "rent_end": "дата окончания аренды: самая ранняя среди очередей дата вехи LAND.RENT_END_MILESTONE",
         "vri_change_date": "дата смены ВРИ (TIME.MILESTONES)",
         "land_acquired": "дата приобретения участка (TIME.MILESTONES)",
@@ -10058,8 +10080,8 @@
         "i",
         "t"
       ],
-      "expr": "ЕСЛИ index_type[i] = none:  index[i,t] = 1\nИНАЧЕ:                      index[i,t] = Π_y (1 + g[y]) ^ share[i,y,t]\ng[y] = CAPEX.COST_INDEX[y]  при index_type[i] = investment\ng[y] = CAPEX.OPEX_INDEX[y]  при index_type[i] = cpi\nдля y после последнего года прогноза:  g[y] = g[последний год]\n",
-      "note": "Строительные статьи (СМР, сети, благоустройство, соцобъекты, ПИР) — дефлятор инвестиций в основной капитал; содержание застройщика, охрана, юридические услуги — ИПЦ; без индексации — суммы по договору, статьи со своей формулой и все статьи с базой «доля от другой суммы»: от выручки (MARKETING, BROKERAGE, DEV_FEE) и от СМР (TECH_CUSTOMER, AUTHOR_SUPERVISION, TECH_SUPERVISION, CONTINGENCY) — база уже в ценах своего месяца (решение владельца продукта 27.09.2026). После 2029 — последнее значение прогноза МЭР (допущение, S_EXPERT) (решение владельца продукта 27.09.2026).",
+      "expr": "ЕСЛИ index_type[i] = none ИЛИ режим совместимости:  index[i,t] = 1\nИНАЧЕ:                                              index[i,t] = Π_y (1 + g[y]) ^ share[i,y,t]\ng[y] = CAPEX.COST_INDEX[y]  при index_type[i] = investment\ng[y] = CAPEX.OPEX_INDEX[y]  при index_type[i] = cpi\nдля y после последнего года прогноза:  g[y] = g[последний год]\n",
+      "note": "Строительные статьи (СМР, сети, благоустройство, соцобъекты, ПИР) — дефлятор инвестиций в основной капитал; содержание застройщика, охрана, юридические услуги — ИПЦ; без индексации — суммы по договору, статьи со своей формулой и все статьи с базой «доля от другой суммы»: от выручки (MARKETING, BROKERAGE, DEV_FEE) и от СМР (TECH_CUSTOMER, AUTHOR_SUPERVISION, TECH_SUPERVISION, CONTINGENCY) — база уже в ценах своего месяца (решение владельца продукта 27.09.2026). После 2029 — последнее значение прогноза МЭР (допущение, S_EXPERT) (решение владельца продукта 27.09.2026). Режим совместимости — без индексации: суммы исходника в ценах исходника, цель режима — сверка с Excel; индексация смешала бы исправление ошибок с ростом цен. Эффект индексации показывается отдельно (F.CAPEX.INDEX_EFFECT).",
       "terms": {
         "index[i,t]": "результат: множитель пересчёта статьи i в цены месяца t",
         "Π_y": "произведение по годам y",
@@ -10270,6 +10292,34 @@
         "verdict": "new"
       },
       "status": "needs_verification"
+    },
+    {
+      "id": "F.CAPEX.INDEX_EFFECT",
+      "module": "CAPEX",
+      "name": "Эффект индексации затрат",
+      "unit": "руб",
+      "dims": [],
+      "expr": "index_effect = Σ_i Σ_t item_cash[i,t] × (1 − 1 / index[i,t])",
+      "note": "Часть бюджета с НДС, которая возникла из-за роста цен от даты расценки до месяца платежа: item_total × w × (index − 1) × vat_k. В режиме совместимости индексации нет — эффект 0.",
+      "terms": {
+        "index_effect": "результат: прирост бюджета с НДС из-за индексации цен, руб",
+        "item_cash[i,t]": "платёж по статье i в месяце t (F.CAPEX.ITEM_CASH), руб",
+        "index[i,t]": "индекс пересчёта цен (F.CAPEX.INDEX)"
+      },
+      "depends_on": [
+        "F.CAPEX.ITEM_CASH",
+        "F.CAPEX.INDEX"
+      ],
+      "rationale": "Показывает, сколько бюджета даёт рост цен, отдельно от ставок и объёмов — так видно, чем бюджет модели отличается от бюджета в ценах расценок",
+      "rejected": [],
+      "source_ids": [
+        "S_MINEC_SCENARIO_2027"
+      ],
+      "legacy": {
+        "cells": null,
+        "verdict": "new"
+      },
+      "status": "verified"
     },
     {
       "id": "F.CAPEX.TOTAL",

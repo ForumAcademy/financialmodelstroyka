@@ -78,6 +78,11 @@ export function dayBefore(date: IsoDate): IsoDate {
   return addDays(date, -1);
 }
 
+/** Последний день предыдущего месяца. */
+export function prevMonthEnd(date: IsoDate): IsoDate {
+  return eomonth(date, -1);
+}
+
 /** Последний день года. */
 export function yearEnd(year: number): IsoDate {
   return fromUtc(Date.UTC(year, MONTHS_PER_YEAR, 0));

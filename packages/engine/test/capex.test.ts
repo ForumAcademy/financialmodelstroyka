@@ -123,9 +123,10 @@ describe("CAPEX: индекс, НДС, платёж", () => {
     const rent = { "LAND.TENURE": "аренда", "LAND.RENT_ANNUAL": 1200, "LAND.RENT_INDEXATION": 0, "LAND.RENT_PAYMENT_FREQ": "ежемесячно", "LAND.RENT_END_MILESTONE": "rnv_date" };
     const run = (lessor: string) =>
       sum(series(calculate(project([], { ...rent, "LAND.LESSOR_TYPE": lessor }), { horizonMonths: 12 }, ["F.CAPEX.ITEM_CASH"]), "F.CAPEX.ITEM_CASH").LAND_TAX_OR_RENT as Decimal[]).toNumber();
-    // аренда с 16.01 по 01.03 (самый ранний РНВ): январь и февраль по 100
-    expect(run("государственная/муниципальная")).toBeCloseTo(200, 9);
-    expect(run("частная")).toBeCloseTo(244, 9);
+    // аренда с 16.01 по 01.03 (самый ранний РНВ): 16 дней января и весь февраль
+    const rentSum = (100 * 16) / 31 + 100;
+    expect(run("государственная/муниципальная")).toBeCloseTo(rentSum, 9);
+    expect(run("частная")).toBeCloseTo(rentSum * 1.22, 9);
   });
 
   it("статья без ставки — ошибка «заполните ставку», остальные считаются", () => {
@@ -142,7 +143,8 @@ describe("CAPEX: индекс, НДС, платёж", () => {
 });
 
 describe("CAPEX: Дербеневская в режиме совместимости", () => {
-  const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 84 });
+  // горизонт — до последнего квартала рядов CF1 (аренда/налог ЗУ — по 1 кв 2033)
+  const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 88 });
   const cash = series(r, "F.CAPEX.ITEM_CASH");
   const w = series(r, "F.CAPEX.SCHEDULE_WEIGHT");
 
@@ -151,8 +153,27 @@ describe("CAPEX: Дербеневская в режиме совместимос
   });
 
   it("УДС и «Прочие СМР» попадают в денежный поток (исходник: УДС нет в CF1, прочие СМР не распределены)", () => {
-    expect(sum(cash.ROADS_UDS as Decimal[]).gte(535620851)).toBe(true);
-    expect(sum(cash.OTHER_SMR as Decimal[]).gte(16904952.57)).toBe(true);
+    expect(sum(cash.ROADS_UDS as Decimal[]).toNumber()).toBeCloseTo(535620851, 4);
+    expect(sum(cash.OTHER_SMR as Decimal[]).toNumber()).toBeCloseTo(16904952.57, 4);
+  });
+
+  it("без индексации: суммы исходника в ценах исходника, эффект индексации = 0", () => {
+    for (const k of Object.values(series(r, "F.CAPEX.INDEX"))) expect(k.every((x) => x.eq(1))).toBe(true);
+    expect((r.formulas["F.CAPEX.INDEX_EFFECT"]?.value as Decimal).toNumber()).toBe(0);
+    const normal = calculate({ ...legacyInput(loadCase("derbenevskaya_legacy")), mode: "normal" }, { horizonMonths: 88 }, ["F.CAPEX.INDEX_EFFECT"]);
+    expect((normal.formulas["F.CAPEX.INDEX_EFFECT"]?.value as Decimal).gt(0)).toBe(true);
+  });
+
+  it("земельные платежи — из исходника: аренда/налог ЗУ Бюджет!F21 по CF1 строке 24, ВРИ Бюджет!F22 в квартал CF1!K26", () => {
+    const land = cash.LAND_TAX_OR_RENT as Decimal[];
+    expect(sum(land).toNumber()).toBeCloseTo(825124525.273, 3);
+    // 29 кварталов F:AH (1 кв 2026 — 1 кв 2033), в месяцах поровну
+    expect(land[1]?.toNumber()).toBeCloseTo(825124525.273 / 29 / 3, 3);
+    expect(land[87]?.toNumber()).toBeCloseTo(825124525.273 / 29 / 3, 3);
+    const vri = cash.LAND_VRI as Decimal[];
+    expect(sum(vri).toNumber()).toBe(5000 * 221967);
+    // K — 6-й квартал с 1 кв 2026 = 2 кв 2027: апрель…июнь 2027
+    expect(vri.findIndex((x) => x.gt(0))).toBe(16);
   });
 
   it("«Компенсация городу» Бюджет!F24 — целиком денежная компенсация, без НДС и индексации, по ручному ряду CF1!M29:N29", () => {

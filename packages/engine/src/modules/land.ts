@@ -5,7 +5,7 @@
 import Decimal from "decimal.js";
 import type { FormulaContext } from "../context";
 import { CalcError } from "../context";
-import { eomonth, maxDate, minDate, monthDiff, quarterMonthEnds, type IsoDate } from "../lib/dates";
+import { dayBefore, daysBetween, eomonth, prevMonthEnd, maxDate, minDate, monthDiff, overlapDays, quarterMonthEnds, type IsoDate } from "../lib/dates";
 import { isMilestoneKey, milestone, milestones, vriChangeDate, type MilestoneRow } from "./time";
 
 const ONE = new Decimal(1);
@@ -73,15 +73,27 @@ function landRent(ctx: FormulaContext, rows: MilestoneRow[], date: IsoDate[]): D
   if (!isMilestoneKey(endKey)) throw new CalcError(`Неизвестная веха окончания аренды «${endKey}»`, "LAND.RENT_END_MILESTONE");
   const acquired = minDate(rows.map((r) => milestone(r, "land_acquired")));
   const rentEnd = minDate(rows.map((r) => milestone(r, endKey)));
-  // Арендная плата, приходящаяся на месяц с концом d (rent_month): индексация раз в год с даты приобретения.
-  const rentMonth = (d: IsoDate): Decimal =>
-    d >= acquired && d < rentEnd ? annual.mul(ONE.add(indexation).pow(fullYears(acquired, d))).div(MONTHS_PER_YEAR) : ZERO;
-  const isQuarterStart = (d: IsoDate) => quarterMonthEnds(d)[0] === d;
+  // rent_month: арендная плата за месяц с концом d — пропорционально дням месяца внутри [acquired; rent_end),
+  // индексация раз в год с даты приобретения.
+  const rentMonth = (d: IsoDate): Decimal => {
+    const prev = prevMonthEnd(d);
+    const days = overlapDays(dayBefore(acquired), dayBefore(rentEnd), prev, d);
+    if (days === 0) return ZERO;
+    return annual.mul(ONE.add(indexation).pow(fullYears(acquired, d))).div(MONTHS_PER_YEAR).mul(days).div(daysBetween(prev, d));
+  };
   const quarterSum = (d: IsoDate) => quarterMonthEnds(d).reduce((s, m) => s.add(rentMonth(m)), ZERO);
+  const isQuarterStart = (d: IsoDate) => quarterMonthEnds(d)[0] === d;
+  // Месяц начала аренды: если аренда начинается внутри квартала, платёж за неполный первый квартал — в этот месяц
+  const firstMonth = eomonth(acquired, 0);
   if (freq === "ежемесячно") return date.map(rentMonth);
-  if (freq === "поквартально авансом") return date.map((d) => (isQuarterStart(d) ? quarterSum(d) : ZERO));
+  if (freq === "поквартально авансом") return date.map((d) => (d === firstMonth ? sumFrom(d) : d > firstMonth && isQuarterStart(d) ? quarterSum(d) : ZERO));
   if (freq === "поквартально по окончании квартала") return date.map((d) => (isQuarterStart(eomonth(d, 1)) ? quarterSum(d) : ZERO));
   throw new CalcError(`Неизвестная периодичность арендной платы «${freq}»`, "LAND.RENT_PAYMENT_FREQ");
+
+  /** Аренда с месяца d до конца его квартала. */
+  function sumFrom(d: IsoDate): Decimal {
+    return quarterMonthEnds(d).filter((m) => m >= d).reduce((s, m) => s.add(rentMonth(m)), ZERO);
+  }
 }
 
 export function F_LAND_TAX_OR_RENT(ctx: FormulaContext): Decimal[] {

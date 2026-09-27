@@ -82,10 +82,14 @@ def value_target(sheet, row, col):
             (21, "F"): ("LAND.RENT_ANNUAL", "replace", "итог без расчёта"),
             (24, "F"): ("LAND.CITY_CASH_COMPENSATION", "fix", "«Компенсация городу» → денежная компенсация в правообладании (НДС 0); уточнить у авторов, нет ли внутри суммы строительства объектов"),
         }
-        if (row, c) in special:
-            return special[(row, c)]
-        if row in budget_row_to_item:
-            return (f"CAPEX.ITEMS[{budget_row_to_item[row]}]", "replace", "сумма/ставка вбита числом → ставка × база")
+        res = special.get((row, c))
+        if res is None and row in budget_row_to_item:
+            res = (f"CAPEX.ITEMS[{budget_row_to_item[row]}]", "replace", "сумма/ставка вбита числом → ставка × база")
+        if res is not None and c == "F" and row in budget_row_to_item:
+            # режим совместимости: сумма статьи — с НДС (CAPEX.LEGACY_AMOUNTS_WITH_VAT)
+            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера обычно ведутся с НДС")
+        if res is not None:
+            return res
     if sheet == "CF1":
         if row == 2: return ("GEN.MODEL_START_DATE", "keep", "")
         if row in (6, 7, 8): return ("TIME.MILESTONES", "remove", "флаги/номера проставлены вручную")

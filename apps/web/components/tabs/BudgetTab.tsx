@@ -81,7 +81,7 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
         </div>
         <p className="stage-note">
           Сумма — ставка × база в ценах даты расценки. «В CF» — платежи по графику статьи с индексом цен и НДС. Маркетинг и брокеридж считаются от выручки — появятся на этапе 4.
-          {project.input.mode === "legacy" ? " Режим совместимости: суммы статей и ручные графики — из исходного Excel." : ""}
+          {project.input.mode === "legacy" ? " Режим совместимости: суммы статей, ручные графики и земельные платежи — из исходного Excel, без индексации цен." : ""}
         </p>
         <div className="hscroll">
         <table className="sheet calc-table">

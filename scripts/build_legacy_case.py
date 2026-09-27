@@ -40,6 +40,10 @@ for it in capex:
     if sched_rows:
         entry["manual_schedule_quarterly"] = {"cf_row": sched_rows[0], "values_F_to_AS": series(cf, sched_rows[0], 6, 45),
                                               "sum": num(sum(series(cf, sched_rows[0], 6, 45)))}
+    elif it["base"] == "формула" and lg.get("cf_rows"):
+        # статья со своей формулой без ряда «темп»: суммы CF1 по кварталам (распределение исходника для режима совместимости)
+        r = lg["cf_rows"][0]
+        entry["cf_amounts_quarterly"] = {"cf_row": r, "values_F_to_AS": series(cf, r, 6, 45), "sum": num(sum(series(cf, r, 6, 45)))}
     capex_legacy.append(entry)
 
 QUARTER_END = {1: "03-31", 2: "06-30", 3: "09-30", 4: "12-31"}

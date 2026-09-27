@@ -1,7 +1,7 @@
 // Файл сгенерирован packages/spec/scripts/build-spec.ts из data/*.yaml. Не редактировать вручную.
 
 /** Версия справочника: хеш содержимого data/*.yaml. Сохраняется в каждой версии расчёта. */
-export const SPEC_VERSION = "194d9f6422e0";
+export const SPEC_VERSION = "2c3979296761";
 /** Дата актуализации справочника: самая поздняя дата проверки источника. */
 export const SPEC_ACTUALIZED_AT = "2026-09-27";
 
@@ -162,6 +162,7 @@ export const PARAMETER_IDS = [
   "TIME.RNS_TO_RNV_TAX_YEARS",
   "CAPEX.ITEMS",
   "CAPEX.CONTINGENCY_RATE",
+  "CAPEX.LEGACY_AMOUNTS_WITH_VAT",
   "CAPEX.SCHEDULE_SUM_TOLERANCE",
   "CAPEX.NCS_BENCHMARK_ENABLED",
   "CAPEX.NCS_BENCH_TOLERANCE",
@@ -264,6 +265,7 @@ export const FORMULA_IDS = [
   "F.CAPEX.ITEM_CASH",
   "F.CAPEX.SMR_TOTAL",
   "F.CAPEX.NCS_BENCH",
+  "F.CAPEX.INDEX_EFFECT",
   "F.CAPEX.TOTAL",
   "F.SALES.SOLD_AREA",
   "F.SALES.PRICE",

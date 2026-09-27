@@ -201,7 +201,20 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 /* Источники и формулы */
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fbfcfe; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
 .inline-form input { flex: 1 1 180px; }
-.formula-section { margin-bottom: 20px; }
+/* Формулы: таблица Показатель | Формула | Что в формуле */
+.formulas-table td { vertical-align: top; }
+.formulas-table th:nth-child(1) { width: 24%; }
+.formulas-table th:nth-child(2) { width: 36%; }
+.formulas-table .expr { margin: 0; font-size: 12px; max-width: 560px; overflow-x: auto; }
+.formulas-table tr.open td { background: #f5f8fc; }
+.formulas-table tr.details-row td { background: #fbfcfe; border-bottom: 2px solid var(--border); }
+.terms { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.terms li { padding: 3px 0; border-bottom: 1px dashed var(--grid); overflow-wrap: anywhere; }
+.terms li:last-child { border-bottom: 0; }
+.terms code { font-size: 11px; color: var(--muted); }
+.term-kind { display: inline-block; font-size: 10px; padding: 0 6px; border-radius: 8px; background: var(--input); color: var(--accent); margin-left: 4px; }
+.term-kind.calc { background: #eef6ee; color: #3d7a3d; }
+.tabs .block-count { background: var(--block); }
 .formula { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
 .formula summary { cursor: pointer; padding: 9px 12px; display: flex; justify-content: space-between; gap: 12px; }
 .formula[open] summary { border-bottom: 1px solid var(--grid); }

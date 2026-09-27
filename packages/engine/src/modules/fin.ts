@@ -251,7 +251,9 @@ export const F_FIN_RATE = stepwise(function F_FIN_RATE(ctx: FormulaContext, t: n
   const key = keyRate(ctx, date[t] as IsoDate);
   const base = key.add(ctx.requireNum("FIN.RATE_BASE_SPREAD"));
   const k1 = c === null ? ZERO : Decimal.min(c, ONE);
-  const skr = c === null ? ZERO : Decimal.max(c.sub(ONE).mul(key.add(ctx.requireNum("FIN.RATE_DISCOUNT_COEF"))), ZERO);
+  // скидка — только если она есть в договоре банка (поправка задана)
+  const coef = ctx.num("FIN.RATE_DISCOUNT_COEF");
+  const skr = c === null || coef === null ? ZERO : Decimal.max(c.sub(ONE).mul(key.add(coef)), ZERO);
   const rate = Decimal.max(ctx.requireNum("FIN.RATE_PREFERENTIAL").mul(k1).add(base.mul(ONE.sub(k1))).sub(skr), ctx.requireNum("FIN.RATE_MIN"));
   if (legacy && isLast(ctx, t)) {
     const own = [...(ctx.own<Decimal[]>() ?? []), rate];

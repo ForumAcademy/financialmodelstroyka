@@ -1503,7 +1503,7 @@ draw[t] = need[t] − equity_in[t]
 K1[t]          = MIN( coverage[t−1], 1 ), 0 если покрытия нет
 K2[t]          = 1 − K1[t]
 base_rate[t]   = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD
-SkR[t]         = MAX( (coverage[t−1] − 1) × (FIN.KEY_RATE_PATH[t] + FIN.RATE_DISCOUNT_COEF), 0 )
+SkR[t]         = MAX( (coverage[t−1] − 1) × (FIN.KEY_RATE_PATH[t] + FIN.RATE_DISCOUNT_COEF), 0 ), если FIN.RATE_DISCOUNT_COEF задан; иначе 0
 rate[t]        = MAX( FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN )
 ```
 

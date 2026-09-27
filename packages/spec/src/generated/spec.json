@@ -1,5 +1,5 @@
 {
-  "specVersion": "4753c55e7aed",
+  "specVersion": "3df5b5b9392f",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -3687,11 +3687,11 @@
       "unit": "%годовых",
       "kind": "scalar",
       "scope": "project",
-      "default": 0,
+      "default": null,
       "source_ids": [
         "S_BANK_TERMSHEET"
       ],
-      "basis": "Условие банка (не у всех банков). Когда на эскроу больше, чем долг с процентами, банк снижает ставку на (покрытие − 1) × (ключевая + поправка), как в исходнике: ставка скидки = ключевая − 2 п.п. (CF1!F118)",
+      "basis": "Условие банка (не у всех банков). Когда на эскроу больше, чем долг с процентами, банк снижает ставку на (покрытие − 1) × (ключевая + поправка), как в исходнике: ставка скидки = ключевая − 2 п.п. (CF1!F118). Пусто — в договоре банка такой скидки нет, скидка не считается",
       "status": "project_input",
       "legacy": [
         {
@@ -11598,7 +11598,7 @@
       "dims": [
         "t"
       ],
-      "expr": "K1[t]          = MIN( coverage[t−1], 1 ), 0 если покрытия нет\nK2[t]          = 1 − K1[t]\nbase_rate[t]   = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD\nSkR[t]         = MAX( (coverage[t−1] − 1) × (FIN.KEY_RATE_PATH[t] + FIN.RATE_DISCOUNT_COEF), 0 )\nrate[t]        = MAX( FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN )\n",
+      "expr": "K1[t]          = MIN( coverage[t−1], 1 ), 0 если покрытия нет\nK2[t]          = 1 − K1[t]\nbase_rate[t]   = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD\nSkR[t]         = MAX( (coverage[t−1] − 1) × (FIN.KEY_RATE_PATH[t] + FIN.RATE_DISCOUNT_COEF), 0 ), если FIN.RATE_DISCOUNT_COEF задан; иначе 0\nrate[t]        = MAX( FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN )\n",
       "note": "(esc − (debt + accr)) / (debt + accr) = coverage − 1. Ставка скидки = ключевая + FIN.RATE_DISCOUNT_COEF, как в исходнике (CF1!F118 = ключевая − 2 п.п.). «Как в исходном Excel» — поквартально, покрытие за прошлый квартал; ключевая 14,25% на весь срок (FIN.LEGACY_KEY_RATE), базовая = ключевая + спред = 20% (CF1!D117).",
       "terms": {
         "rate[t]": "результат: ставка проектного финансирования в месяце t, % год.",

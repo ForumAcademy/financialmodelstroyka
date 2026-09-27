@@ -221,8 +221,10 @@ export function F_SALES_PRICE(ctx: FormulaContext): RowSeries {
   };
 
   if (ctx.mode === "legacy") {
-    const g = ctx.require<LegacyGrowth>("SALES.LEGACY_PRICE_GROWTH");
-    if (typeof g?.rate !== "number" || !Number.isInteger(g.step_months) || g.step_months < 1) {
+    // Таблица из одной строки; допускается и сама строка
+    const raw = ctx.require<LegacyGrowth | LegacyGrowth[]>("SALES.LEGACY_PRICE_GROWTH");
+    const g = Array.isArray(raw) ? raw[0] : raw;
+    if (!g || typeof g.rate !== "number" || !Number.isInteger(g.step_months) || g.step_months < 1) {
       throw new CalcError("Рост цены исходника: нужны rate (доля за период) и step_months (целое ≥ 1)", "SALES.LEGACY_PRICE_GROWTH");
     }
     const k = ONE.add(g.rate);

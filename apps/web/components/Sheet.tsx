@@ -50,6 +50,17 @@ const COLUMN_LABEL: Record<string, string> = {
   installment_share: "Рассрочка",
   installment_months: "Рассрочка, мес",
   installment_down_payment: "Первый взнос",
+  name: "Название",
+  method: "Способ",
+  manual: "Ручной ряд",
+  stage: "Стадия",
+  uplift: "Надбавка",
+};
+
+/** Подписи столбцов, которые у параметра значат не то же, что в COLUMN_LABEL. */
+const PARAM_COLUMN_LABEL: Partial<Record<ParameterId, Record<string, string>>> = {
+  "SALES.PACE": { value: "Темп: доля остатка или м² (шт) в месяц" },
+  "SALES.LEGACY_PRICE_GROWTH": { rate: "Рост за период", step_months: "Длина периода, мес" },
 };
 
 function parseInput(kind: string, unit: string, raw: string): unknown {
@@ -208,6 +219,8 @@ const LEGACY_LABEL: Record<string, [string, "share" | "num" | "quarters"]> = {
   installment: ["Рассрочка", "share"],
   down_payment: ["Первый взнос по рассрочке", "share"],
   installment_quarters: ["Срок рассрочки", "quarters"],
+  rate: ["Рост за период", "share"],
+  step_months: ["Длина периода, мес", "num"],
 };
 
 /** Объект из исходного Excel → пары «подпись — значение» на русском. */
@@ -221,6 +234,17 @@ function legacyItems(raw: Row): [string, string][] {
     const text = n === null ? fmt.value(v) : kind === "share" ? fmt.share(n) : kind === "quarters" ? `${n} ${fmt.plural(n, ["квартал", "квартала", "кварталов"])}` : fmt.value(n);
     return [label, text];
   });
+}
+
+/** Кратко о составной ячейке: ручной ряд {from, step_months, values} → «32 периода по 3 мес с 31.03.2026, итого 1 234». */
+function cellSummary(v: object): string {
+  const m = v as { from?: string; step_months?: number; values?: unknown[] };
+  if (Array.isArray(m.values)) {
+    const total = m.values.reduce((a: number, x) => a + (typeof x === "number" ? x : 0), 0);
+    const n = m.values.length;
+    return `${n} ${fmt.plural(n, ["период", "периода", "периодов"])} по ${m.step_months ?? "?"} мес с ${fmt.date(m.from)}, итого ${fmt.num(total, 0)}`;
+  }
+  return fmt.value(v);
 }
 
 function TableEditor({ project, id }: { project: DemoProject; id: ParameterId }) {
@@ -266,7 +290,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
         <thead>
           <tr>
             {columns.map((c) => (
-              <th key={c.key}>{COLUMN_LABEL[c.key] ?? c.key}</th>
+              <th key={c.key}>{PARAM_COLUMN_LABEL[id]?.[c.key] ?? COLUMN_LABEL[c.key] ?? c.key}</th>
             ))}
             <th className="col-del" />
           </tr>
@@ -277,6 +301,14 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
               {columns.map((c) => {
                 const v = row[c.key];
                 const text = v === null || v === undefined ? "" : typeof v === "number" ? fmt.inputNumber(v) : String(v);
+                // Составное значение ячейки (ручной ряд темпа) — просмотр кратко; ввод рядов — на этапе 8
+                if (v !== null && typeof v === "object") {
+                  return (
+                    <td key={c.key} className={`col-${c.key}`}>
+                      <span className="ro small">{cellSummary(v)}</span>
+                    </td>
+                  );
+                }
                 return (
                   <td key={c.key} className={`col-${c.key}`}>
                     {c.options ? (
@@ -322,6 +354,8 @@ export type CalcRow =
       bold?: boolean;
       /** Итог ряда: сумма (потоки) или не показывать (флаги, остатки, ставки). */
       totalMode?: "sum" | "none";
+      /** Значение за период: сумма месяцев (потоки) или на конец периода (остатки, цены). */
+      periodMode?: "sum" | "last";
     };
 
 export function Calc({ model, rows, periods = false, stages, title = "Расчёт" }: { model: ProjectModel; rows: CalcRow[]; periods?: boolean; stages?: number[]; title?: string }) {
@@ -371,10 +405,10 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
                   </tr>
                 );
               }
-              const series = row.series && dates ? aggregate(row.series, dates, period).sums : null;
+              const series = row.series && dates ? aggregate(row.series, dates, period, row.periodMode).sums : null;
               const total = row.total !== undefined ? row.total : row.series && row.totalMode !== "none" ? row.series.reduce((a, b) => a + b, 0) : undefined;
               // Деньги в итогах — до рубля, как в ячейках по периодам
-              const totalText = total === undefined ? (row.series ? "" : "—") : row.unit === "руб" && (typeof total === "number" || total instanceof Decimal) ? fmt.num(total, 0) : fmt.value(total);
+              const totalText = total === undefined ? (row.series ? "" : "—") : row.unit?.startsWith("руб") && (typeof total === "number" || total instanceof Decimal) ? fmt.num(total, 0) : fmt.value(total);
               const click = () => row.formula && open({ kind: "formula", id: row.formula, label: row.label, value: total === undefined ? "—" : `${totalText} ${fmt.unit(row.unit ?? "")}` });
               return (
                 <tr key={i} className={`${row.bold ? "total" : ""} ${row.formula ? "clickable" : ""}`} onClick={click}>
@@ -383,7 +417,7 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
                   <td className="num">{totalText}</td>
                   {keys.map((k, j) => (
                     <td key={k} className="num">
-                      {series ? (series[j] ? fmt.num(series[j] as number, 0) : "") : "—"}
+                      {series ? (series[j] ? fmt.num(series[j] as number, 0) : "") : row.total !== undefined ? "" : "—"}
                     </td>
                   ))}
                 </tr>

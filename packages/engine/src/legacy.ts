@@ -128,7 +128,7 @@ function legacySales(c: LegacyCase, values: Partial<Record<ParameterId, unknown>
   add({ name: "Машино-места", product: "машино-места", stock_units: pi["TEP.PARKING_COUNT_OVERRIDE"], start_price: parking.price_per_space_calc }, paceOf("Машино-места"));
   values["SALES.PRODUCTS"] = products;
   values["SALES.PACE"] = pace;
-  values["SALES.LEGACY_PRICE_GROWTH"] = { rate: sl.price_growth_quarterly, step_months: LEGACY_QUARTER_MONTHS };
+  values["SALES.LEGACY_PRICE_GROWTH"] = [{ rate: sl.price_growth_quarterly, step_months: LEGACY_QUARTER_MONTHS }];
   const pm = pi["SALES.PAYMENT_MIX"] as { installment: number; mortgage: number; full: number; down_payment: number; installment_quarters: number };
   const types = [...new Set(products.map((r) => r.product as string))];
   values["SALES.PAYMENT_MIX"] = types.map((product) => ({

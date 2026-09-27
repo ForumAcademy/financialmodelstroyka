@@ -37,8 +37,9 @@ describe("изменение значения в проекте", () => {
 
 describe("«Откуда»", () => {
   it("30 значений без документа получили текст обоснования; ссылка — только если есть документ", () => {
+    // 30 значений справочника (этап 3) + рост цены исходного Excel для режима совместимости (этап 4)
     const withFrom = spec.parameters.filter((x) => x.from);
-    expect(withFrom).toHaveLength(30);
+    expect(withFrom).toHaveLength(31);
     expect(referenceWhence("BENCH.PAIR_RADIUS_KM")).toMatchObject({ url: null });
     expect(referenceWhence("CAPEX.COST_INDEX").url).toMatch(/^https:/);
   });

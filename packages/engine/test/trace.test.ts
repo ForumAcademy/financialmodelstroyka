@@ -48,8 +48,8 @@ describe("след расчёта совпадает с depends_on специф�
       },
       { horizonMonths: 48 },
     );
-    // бюджет в этом проекте не заполнен — его ошибки «заполните ставку» здесь не проверяются
-    expect(r.messages.filter((m) => m.severity === "error" && !m.formulaId.startsWith("F.CAPEX."))).toEqual([]);
+    // бюджет и продажи в этом проекте не заполнены — их ошибки «заполните …» здесь не проверяются
+    expect(r.messages.filter((m) => m.severity === "error" && !/^F\.(CAPEX|SALES|ESC)\./.test(m.formulaId))).toEqual([]);
     expect(undeclared(r)).toEqual([]);
   });
 });

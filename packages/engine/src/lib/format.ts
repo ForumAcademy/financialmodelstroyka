@@ -12,3 +12,9 @@ export function fmt(value: Decimal | number): string {
 export function fmtShare(value: Decimal): string {
   return `${RU.format(value.mul(PERCENT).toNumber())}%`;
 }
+
+/** Процент из текста справочника: «25%» → 0,25; не процент — null. */
+export function parsePercent(text: string): Decimal | null {
+  const m = /^\s*(\d+(?:[.,]\d+)?)\s*%\s*$/.exec(text);
+  return m ? new Decimal((m[1] as string).replace(",", ".")).div(PERCENT) : null;
+}

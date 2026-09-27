@@ -15,6 +15,8 @@ const data = {
   reconciliation_targets: c.reconciliation_targets,
   // бюджет исходника для режима совместимости (legacyCaseInput → CAPEX.ITEMS)
   capex_legacy: c.capex_legacy,
+  // план продаж исходника (legacyCaseInput → SALES.*)
+  sales_legacy: c.sales_legacy,
   timeline_quarters_F_to_AS: c.timeline_quarters_F_to_AS,
 };
 const text = JSON.stringify(data, null, 2) + "\n";

@@ -27,7 +27,7 @@ describe("TIME", () => {
   });
 
   it("флаги стройки, ДДУ, ДКП и раскрытия эскроу — по настоящим датам", () => {
-    const f = run().formulas;
+    const f = calculate(input, { horizonMonths: 8 }, ["F.TIME.FLAG_CONSTRUCTION", "F.TIME.FLAG_PRESALE", "F.TIME.FLAG_POST_RNV", "F.TIME.FLAG_ESCROW_RELEASE"]).formulas;
     expect(f["F.TIME.FLAG_CONSTRUCTION"]?.value).toEqual([[0, 0, 0, 1, 1, 1, 0, 0]]);
     expect(f["F.TIME.FLAG_PRESALE"]?.value).toEqual([[0, 0, 1, 1, 1, 0, 0, 0]]);
     expect(f["F.TIME.FLAG_POST_RNV"]?.value).toEqual([[0, 0, 0, 0, 0, 1, 1, 1]]);

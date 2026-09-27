@@ -135,9 +135,9 @@ describe("CAPEX: индекс, НДС, платёж", () => {
     expect(totals(r).PREDESIGN?.toNumber()).toBe(100);
   });
 
-  it("выручка ещё не считается — статьи от выручки ждут этапа 4 и не входят в итог", () => {
+  it("статьи от выручки без плана продаж не считаются и не входят в итог", () => {
     const r = calculate(project([]), { horizonMonths: 12 }, ["F.CAPEX.TOTAL"]);
-    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", text: expect.stringContaining("«Маркетинг»: база — выручка, расчёт на этапе 4") }));
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", text: expect.stringContaining("«Маркетинг» не посчитана: не посчитана формула F.SALES.REVENUE_TOTAL") }));
     expect(r.messages).toContainEqual(expect.objectContaining({ formulaId: "F.CAPEX.TOTAL", text: expect.stringContaining("Маркетинг") }));
   });
 });

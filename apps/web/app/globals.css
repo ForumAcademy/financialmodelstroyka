@@ -12,6 +12,8 @@
   --input-border: #b9cfe8;
   --block: #f1f3f6;
   --group-head: #edf2f8;
+  --need: #c98a0c;
+  --need-bg: #fff8e8;
   --danger: #c2412d;
   --warn: #9a6a12;
   color-scheme: light;
@@ -117,7 +119,7 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .input-group h3 { margin: 0; padding: 9px 14px; background: var(--group-head); border-bottom: 1px solid var(--border); color: var(--accent); font-size: 12px; font-weight: 700; }
 .group-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--muted); background: #fffdf5; border-bottom: 1px solid var(--grid); }
 .fields { display: flex; flex-direction: column; }
-.field { display: grid; grid-template-columns: 1fr 190px; align-items: center; gap: 12px; min-height: 40px; padding: 5px 14px; border-bottom: 1px solid var(--grid); }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) 230px; align-items: center; gap: 12px; min-height: 40px; padding: 5px 14px; border-bottom: 1px solid var(--grid); }
 .field:last-child { border-bottom: 0; }
 .field:nth-child(even) { background: #fbfcfd; }
 .field.wide { grid-template-columns: 1fr; padding: 10px 14px; }
@@ -125,12 +127,23 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .field-label:hover { color: var(--accent); text-decoration: underline; }
 .field-control { display: flex; align-items: center; gap: 6px; }
 .field-control input, .field-control select { width: 100%; background: var(--input); border-color: var(--input-border); }
-.field-control .unit { color: var(--muted); font-size: 12px; min-width: 28px; }
+.field-control .unit { color: var(--muted); font-size: 12px; flex: 0 0 62px; line-height: 1.2; overflow-wrap: anywhere; }
+.field-control > input, .field-control > select, .field-control > .ro { flex: 1 1 auto; min-width: 0; }
+.field-label { overflow-wrap: anywhere; }
 .field-control .ro { color: var(--text); font-weight: 500; }
 .field.readonly .field-control .ro { color: var(--muted); }
-.need { border-color: var(--danger) !important; box-shadow: 0 0 0 1px var(--danger); }
+/* Обязательное незаполненное поле: жёлтая метка «Заполните» + подсказка (не ошибка, а напоминание) */
+.need { border-color: var(--need) !important; background: var(--need-bg) !important; }
+.field.is-need { background: var(--need-bg) !important; }
+.need-badge { display: inline-block; margin-left: 8px; padding: 0 7px; border-radius: 10px; background: var(--need); color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; vertical-align: 1px; white-space: nowrap; }
+.need-legend { margin: 0 0 12px; padding: 8px 12px; border: 1px solid #f0d9a0; background: var(--need-bg); border-radius: 8px; font-size: 13px; color: #5c4a1a; }
+.need-legend .need-badge { margin-left: 0; }
 .input-group, .fields, .field, .field-control { min-width: 0; }
 .field.wide .field-control { display: block; }
+.legacy-view dl { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.legacy-view dl > div { background: var(--group-head); border-radius: 8px; padding: 6px 12px; }
+.legacy-view dt { font-size: 11px; color: var(--muted); }
+.legacy-view dd { margin: 0; font-weight: 600; }
 .table-editor { overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
 .table-editor table { border-collapse: collapse; }
 .table-editor th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 3px 6px; white-space: nowrap; }
@@ -190,7 +203,8 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
   .topbar nav { overflow-x: auto; }
   .topbar nav a { padding: 6px 7px; font-size: 13px; }
   .page { padding: 16px; }
-  .field { grid-template-columns: 1fr 150px; }
+  .field { grid-template-columns: minmax(0, 1fr) 170px; }
+  .field-control .unit { flex-basis: 44px; }
   .input-groups { grid-template-columns: 1fr; }
   .charts { grid-template-columns: 1fr; }
   .project-head { flex-direction: column; align-items: flex-start; }

@@ -110,10 +110,11 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   }
 
   return (
-    <div className={`field ${p.kind === "table" ? "wide" : ""} ${readonly ? "readonly" : ""}`}>
-      <button className="field-label" onClick={() => open({ kind: "param", id })} title="Как посчитано / источник">
+    <div className={`field ${p.kind === "table" ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
+      <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
         {p.name}
         {readonly ? <span className="tag">справочник</span> : null}
+        {need ? <span className="need-badge">Заполните</span> : null}
       </button>
       <div className="field-control">
         {control}
@@ -123,10 +124,23 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   );
 }
 
+/** Подсказка к обязательному незаполненному полю: какие расчёты без него не выполняются. */
+export function needHint(id: ParameterId): string {
+  const used = spec.formulas.filter((f) => (f.depends_on as string[]).includes(id)).map((f) => `«${f.name}»`);
+  const list = used.length > 3 ? `${used.slice(0, 3).join(", ")} и ещё ${used.length - 3}` : used.join(", ");
+  return `Обязательное значение не введено — без него не считается ${list || "часть расчёта"}. Нажмите на название поля: там написано, что это и где взять значение.`;
+}
+
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
+  const missing = groups.flatMap((g) => g.params).filter((id) => model.missing.has(id)).length;
   return (
     <section className="inputs">
       <h2 className="part-title">Вводные</h2>
+      {missing ? (
+        <p className="need-legend">
+          <span className="need-badge">Заполните</span> — обязательное значение не введено, без него часть расчёта не выполняется. На этой вкладке таких полей: {missing}. Наведите на поле или нажмите на его название, чтобы узнать, где взять значение.
+        </p>
+      ) : null}
       <div className="input-groups">
         {groups.map((g) => (
           <div key={g.title} className={`input-group ${g.params.some((id) => getParameter(id).kind === "table") ? "wide" : ""}`}>
@@ -146,20 +160,46 @@ export function Inputs({ project, model, groups }: { project: DemoProject; model
 
 type Row = Record<string, unknown>;
 
+const LEGACY_LABEL: Record<string, [string, "share" | "num" | "quarters"]> = {
+  mortgage: ["Ипотека", "share"],
+  full: ["100% оплата", "share"],
+  installment: ["Рассрочка", "share"],
+  down_payment: ["Первый взнос по рассрочке", "share"],
+  installment_quarters: ["Срок рассрочки", "quarters"],
+};
+
+/** Объект из исходного Excel → пары «подпись — значение» на русском. */
+function legacyItems(raw: Row): [string, string][] {
+  if (raw.rule === "per_type" && Array.isArray(raw.values)) {
+    return (raw.values as unknown[]).map((v, i) => [`Тип ${i + 1}`, `${fmt.value(v)} м/м на квартиру`]);
+  }
+  return Object.entries(raw).map(([k, v]) => {
+    const [label, kind] = LEGACY_LABEL[k] ?? [COLUMN_LABEL[k] ?? k, "num"];
+    const n = typeof v === "number" ? v : null;
+    const text = n === null ? fmt.value(v) : kind === "share" ? fmt.share(n) : kind === "quarters" ? `${n} ${fmt.plural(n, ["квартал", "квартала", "кварталов"])}` : fmt.value(n);
+    return [label, text];
+  });
+}
+
 function TableEditor({ project, id }: { project: DemoProject; id: ParameterId }) {
   const { dispatch } = useStore();
   const p = getParameter(id);
   const columns = (p.columns ?? []).filter((c) => c.key !== "source_ids");
   const raw = project.input.values[id];
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {
-    // Значение в формате исходного Excel (режим совместимости) — только просмотр.
+    // Значение в формате исходного Excel (режим совместимости) — только просмотр, понятными словами.
     return (
-      <span className="ro small">
-        {Object.entries(raw as Row)
-          .map(([k, v]) => `${COLUMN_LABEL[k] ?? k}: ${fmt.value(v)}`)
-          .join(" · ")}{" "}
-        <span className="muted">(формат исходника)</span>
-      </span>
+      <div className="legacy-view">
+        <dl>
+          {legacyItems(raw as Row).map(([k, v]) => (
+            <div key={k}>
+              <dt>{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="small muted">Значения перенесены из исходного Excel, здесь их можно только посмотреть. Изменять их можно будет, когда до этих данных дойдёт расчёт.</p>
+      </div>
     );
   }
   const rows = (raw as Row[] | undefined) ?? [];

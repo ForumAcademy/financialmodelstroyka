@@ -63,6 +63,7 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
           <h2 className="part-title">Расчёт</h2>
         </div>
         <p className="stage-note">Расчёт — этап 3: суммы по статьям появятся, когда ядро будет считать бюджет (ставка × база × индекс). Сейчас считается земельный налог.</p>
+        <div className="hscroll">
         <table className="sheet calc-table">
           <thead>
             <tr>
@@ -109,6 +110,7 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
     </>
   );

@@ -132,6 +132,7 @@ function SourcesPage() {
         ) : null}
       </div>
       {adding && project ? <NewSourceForm projectId={project.id} onDone={() => setAdding(false)} /> : null}
+      <div className="hscroll">
       <table className="sheet">
         <thead>
           <tr>
@@ -196,6 +197,7 @@ function SourcesPage() {
           ) : null}
         </tbody>
       </table>
+      </div>
       <p className="footnote">Уровни: 1 — закон, НПА; 2 — статистика, госсервисы; 3 — рынок; 4 — документ компании или проекта; 5 — экспертная оценка (автор, обоснование, диапазон). Вложение файлов к источникам проекта — этап 8.</p>
     </main>
   );

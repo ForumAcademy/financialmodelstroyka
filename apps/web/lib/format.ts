@@ -22,8 +22,10 @@ export function date(iso: string | null | undefined): string {
   return `${d}.${m}.${y}`;
 }
 
+const UNIT_LABEL: Record<string, string> = { м2: "м²", "руб/м2": "руб/м²", "%годовых": "% год.", "доля/год": "доля в год" };
+
 export function unit(u: string): string {
-  return u === "м2" ? "м²" : u === "руб/м2" ? "руб/м²" : u;
+  return UNIT_LABEL[u] ?? u;
 }
 
 /** Значение параметра или формулы для таблицы. */

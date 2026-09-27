@@ -155,6 +155,11 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
         {fmt.value(v ?? null)} {v !== null && v !== undefined ? fmt.unit(p.unit) : ""}
       </div>
       <p className="muted small">{origin === "project" ? "Вводное значение проекта" : origin === "region" ? "Из справочника регионов" : "Значение справочника"}</p>
+      {project && model(project).missing.has(id) ? (
+        <p className="need-legend">
+          <span className="need-badge">Заполните</span> Обязательное значение не введено — без него не считаются формулы из раздела «Используется в формулах» ниже.
+        </p>
+      ) : null}
       <h3>Что это</h3>
       <p>{p.basis}</p>
       {p.how_to_fill ? (

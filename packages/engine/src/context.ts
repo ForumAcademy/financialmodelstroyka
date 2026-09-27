@@ -73,7 +73,7 @@ export interface FormulaContext {
   formula<T = unknown>(id: FormulaId): T;
   /** Регион проекта (GEN.REGION_CODE) из data/regions.yaml. */
   region(): SpecRegion;
-  message(severity: Severity, text: string, parameterId?: ParameterId): void;
+  message(severity: Severity, text: string, parameterId?: ParameterId, key?: string): void;
 }
 
 interface Frame {
@@ -85,6 +85,7 @@ export class Engine {
   readonly mode: CalcMode;
   readonly horizonMonths: number | null;
   private readonly values: ProjectInput["values"];
+  private readonly standard: NonNullable<ProjectInput["standard"]>;
   private readonly nodes = new Map<FormulaId, TraceNode>();
   private readonly failed = new Set<FormulaId>();
   private readonly params = new Map<ParameterId, ParameterTrace>();
@@ -97,6 +98,7 @@ export class Engine {
     options: CalcOptions = {},
   ) {
     this.values = input.values;
+    this.standard = input.standard ?? {};
     this.mode = input.mode ?? "normal";
     this.horizonMonths = options.horizonMonths ?? null;
   }
@@ -122,7 +124,7 @@ export class Engine {
       this.failed.add(id);
       if (e instanceof MissingInputError) {
         const p = getParameter(e.parameterId);
-        this.push({ severity: "error", formulaId: id, parameterId: e.parameterId, text: `Заполните «${p.name}» (${p.id})` });
+        this.push({ severity: "error", formulaId: id, parameterId: e.parameterId, text: `Заполните «${p.name}»` });
       } else if (e instanceof CalcError) {
         this.push({ severity: "error", formulaId: id, text: e.message, ...(e.parameterId ? { parameterId: e.parameterId } : {}) });
       } else if (!(e instanceof DependencyError)) {
@@ -164,10 +166,15 @@ export class Engine {
     return this.values[id];
   }
 
-  /** Значение параметра: проект → регион (regions.yaml) → значение по умолчанию из parameters.yaml. */
+  /**
+   * Значение параметра: проект → справочник допущений компании → регион (regions.yaml) → значение по умолчанию из
+   * parameters.yaml.
+   */
   private resolve(id: ParameterId): { value: unknown; origin: ValueOrigin } | null {
     const own = this.values[id];
     if (own !== undefined && own !== null) return { value: own, origin: "project" };
+    const std = this.standard[id];
+    if (std !== undefined && std !== null) return { value: std, origin: "standard" };
     const fromRegion = REGION_VALUES[id];
     const region = this.projectRegion();
     if (fromRegion && region) {
@@ -220,8 +227,8 @@ export class Engine {
         if (typeof code !== "string" || !isRegionCode(code)) throw new MissingInputError("GEN.REGION_CODE");
         return getRegion(code);
       },
-      message: (severity, text, parameterId) => {
-        this.push({ severity, formulaId: frame.id, text, ...(parameterId ? { parameterId } : {}) });
+      message: (severity, text, parameterId, key) => {
+        this.push({ severity, formulaId: frame.id, text, ...(parameterId ? { parameterId } : {}), ...(key ? { key } : {}) });
       },
     };
     return ctx;

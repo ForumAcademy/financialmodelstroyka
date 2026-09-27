@@ -4,9 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { spec } from "@fm/spec";
-import { regionName } from "@/lib/format";
+import type Decimal from "decimal.js";
+import { num, regionName } from "@/lib/format";
+import type { ProjectModel } from "@/lib/model";
+import { latest } from "@/lib/assumptions";
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
+
+/** Выручка с НДС из ядра (F.SALES.REVENUE_TOTAL), млрд руб.; не посчитана — «—». */
+const revenueBn = (m: ProjectModel) => {
+  const gross = (m.result.formulas["F.SALES.REVENUE_TOTAL"]?.value as { gross?: Decimal } | undefined)?.gross;
+  return gross ? num(gross.div(1e9), 1) : "—";
+};
 
 const updated = (iso: string) => new Date(iso).toLocaleDateString("ru-RU");
 
@@ -50,7 +59,7 @@ function RowMenu({ project }: { project: DemoProject }) {
 }
 
 export default function ProjectsPage() {
-  const { projects, dispatch } = useStore();
+  const { projects, dispatch, model, assumptions } = useStore();
   const router = useRouter();
   const [archived, setArchived] = useState(false);
   const list = projects.filter((p) => p.archived === archived).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -60,7 +69,7 @@ export default function ProjectsPage() {
     const name = `Новый проект ${projects.length + 1}`;
     dispatch({
       type: "create",
-      project: { id, name, archived: false, sources: [], paramSources: {}, specVersion: spec.specVersion, updatedAt: new Date().toISOString(), input: { values: { "GEN.PROJECT_NAME": name } } },
+      project: { id, name, archived: false, sources: [], paramSources: {}, specVersion: spec.specVersion, assumptionsVersion: latest(assumptions).version, updatedAt: new Date().toISOString(), input: { values: { "GEN.PROJECT_NAME": name } } },
     });
     router.push(`/projects/${id}`);
   };
@@ -98,9 +107,9 @@ export default function ProjectsPage() {
               </div>
             </div>
             <dl className="pc-kpi">
-              <div title="Расчёт — этап 4">
+              <div>
                 <dt>Выручка, млрд руб.</dt>
-                <dd>—</dd>
+                <dd>{revenueBn(model(p))}</dd>
               </div>
               <div title="Расчёт — этап 6">
                 <dt>NPV, млн руб.</dt>

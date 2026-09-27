@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Decimal from "decimal.js";
 import { getParameter, spec, type FormulaId, type ParameterId } from "@fm/spec";
+import { ChangedMark, NoLink, SourceMark, useChange } from "./Change";
 import { compositeSummary } from "./DataView";
 import { useHow } from "./HowPanel";
 import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from "@/lib/model";
@@ -38,17 +39,29 @@ const COLUMN_LABEL: Record<string, string> = {
   area_share: "Доля площади",
   avg_area: "Ср. площадь, м²",
   product: "Продукт",
-  stock_area: "Запас, м²",
-  stock_units: "Запас, шт",
+  stock_area: "Построено к продаже, м²",
+  stock_units: "Построено к продаже, шт",
   start_price: "Стартовая цена",
   price_date: "Дата цены",
   sale_channel_before_rnv: "Канал до РНВ",
   source_ids: "Источники",
-  mortgage_share: "Ипотека",
+  mortgage_share: "Ипотечные сделки",
+  mortgage_down_payment: "из них ПВ по ипотеке",
   full_payment_share: "100% оплата",
   installment_share: "Рассрочка",
   installment_months: "Рассрочка, мес",
   installment_down_payment: "Первый взнос",
+  name: "Название",
+  method: "Способ",
+  manual: "Ручной ряд",
+  stage: "Стадия",
+  uplift: "Надбавка",
+};
+
+/** Подписи столбцов, которые у параметра значат не то же, что в COLUMN_LABEL. */
+const PARAM_COLUMN_LABEL: Partial<Record<ParameterId, Record<string, string>>> = {
+  "SALES.PACE": { value: "Темп: доля остатка или м² (шт) в месяц" },
+  "SALES.LEGACY_PRICE_GROWTH": { rate: "Рост за период", step_months: "Длина периода, мес" },
 };
 
 function parseInput(kind: string, unit: string, raw: string): unknown {
@@ -60,23 +73,28 @@ function parseInput(kind: string, unit: string, raw: string): unknown {
     const n = Number(t.replace(/\s/g, "").replace(",", "."));
     return Number.isNaN(n) ? t : n;
   }
+  // Число, показанное с разрядами («1 000»), читается обратно как число в любом столбце.
+  if (/^-?\d{1,3}(\s\d{3})+([.,]\d+)?$/.test(t)) return Number(t.replace(/\s/g, "").replace(",", "."));
   return t;
 }
 
 function Field({ project, model, id }: { project: DemoProject; model: ProjectModel; id: ParameterId }) {
-  const { dispatch } = useStore();
   const { open } = useHow();
   const p = getParameter(id);
   const own = project.input.values[id];
   const traced = model.result.parameters[id];
-  const shown = own ?? traced?.value ?? p.default;
-  const readonly = p.scope === "template";
+  const shown = own ?? traced?.value ?? model.standard[id] ?? p.default;
+  const summary = compositeSummary(shown);
+  // Любое значение проекта можно изменить (с комментарием «почему»); ряды и таблицы справочника смотрятся в карточке.
+  const reference = p.scope === "template";
+  const readonly = reference && (summary !== null || p.kind === "table" || p.kind === "series");
   const need = model.missing.has(id);
-  const commit = (raw: string) => dispatch({ type: "value", id: project.id, param: id, value: parseInput(p.kind, p.unit, raw) });
-  const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : String(shown);
+  const change = useChange(project, id, shown);
+  const hasValue = shown !== null && shown !== undefined && shown !== "" && !(Array.isArray(shown) && shown.length === 0);
+  const commit = (raw: string) => change.commit(parseInput(p.kind, p.unit, raw));
+  const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : typeof shown === "number" ? fmt.inputNumber(shown) : String(shown);
 
   let control: ReactNode;
-  const summary = compositeSummary(shown);
   if (summary && (readonly || p.kind !== "table")) {
     control = (
       <button className="link ro-link" onClick={() => open({ kind: "param", id })}>
@@ -86,7 +104,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   } else if (readonly || (p.kind !== "table" && typeof shown === "object" && shown !== null)) {
     control = <span className="ro">{fmt.value(shown ?? null)}</span>;
   } else if (p.kind === "table") {
-    control = <TableEditor project={project} id={id} />;
+    control = <TableEditor project={project} id={id} value={shown} />;
   } else if (id === "GEN.REGION_CODE") {
     control = (
       <select className={need ? "need" : ""} value={text} onChange={(e) => commit(e.target.value)}>
@@ -118,20 +136,30 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   } else if (p.kind === "series") {
     control = <span className="ro muted">помесячный ряд — ввод на этапе 8</span>;
   } else {
-    control = <input key={text} className={need ? "need" : ""} type={p.kind === "date" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && commit(e.target.value)} />;
+    control = <input key={`${text}-${change.pending}`} className={need ? "need" : ""} type={p.kind === "date" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && commit(e.target.value)} />;
   }
 
   return (
     <div className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
-      <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
-        {p.name}
-        {readonly ? <span className="tag">справочник</span> : null}
-        {need ? <span className="need-badge">Заполните</span> : null}
-      </button>
+      <div className="field-head">
+        <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
+          {p.name}
+          {reference && !project.changes?.[id] && !model.standard[id] ? <span className="tag">справочник</span> : null}
+          {need ? <span className="need-badge">Заполните</span> : null}
+        </button>
+        {hasValue || project.changes?.[id] ? (
+          <div className="field-marks">
+            {hasValue ? <SourceMark project={project} id={id} /> : null}
+            {hasValue ? <NoLink project={project} id={id} /> : null}
+            <ChangedMark project={project} id={id} />
+          </div>
+        ) : null}
+      </div>
       <div className="field-control">
         {control}
         {p.kind !== "table" || readonly ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" && p.kind !== "table" && !summary ? fmt.unit(p.unit) : ""}</span> : null}
       </div>
+      {change.form}
     </div>
   );
 }
@@ -145,7 +173,7 @@ export function needHint(id: ParameterId): string {
 
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
   const missing = groups.flatMap((g) => g.params).filter((id) => model.missing.has(id)).length;
-  // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; обычные ставятся парами,
+  // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; простые ставятся парами,
   // блок без соседа в строке тоже растягивается на всю ширину.
   const hasTable = (g: InputGroup) => g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template");
   const full = new Set<number>();
@@ -193,6 +221,8 @@ const LEGACY_LABEL: Record<string, [string, "share" | "num" | "quarters"]> = {
   installment: ["Рассрочка", "share"],
   down_payment: ["Первый взнос по рассрочке", "share"],
   installment_quarters: ["Срок рассрочки", "quarters"],
+  rate: ["Рост за период", "share"],
+  step_months: ["Длина периода, мес", "num"],
 };
 
 /** Объект из исходного Excel → пары «подпись — значение» на русском. */
@@ -208,13 +238,26 @@ function legacyItems(raw: Row): [string, string][] {
   });
 }
 
-function TableEditor({ project, id }: { project: DemoProject; id: ParameterId }) {
+/** Кратко о составной ячейке: ручной ряд {from, step_months, values} → «32 периода по 3 мес с 31.03.2026, итого 1 234». */
+function cellSummary(v: object): string {
+  const m = v as { from?: string; step_months?: number; values?: unknown[] };
+  if (Array.isArray(m.values)) {
+    const total = m.values.reduce((a: number, x) => a + (typeof x === "number" ? x : 0), 0);
+    const n = m.values.length;
+    return `${n} ${fmt.plural(n, ["период", "периода", "периодов"])} по ${m.step_months ?? "?"} мес с ${fmt.date(m.from)}, итого ${fmt.num(total, 0)}`;
+  }
+  return fmt.value(v);
+}
+
+/** value — значение, которое действует в проекте: своё значение проекта или стандарт компании. */
+function TableEditor({ project, id, value }: { project: DemoProject; id: ParameterId; value: unknown }) {
   const { dispatch } = useStore();
   const p = getParameter(id);
   const columns = (p.columns ?? []).filter((c) => c.key !== "source_ids");
-  const raw = project.input.values[id];
+  const raw = value;
+  const change = useChange(project, id, raw);
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {
-    // Значение в формате исходного Excel (режим совместимости) — только просмотр, понятными словами.
+    // Значение в формате исходного Excel (расчёт «как в исходном Excel») — только просмотр, понятными словами.
     return (
       <div className="legacy-view">
         <dl>
@@ -231,42 +274,66 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   }
   const rows = (raw as Row[] | undefined) ?? [];
   if (columns.length === 0) return <span className="ro">{fmt.value(rows.length ? rows : null)}</span>;
-  const set = (next: Row[]) => dispatch({ type: "value", id: project.id, param: id, value: next });
-  const cell = (r: number, key: string, raw: string, unit: string) => set(rows.map((row, i) => (i === r ? { ...row, [key]: parseInput(unit === "дата" ? "date" : "scalar", unit, raw) } : row)));
-  const addRow = () => set([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
+  const set = (next: Row[]) => change.commit(next);
+  // Пустая строка или пустая ячейка заполняются без комментария: исходного значения, которое меняется, ещё нет.
+  const fill = (next: Row[]) => {
+    const c = project.changes?.[id];
+    if (c) dispatch({ type: "change", id: project.id, param: id, before: c.before, value: next, why: c.why, ...(c.url ? { url: c.url } : {}), author: c.author });
+    else dispatch({ type: "value", id: project.id, param: id, value: next });
+  };
+  const cell = (r: number, key: string, raw: string, unit: string) => {
+    const next = rows.map((row, i) => (i === r ? { ...row, [key]: parseInput(unit === "дата" ? "date" : "scalar", unit, raw) } : row));
+    const old = rows[r]?.[key];
+    // Стандарт компании меняется только с комментарием «почему», даже пустая ячейка.
+    const own = project.input.values[id] !== undefined && project.input.values[id] !== null;
+    (own && (old === null || old === undefined || old === "") ? fill : set)(next);
+  };
+  const addRow = () => {
+    const next = [...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}];
+    if (rows.length && (project.input.values[id] === undefined || project.input.values[id] === null)) set(next);
+    else fill(next);
+  };
   return (
     <div className="table-editor">
-      <table className={id === "TIME.MILESTONES" ? "fit" : ""}>
+      <table className={id === "TIME.MILESTONES" ? "fit" : ""} data-param={id}>
         <thead>
           <tr>
             {columns.map((c) => (
-              <th key={c.key}>{COLUMN_LABEL[c.key] ?? c.key}</th>
+              <th key={c.key}>{PARAM_COLUMN_LABEL[id]?.[c.key] ?? COLUMN_LABEL[c.key] ?? c.key}</th>
             ))}
             <th className="col-del" />
           </tr>
         </thead>
         <tbody>
           {rows.map((row, r) => (
-            <tr key={r}>
+            <tr key={r} data-row={String(row.name ?? row.product ?? "")}>
               {columns.map((c) => {
                 const v = row[c.key];
-                const text = v === null || v === undefined ? "" : String(v);
+                const text = v === null || v === undefined ? "" : typeof v === "number" ? fmt.inputNumber(v) : String(v);
+                // Составное значение ячейки (ручной ряд темпа) — просмотр кратко; ввод рядов — на этапе 8
+                if (v !== null && typeof v === "object") {
+                  return (
+                    <td key={c.key} className={`col-${c.key}`}>
+                      <span className="ro small">{cellSummary(v)}</span>
+                    </td>
+                  );
+                }
                 return (
                   <td key={c.key} className={`col-${c.key}`}>
                     {c.options ? (
-                      <select value={text} onChange={(e) => cell(r, c.key, e.target.value, "текст")}>
+                      <select key={`${text}-${change.pending}`} value={text} onChange={(e) => cell(r, c.key, e.target.value, "текст")}>
                         <option value="">—</option>
                         {c.options.map((o) => (
                           <option key={o}>{o}</option>
                         ))}
                       </select>
                     ) : (
-                      <input key={text} type={c.unit === "дата" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && cell(r, c.key, e.target.value, c.unit)} />
+                      <input key={`${text}-${change.pending}`} type={c.unit === "дата" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && cell(r, c.key, e.target.value, c.unit)} />
                     )}
                   </td>
                 );
               })}
-              <td>
+              <td className="col-del">
                 <button className="icon" aria-label="Удалить строку" onClick={() => set(rows.filter((_, i) => i !== r))}>
                   ×
                 </button>
@@ -278,6 +345,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
       <button className="link small" onClick={addRow}>
         + строка
       </button>
+      {change.form}
     </div>
   );
 }
@@ -295,6 +363,8 @@ export type CalcRow =
       bold?: boolean;
       /** Итог ряда: сумма (потоки) или не показывать (флаги, остатки, ставки). */
       totalMode?: "sum" | "none";
+      /** Значение за период: сумма месяцев (потоки) или на конец периода (остатки, цены). */
+      periodMode?: "sum" | "last";
     };
 
 export function Calc({ model, rows, periods = false, stages, title = "Расчёт" }: { model: ProjectModel; rows: CalcRow[]; periods?: boolean; stages?: number[]; title?: string }) {
@@ -344,9 +414,10 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
                   </tr>
                 );
               }
-              const series = row.series && dates ? aggregate(row.series, dates, period).sums : null;
+              const series = row.series && dates ? aggregate(row.series, dates, period, row.periodMode).sums : null;
               const total = row.total !== undefined ? row.total : row.series && row.totalMode !== "none" ? row.series.reduce((a, b) => a + b, 0) : undefined;
-              const totalText = total === undefined ? (row.series ? "" : "—") : fmt.value(total);
+              // Деньги в итогах — до рубля, как в ячейках по периодам
+              const totalText = total === undefined ? (row.series ? "" : "—") : row.unit?.startsWith("руб") && (typeof total === "number" || total instanceof Decimal) ? fmt.num(total, 0) : fmt.value(total);
               const click = () => row.formula && open({ kind: "formula", id: row.formula, label: row.label, value: total === undefined ? "—" : `${totalText} ${fmt.unit(row.unit ?? "")}` });
               return (
                 <tr key={i} className={`${row.bold ? "total" : ""} ${row.formula ? "clickable" : ""}`} onClick={click}>
@@ -355,7 +426,7 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
                   <td className="num">{totalText}</td>
                   {keys.map((k, j) => (
                     <td key={k} className="num">
-                      {series ? (series[j] ? fmt.num(series[j] as number, 0) : "") : "—"}
+                      {series ? (series[j] ? fmt.num(series[j] as number, 0) : "") : row.total !== undefined ? "" : "—"}
                     </td>
                   ))}
                 </tr>

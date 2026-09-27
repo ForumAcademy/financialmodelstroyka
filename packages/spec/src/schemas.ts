@@ -68,6 +68,17 @@ export const parameterSchema = z
     source_ids: idList.min(1, "нужен хотя бы один источник"),
     basis: z.string().min(1, "нужно обоснование (basis)"),
     how_to_fill: z.string().optional(),
+    /**
+     * «Откуда» значение справочника простыми словами: текст и необязательная ссылка (решение владельца продукта
+     * 27.09.2026). Задаётся, когда у значения нет документа-первоисточника; иначе «Откуда» — источники из source_ids.
+     */
+    from: z
+      .object({
+        text: z.string().min(1),
+        url: z.string().regex(/^https?:\/\//, "URL должен начинаться с http(s)://").nullable(),
+      })
+      .strict()
+      .optional(),
     status: z.enum(PARAMETER_STATUSES),
     legacy: z.array(legacyCellSchema).min(1, "нужна связь с исходником или 'new'"),
   })
@@ -225,6 +236,19 @@ export const formulaSchema = z
     note: z.string().min(1).optional(),
     /** Расшифровка промежуточных обозначений из expr: «need[t]» → что это. */
     terms: z.record(z.string().min(1), z.string().min(1)).optional(),
+    /**
+     * Панель «Как посчитано» для финансиста: название с единицами, пояснение простым языком в 1–3 предложениях
+     * (без обозначений, кодов и английских слов) и пример на цифрах проекта одной строкой (шаблон с подстановкой
+     * {ID} и {=} — результат). Предупреждения, разница с расчётом «как в исходном Excel» и поля ввода берутся из расчёта.
+     */
+    plain: z
+      .object({
+        title: z.string().min(1),
+        how: z.string().min(1),
+        example: z.string().min(1).optional(),
+      })
+      .strict()
+      .optional(),
     depends_on: idList,
     /** Подмножество depends_on, для которого берётся значение прошлого месяца X[t-1]; разрывает цикл графа. */
     lag_depends_on: idList.optional(),
@@ -243,6 +267,42 @@ export const formulaSchema = z
   })
   .strict();
 
+// ---------- company_assumptions.yaml ----------
+
+/** Раздел справочника допущений; порядок значений в версии задаёт номера вопросов к данным. */
+export const ASSUMPTION_GROUPS = ["sales", "budget", "escrow", "fin"] as const;
+/** unverified — «не проверено», check — «проверить …» (что именно — в поле check), approved — «утверждено». */
+export const ASSUMPTION_STATUSES = ["unverified", "check", "approved"] as const;
+
+export const assumptionItemSchema = z
+  .object({
+    param: z.string().min(1),
+    group: z.enum(ASSUMPTION_GROUPS),
+    /** null — стандарта нет, значение вводится в проекте. */
+    value: z.unknown().refine((v) => v !== undefined, "нужно поле value (null — стандарта нет)"),
+    status: z.enum(ASSUMPTION_STATUSES),
+    /** Для статуса check: что проверить («условия банка»). */
+    check: z.string().min(1).optional(),
+    from: z
+      .object({
+        text: z.string().min(1),
+        url: z.string().regex(/^https?:\/\//, "URL должен начинаться с http(s)://").nullable(),
+      })
+      .strict(),
+    note: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const assumptionVersionSchema = z
+  .object({
+    version: z.number().int().min(1),
+    date: isoDate,
+    author: z.string().min(1),
+    note: z.string().min(1),
+    items: z.array(assumptionItemSchema).min(1),
+  })
+  .strict();
+
 // ---------- файлы целиком ----------
 
 export const sourcesFileSchema = z.object({ sources: z.array(sourceSchema) }).strict();
@@ -250,12 +310,15 @@ export const parametersFileSchema = z.object({ parameters: z.array(parameterSche
 export const capexFileSchema = z.object({ items: z.array(capexItemSchema) }).strict();
 export const regionsFileSchema = z.object({ regions: z.array(regionSchema) }).strict();
 export const formulasFileSchema = z.object({ formulas: z.array(formulaSchema) }).strict();
+export const assumptionsFileSchema = z.object({ versions: z.array(assumptionVersionSchema).min(1) }).strict();
 
 export type Source = z.infer<typeof sourceSchema>;
 export type Parameter = z.infer<typeof parameterSchema>;
 export type CapexItem = z.infer<typeof capexItemSchema>;
 export type Region = z.infer<typeof regionSchema>;
 export type Formula = z.infer<typeof formulaSchema>;
+export type AssumptionItem = z.infer<typeof assumptionItemSchema>;
+export type AssumptionVersion = z.infer<typeof assumptionVersionSchema>;
 
 /** Весь справочник после проверки схемами. */
 export interface SpecData {
@@ -264,4 +327,6 @@ export interface SpecData {
   capexItems: CapexItem[];
   regions: Region[];
   formulas: Formula[];
+  /** Справочник допущений компании по версиям (data/company_assumptions.yaml). */
+  assumptions: AssumptionVersion[];
 }

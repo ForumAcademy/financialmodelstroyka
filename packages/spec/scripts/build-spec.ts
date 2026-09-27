@@ -13,6 +13,7 @@ import { resolve } from "node:path";
 import { parse } from "yaml";
 import type { z } from "zod";
 import {
+  assumptionsFileSchema,
   capexFileSchema,
   formulasFileSchema,
   parametersFileSchema,
@@ -48,8 +49,9 @@ const parameters = load("parameters.yaml", parametersFileSchema);
 const capex = load("capex_items.yaml", capexFileSchema);
 const regions = load("regions.yaml", regionsFileSchema);
 const formulas = load("formulas.yaml", formulasFileSchema);
+const assumptions = load("company_assumptions.yaml", assumptionsFileSchema);
 
-if (!sources || !parameters || !capex || !regions || !formulas) {
+if (!sources || !parameters || !capex || !regions || !formulas || !assumptions) {
   report();
   process.exit(1);
 }
@@ -60,6 +62,7 @@ const spec: SpecData = {
   capexItems: capex.items,
   regions: regions.regions,
   formulas: formulas.formulas,
+  assumptions: assumptions.versions,
 };
 
 const { errors: checkErrors, warnings } = checkSpec(spec);
@@ -112,7 +115,8 @@ for (const [name, content] of Object.entries(files)) {
 report(warnings);
 console.log(
   `Справочник ${specVersion}: источников ${spec.sources.length}, параметров ${spec.parameters.length}, ` +
-    `формул ${spec.formulas.length}, статей бюджета ${spec.capexItems.length}, регионов ${spec.regions.length}. Ошибки: 0`,
+    `формул ${spec.formulas.length}, статей бюджета ${spec.capexItems.length}, регионов ${spec.regions.length}, ` +
+    `версий справочника допущений ${spec.assumptions.length}. Ошибки: 0`,
 );
 if (stale) process.exit(1);
 

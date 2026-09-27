@@ -1,15 +1,23 @@
 import type Decimal from "decimal.js";
 import type { FormulaId, ParameterId, RegionCode } from "@fm/spec";
 
-/** Откуда взято значение параметра. */
-export type ValueOrigin = "project" | "region" | "template";
+/**
+ * Откуда взято значение параметра: проект, справочник допущений компании (стандарт, версия зафиксирована в проекте),
+ * справочник регионов или значение по умолчанию из parameters.yaml.
+ */
+export type ValueOrigin = "project" | "standard" | "region" | "template";
 
-/** Режим расчёта: обычный или совместимость с исходным Excel (tests/cases/*_legacy.yaml). */
+/** Режим расчёта: расчёт сервиса (normal) или «как в исходном Excel» (legacy, tests/cases/*_legacy.yaml). */
 export type CalcMode = "normal" | "legacy";
 
 /** Входные данные проекта: значения параметров по ID (docs/01, «Расчётное ядро»). */
 export interface ProjectInput {
   values: Partial<Record<ParameterId, unknown>>;
+  /**
+   * Стандартные значения компании (data/company_assumptions.yaml, версия, на которой создан проект). Действуют там, где
+   * у проекта нет своего значения; своё значение проекта всегда главнее.
+   */
+  standard?: Partial<Record<ParameterId, unknown>>;
   mode?: CalcMode;
 }
 
@@ -30,6 +38,11 @@ export interface CalcMessage {
   text: string;
   /** Параметр, который нужно заполнить или исправить. */
   parameterId?: ParameterId;
+  /**
+   * Постоянный ключ условия («CAPEX.SCHEDULE_SUM:ROADS_UDS»): одно и то же расхождение в разных прогонах имеет один
+   * ключ. По нему предупреждения расчёта «как в исходном Excel» связываются с вопросами к данным.
+   */
+  key?: string;
 }
 
 /** Узел следа: значение формулы и все прочитанные ею параметры и формулы. */

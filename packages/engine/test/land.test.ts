@@ -27,11 +27,55 @@ describe("LAND", () => {
     expect(pay[55]?.isZero()).toBe(true);
   });
 
-  it("аренда и смена ВРИ без правил в спецификации — ошибка, а не выдуманный расчёт", () => {
-    const rent = calculate({ values: { ...base, "LAND.TENURE": "аренда" } }, { horizonMonths: 12 }, ["F.LAND.TAX_OR_RENT"]);
-    expect(rent.messages).toContainEqual(expect.objectContaining({ severity: "error", text: expect.stringContaining("вопрос владельцу продукта") }));
-    const vri = calculate({ values: { ...base, "LAND.CADASTRAL_VALUE_AFTER_VRI": 7e9 } }, { horizonMonths: 12 }, ["F.LAND.TAX_OR_RENT"]);
-    expect(vri.messages).toContainEqual(expect.objectContaining({ severity: "error", parameterId: "LAND.CADASTRAL_VALUE_AFTER_VRI" }));
+  it("аренда: поквартально авансом, индексация раз в год, до передачи первого помещения", () => {
+    const rent = {
+      ...base,
+      "LAND.TENURE": "аренда",
+      "LAND.RENT_ANNUAL": 1200,
+      "LAND.RENT_INDEXATION": 0.1,
+      "TIME.MILESTONES": [{ phase: 1, land_acquired: "2026-01-01", handover_start: "2027-05-31", handover_end: "2030-06-30" }],
+    };
+    const r = calculate({ values: rent }, { horizonMonths: 24 }, ["F.LAND.TAX_OR_RENT"]);
+    const pay = (r.formulas["F.LAND.TAX_OR_RENT"]?.value as Decimal[]).map((x) => x.toDecimalPlaces(6).toNumber());
+    expect(pay.slice(0, 10)).toEqual([0, 300, 0, 0, 300, 0, 0, 300, 0, 0]);
+    expect(pay[10]).toBe(300);
+    expect(pay[13]).toBe(330); // январь 2027: второй год аренды, +10%
+    const monthly = calculate({ values: { ...rent, "LAND.RENT_PAYMENT_FREQ": "ежемесячно" } }, { horizonMonths: 24 }, ["F.LAND.TAX_OR_RENT"]);
+    expect((monthly.formulas["F.LAND.TAX_OR_RENT"]?.value as Decimal[])[1]?.toNumber()).toBe(100);
+  });
+
+  it("аренда авансом: неполный первый квартал — в первый месяц аренды, неполный последний — по дням", () => {
+    const rent = {
+      ...base,
+      "LAND.TENURE": "аренда",
+      "LAND.RENT_ANNUAL": 1200,
+      "LAND.RENT_INDEXATION": 0,
+      // аренда с 16.02.2026 по 15.05.2026 (начало передачи помещений)
+      "TIME.MILESTONES": [{ phase: 1, land_acquired: "2026-02-16", handover_start: "2026-05-16", handover_end: "2030-06-30" }],
+    };
+    const r = calculate({ values: rent }, { horizonMonths: 8 }, ["F.LAND.TAX_OR_RENT"]);
+    const pay = (r.formulas["F.LAND.TAX_OR_RENT"]?.value as Decimal[]).map((x) => x.toNumber());
+    // февраль: 13 дней из 28 + весь март — платится в феврале (первый месяц аренды), январь — ничего
+    expect(pay[1]).toBe(0);
+    expect(pay[2]).toBeCloseTo((100 * 13) / 28 + 100, 9);
+    expect(pay[3]).toBe(0);
+    // апрель: весь апрель + 15 дней мая из 31
+    expect(pay[4]).toBeCloseTo(100 + (100 * 15) / 31, 9);
+    expect(pay.slice(5)).toEqual([0, 0, 0]);
+  });
+
+  it("смена ВРИ: до вехи — стоимость до смены ВРИ без коэффициента, с вехи — новая с коэффициентом", () => {
+    const vri = {
+      ...base,
+      "LAND.CADASTRAL_VALUE_AFTER_VRI": 12e9,
+      "TIME.MILESTONES": [{ phase: 1, land_acquired: "2025-12-31", vri_change_date: "2026-06-30", handover_end: "2030-06-30" }],
+    };
+    const r = calculate({ values: vri }, { horizonMonths: 12 }, ["F.LAND.TAX_OR_RENT"]);
+    const pay = r.formulas["F.LAND.TAX_OR_RENT"]?.value as Decimal[];
+    expect(pay[5]?.toNumber()).toBeCloseTo(5834907660 * 0.015 / 12, 6); // май 2026
+    expect(pay[6]?.toNumber()).toBeCloseTo(12e9 * 0.015 * 2 / 12, 6); // июнь 2026
+    const noDate = calculate({ values: { ...base, "LAND.CADASTRAL_VALUE_AFTER_VRI": 12e9 } }, { horizonMonths: 12 }, ["F.LAND.TAX_OR_RENT"]);
+    expect(noDate.messages).toContainEqual(expect.objectContaining({ severity: "error", text: expect.stringContaining("смена ВРИ") }));
   });
 
   it("плата за ВРИ: формула региона не выписана — обязательный ручной ввод", () => {

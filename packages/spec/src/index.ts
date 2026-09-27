@@ -18,11 +18,13 @@ import {
   type RegionCode,
   type SourceId,
 } from "./generated/ids";
-import type { CapexItem, Formula, Parameter, Region, Source } from "./schemas";
+import type { AssumptionItem, AssumptionVersion, CapexItem, Formula, Parameter, Region, Source } from "./schemas";
 
 export * from "./generated/ids";
-export { checkSpec, type SpecCheckResult } from "./checks";
+export { assumptionValueProblem, checkAssumptions, checkSpec, type SpecCheckResult } from "./checks";
 export {
+  ASSUMPTION_GROUPS,
+  ASSUMPTION_STATUSES,
   CAPEX_SCHEDULE_RULES,
   FORMULA_MODULES,
   MILESTONE_KEYS,
@@ -33,7 +35,7 @@ export {
   SOURCE_LEVELS,
   SOURCE_SCOPES,
 } from "./schemas";
-export type { CapexItem, Formula, Parameter, Region, Source, SpecData } from "./schemas";
+export type { AssumptionItem, AssumptionVersion, CapexItem, Formula, Parameter, Region, Source, SpecData } from "./schemas";
 
 /** Файлы справочника — единственный источник правды (CLAUDE.md). */
 export const SPEC_FILES = [
@@ -42,6 +44,7 @@ export const SPEC_FILES = [
   "capex_items.yaml",
   "regions.yaml",
   "formulas.yaml",
+  "company_assumptions.yaml",
 ] as const;
 export type SpecFile = (typeof SPEC_FILES)[number];
 
@@ -82,6 +85,9 @@ export type SpecRegion = Omit<
   ngp_source_ids: SourceId[];
 };
 
+export type SpecAssumptionItem = Omit<AssumptionItem, "param"> & { param: ParameterId };
+export type SpecAssumptionVersion = Omit<AssumptionVersion, "items"> & { items: SpecAssumptionItem[] };
+
 export interface Spec {
   /** Хеш содержимого data/*.yaml — сохраняется в каждой версии расчёта. */
   specVersion: string;
@@ -92,6 +98,8 @@ export interface Spec {
   formulas: SpecFormula[];
   capexItems: SpecCapexItem[];
   regions: SpecRegion[];
+  /** Справочник допущений компании по версиям; последняя — текущая. */
+  assumptions: SpecAssumptionVersion[];
 }
 
 /**

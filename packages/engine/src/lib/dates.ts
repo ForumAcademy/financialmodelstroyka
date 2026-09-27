@@ -61,3 +61,45 @@ export function minDate(dates: IsoDate[]): IsoDate {
 export function maxDate(dates: IsoDate[]): IsoDate {
   return dates.reduce((a, b) => (b > a ? b : a));
 }
+
+/** Дата через days дней. */
+export function addDays(date: IsoDate, days: number): IsoDate {
+  const [y, m, d] = parts(date);
+  return fromUtc(Date.UTC(y, m - 1, d + days));
+}
+
+/** Год даты. */
+export function yearOf(date: IsoDate): number {
+  return parts(date)[0];
+}
+
+/** Предыдущий день. */
+export function dayBefore(date: IsoDate): IsoDate {
+  return addDays(date, -1);
+}
+
+/** Последний день месяца перед месяцем даты. */
+export function prevMonthEnd(date: IsoDate): IsoDate {
+  return eomonth(date, -1);
+}
+
+/** Последний день года. */
+export function yearEnd(year: number): IsoDate {
+  return fromUtc(Date.UTC(year, MONTHS_PER_YEAR, 0));
+}
+
+/** Число дней пересечения полуинтервалов (a; b] и (c; d] — даты-границы, как у daysBetween. */
+export function overlapDays(a: IsoDate, b: IsoDate, c: IsoDate, d: IsoDate): number {
+  const from = a > c ? a : c;
+  const to = b < d ? b : d;
+  return to > from ? daysBetween(from, to) : 0;
+}
+
+const MONTHS_PER_QUARTER = 3;
+
+/** Концы трёх месяцев календарного квартала, в который попадает дата. */
+export function quarterMonthEnds(date: IsoDate): IsoDate[] {
+  const m = parts(date)[1] - 1;
+  const first = m - (m % MONTHS_PER_QUARTER);
+  return Array.from({ length: MONTHS_PER_QUARTER }, (_, i) => eomonth(date, first - m + i));
+}

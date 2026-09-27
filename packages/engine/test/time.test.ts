@@ -27,12 +27,17 @@ describe("TIME", () => {
   });
 
   it("флаги стройки, ДДУ, ДКП и раскрытия эскроу — по настоящим датам", () => {
-    const f = run().formulas;
-    expect(f["F.TIME.FLAG_CONSTRUCTION"]?.value).toEqual([[0, 0, 0, 1, 1, 1, 0, 0]]);
-    expect(f["F.TIME.FLAG_PRESALE"]?.value).toEqual([[0, 0, 1, 1, 1, 0, 0, 0]]);
-    expect(f["F.TIME.FLAG_POST_RNV"]?.value).toEqual([[0, 0, 0, 0, 0, 1, 1, 1]]);
-    // РНВ в мае (t = 5) + лаг 1 месяц (TIME.ESCROW_RELEASE_LAG_M)
-    expect(f["F.TIME.FLAG_ESCROW_RELEASE"]?.value).toEqual([[0, 0, 0, 0, 0, 0, 1, 0]]);
+    const f = calculate(input, { horizonMonths: 10 }, ["F.TIME.FLAG_CONSTRUCTION", "F.TIME.FLAG_PRESALE", "F.TIME.FLAG_POST_RNV", "F.TIME.FLAG_ESCROW_RELEASE"]).formulas;
+    expect(f["F.TIME.FLAG_CONSTRUCTION"]?.value).toEqual([[0, 0, 0, 1, 1, 1, 0, 0, 0, 0]]);
+    expect(f["F.TIME.FLAG_PRESALE"]?.value).toEqual([[0, 0, 1, 1, 1, 0, 0, 0, 0, 0]]);
+    expect(f["F.TIME.FLAG_POST_RNV"]?.value).toEqual([[0, 0, 0, 0, 0, 1, 1, 1, 1, 1]]);
+    // РНВ в мае (t = 5) + лаг по умолчанию 3 месяца (TIME.ESCROW_RELEASE_LAG_M) → август
+    expect(f["F.TIME.FLAG_ESCROW_RELEASE"]?.value).toEqual([[0, 0, 0, 0, 0, 0, 0, 0, 1, 0]]);
+  });
+
+  it("лаг раскрытия эскроу 1 месяц (чувствительность) → раскрытие в июне", () => {
+    const f = calculate({ ...input, values: { ...input.values, "TIME.ESCROW_RELEASE_LAG_M": 1 } }, { horizonMonths: 10 }, ["F.TIME.FLAG_ESCROW_RELEASE"]).formulas;
+    expect(f["F.TIME.FLAG_ESCROW_RELEASE"]?.value).toEqual([[0, 0, 0, 0, 0, 0, 1, 0, 0, 0]]);
   });
 
   it("веха текстом вместо даты — ошибка с указанием очереди (ошибка исходника №1)", () => {

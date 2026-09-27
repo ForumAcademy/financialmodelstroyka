@@ -9,6 +9,9 @@
   6. Карта исходного Excel полная: нет UNMAPPED в legacy/*.csv; все target_id существуют.
   7. regions.yaml: 89 субъектов, коды уникальны.
   8. Контрольные примеры формул (где заданы) пересчитываются.
+  9. Справочник допущений компании (company_assumptions.yaml): версии по порядку, параметры существуют и не региональные,
+     значения подходят параметру (число в диапазоне / таблица со столбцами параметра).
+Перед релизом (предупреждения): пустые значения справочника допущений и значения со статусом check.
 Предупреждения (не ошибки): статусы needs_verification, источники verified: false.
 """
 import csv, re, sys
@@ -24,6 +27,7 @@ params = yaml.safe_load(open(D / "parameters.yaml"))["parameters"]
 forms = yaml.safe_load(open(D / "formulas.yaml"))["formulas"]
 capex = yaml.safe_load(open(D / "capex_items.yaml"))["items"]
 regions = yaml.safe_load(open(D / "regions.yaml"))["regions"]
+assumptions = yaml.safe_load(open(D / "company_assumptions.yaml"))["versions"]
 
 def uniq(items, key, what):
     seen = set()
@@ -117,6 +121,17 @@ for f in forms:
     terms = f.get("terms")
     if terms is not None and not (isinstance(terms, dict) and all(isinstance(k, str) and k.strip() and isinstance(v, str) and v.strip() for k, v in terms.items())):
         errors.append(f"формула {f['id']}: terms — словарь «обозначение: расшифровка» с непустыми строками")
+    plain = f.get("plain")
+    if not isinstance(plain, dict) or not plain.get("title") or not plain.get("how"):
+        errors.append(f"формула {f['id']}: нет plain.title / plain.how — пояснения для панели «Как посчитано»")
+    else:
+        if re.search(r"[A-Za-z]", plain["how"]):
+            errors.append(f"формула {f['id']}: plain.how — без обозначений, кодов и английских слов")
+        for token in re.findall(r"\{([^}]+)\}", plain.get("example") or ""):
+            ref = token.split("|")[0]
+            ref = f["id"] + ref[1:] if ref.startswith("=") else ref
+            if not any(ref == k or ref.startswith(k + ".") for k in known):
+                errors.append(f"формула {f['id']}: plain.example — неизвестная ссылка {{{token}}}")
     if f.get("status") == "needs_verification":
         warns.append(f"формула {f['id']}: needs_verification")
 
@@ -178,6 +193,64 @@ for r in regions:
             if i not in S:
                 errors.append(f"регион {r['code']}: источник {i} не найден")
 
+# справочник допущений компании
+def assumption_problem(p, v):
+    if v is None:
+        return None
+    if p["kind"] == "scalar":
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            return "нужно число"
+        rng = p.get("range")
+        if rng and not (rng[0] <= v <= rng[1]):
+            return f"значение {v} вне допустимого диапазона {rng[0]}…{rng[1]}"
+        return None
+    if p["kind"] == "table":
+        if not isinstance(v, list) or not v:
+            return "нужна таблица хотя бы из одной строки"
+        cols = {c["key"]: c for c in p.get("columns") or []}
+        for row in v:
+            if not isinstance(row, dict):
+                return "строка таблицы — набор «столбец: значение»"
+            for k, cell in row.items():
+                if k not in cols:
+                    return f"столбца {k} нет у параметра"
+                if cols[k].get("options") and str(cell) not in cols[k]["options"]:
+                    return f"{k} = {cell} нет среди вариантов"
+        return None
+    return f"вид параметра {p['kind']} в справочнике допущений не поддерживается"
+
+for i, v in enumerate(assumptions):
+    owner = f"справочник допущений, версия {v.get('version')}"
+    if v.get("version") != i + 1:
+        errors.append(f"{owner}: версии нумеруются по порядку с 1, ожидалась {i + 1}")
+    seen = set()
+    for it in v.get("items") or []:
+        pid = it.get("param")
+        if pid in seen:
+            errors.append(f"{owner}: параметр {pid} указан дважды")
+        seen.add(pid)
+        if pid not in PARAMS:
+            errors.append(f"{owner}: параметр {pid} отсутствует в parameters.yaml")
+            continue
+        if PARAMS[pid]["scope"] == "region":
+            errors.append(f"{owner}: {pid} — региональный параметр, его значения в regions.yaml")
+        if it.get("status") not in ("unverified", "check", "approved"):
+            errors.append(f"{owner}: {pid} — status: unverified | check | approved")
+        if it.get("status") == "check" and not it.get("check"):
+            errors.append(f"{owner}: {pid} — статус check без поля check (что проверить)")
+        if it.get("group") not in ("sales", "budget", "escrow", "fin"):
+            errors.append(f"{owner}: {pid} — group: sales | budget | escrow | fin")
+        if not (it.get("from") or {}).get("text"):
+            errors.append(f"{owner}: {pid} — нет from.text («Откуда»)")
+        if i == len(assumptions) - 1:
+            if it.get("value") is None:
+                warns.append(f"проверить перед релизом: {pid} — в справочнике допущений не задано, в расчёте не учтено")
+            elif it.get("status") == "check":
+                warns.append(f"проверить перед релизом: {pid} — {it['check']}")
+        prob = assumption_problem(PARAMS[pid], it.get("value"))
+        if prob:
+            errors.append(f"{owner}: {pid} — {prob}")
+
 # контрольные примеры
 def approx(a, b, tol=1e-6):
     return abs(a - b) <= tol * max(1, abs(b))
@@ -213,7 +286,7 @@ if e:
     if any(not approx(a, b) for a, b in zip(w, e["output"])) or not approx(sum(w), 1):
         errors.append(f"пример F.CAPEX.SCHEDULE_WEIGHT: {w} ≠ {e['output']}")
 
-print(f"Источники: {len(S)}, параметры: {len(P)}, статьи бюджета: {len(C)}, формулы: {len(F)}, регионы: {len(codes)}")
+print(f"Источники: {len(S)}, параметры: {len(P)}, статьи бюджета: {len(C)}, формулы: {len(F)}, регионы: {len(codes)}, версии справочника допущений: {len(assumptions)}")
 print(f"Предупреждения: {len(warns)}")
 for w in warns:
     print("  WARN", w)

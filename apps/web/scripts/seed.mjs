@@ -8,7 +8,19 @@ const root = resolve(import.meta.dirname, "..");
 const src = resolve(root, "../../tests/cases/derbenevskaya_legacy.yaml");
 const out = resolve(root, "lib/generated/derbenevskaya.json");
 const c = parse(readFileSync(src, "utf8"));
-const data = { case_id: c.case_id, description: c.description, project_inputs: c.project_inputs, reconciliation_targets: c.reconciliation_targets };
+const data = {
+  case_id: c.case_id,
+  description: c.description,
+  project_inputs: c.project_inputs,
+  reconciliation_targets: c.reconciliation_targets,
+  // бюджет исходника для расчёта «как в исходном Excel» (legacyCaseInput → CAPEX.ITEMS)
+  capex_legacy: c.capex_legacy,
+  // план продаж исходника (legacyCaseInput → SALES.*)
+  sales_legacy: c.sales_legacy,
+  // ячейки исходника для проверок расчёта «как в исходном Excel» (legacyChecks → предупреждения)
+  legacy_checks: c.legacy_checks,
+  timeline_quarters_F_to_AS: c.timeline_quarters_F_to_AS,
+};
 const text = JSON.stringify(data, null, 2) + "\n";
 function read(path) {
   try {

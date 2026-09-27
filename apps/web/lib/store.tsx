@@ -2,25 +2,35 @@
 
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { spec, type ParameterId } from "@fm/spec";
-import type { DemoProject, ProjectSource, Seed } from "./types";
+import type { DemoProject, IssueEvent, IssueNote, ProjectSource, Seed, ValueChange } from "./types";
 import { computeProject, type ProjectModel } from "./model";
 import type { SourceCheck } from "./sources";
+import { latest, SPEC_ASSUMPTIONS, type AssumptionItem, type AssumptionVersion } from "./assumptions";
 
 type Action =
   | { type: "create"; project: DemoProject }
   | { type: "copy"; id: string; newId: string }
   | { type: "archive"; id: string; archived: boolean }
+  | { type: "mode"; id: string; mode: "normal" | "legacy" }
   | { type: "delete"; id: string }
   | { type: "value"; id: string; param: ParameterId; value: unknown }
   | { type: "addSource"; id: string; source: ProjectSource }
   | { type: "removeSource"; id: string; sourceId: string }
-  | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null };
+  | { type: "renameSource"; id: string; sourceId: string; title: string }
+  | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null }
+  | { type: "change"; id: string; param: ParameterId; before: unknown; value: unknown; why: string; url?: string; author: string }
+  | { type: "revert"; id: string; param: ParameterId }
+  | { type: "issue"; id: string; key: string; no: number; question: string; event: IssueEvent }
+  | { type: "issueNote"; id: string; key: string; no: number; question: string; note: IssueNote }
+  | { type: "assumptionsVersion"; id: string; version: number };
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 function touch(p: DemoProject, patch: Partial<DemoProject>): DemoProject {
   return { ...p, ...patch, updatedAt: new Date().toISOString(), specVersion: spec.specVersion };
 }
 
-function reducer(state: DemoProject[], a: Action): DemoProject[] {
+export function reducer(state: DemoProject[], a: Action): DemoProject[] {
   const map = (fn: (p: DemoProject) => DemoProject) => state.map((p) => ("id" in a && p.id === a.id ? fn(p) : p));
   switch (a.type) {
     case "create":
@@ -34,6 +44,8 @@ function reducer(state: DemoProject[], a: Action): DemoProject[] {
     }
     case "archive":
       return map((p) => touch(p, { archived: a.archived }));
+    case "mode":
+      return map((p) => touch(p, { input: { ...p.input, mode: a.mode } }));
     case "delete":
       return state.filter((p) => p.id !== a.id);
     case "value":
@@ -52,6 +64,49 @@ function reducer(state: DemoProject[], a: Action): DemoProject[] {
           paramSources: Object.fromEntries(Object.entries(p.paramSources).filter(([, v]) => v !== a.sourceId)),
         }),
       );
+    case "renameSource":
+      return map((p) => touch(p, { sources: p.sources.map((s) => (s.id === a.sourceId ? { ...s, title: a.title } : s)) }));
+    case "change":
+      return map((p) => {
+        const own = p.input.values[a.param];
+        const prev = p.changes?.[a.param];
+        const hadOwn = prev ? prev.hadOwn : own !== undefined && own !== null;
+        const before = prev ? prev.before : a.before;
+        const changes = { ...p.changes };
+        // Возврат к исходному значению снимает пометку «изменено».
+        if (same(before, a.value)) delete changes[a.param];
+        else {
+          const c: ValueChange = { before, hadOwn, after: a.value, why: a.why, author: a.author, at: new Date().toISOString() };
+          if (a.url) c.url = a.url;
+          changes[a.param] = c;
+        }
+        return touch(p, { changes, input: { ...p.input, values: { ...p.input.values, [a.param]: a.value } } });
+      });
+    case "revert":
+      return map((p) => {
+        const c = p.changes?.[a.param];
+        if (!c) return p;
+        const values = { ...p.input.values };
+        if (c.hadOwn) values[a.param] = c.before;
+        else delete values[a.param];
+        const changes = { ...p.changes };
+        delete changes[a.param];
+        return touch(p, { changes, input: { ...p.input, values } });
+      });
+    case "issue":
+      return map((p) => {
+        const prev = p.issues?.[a.key];
+        const state = { ...prev, status: a.event.status, history: [...(prev?.history ?? []), a.event], no: a.no, question: a.question };
+        return touch(p, { issues: { ...p.issues, [a.key]: state } });
+      });
+    case "issueNote":
+      return map((p) => {
+        const prev = p.issues?.[a.key];
+        const state = { status: prev?.status ?? "open", history: prev?.history ?? [], no: a.no, question: a.question, notes: [...(prev?.notes ?? []), a.note] };
+        return touch(p, { issues: { ...p.issues, [a.key]: state } });
+      });
+    case "assumptionsVersion":
+      return map((p) => touch(p, { assumptionsVersion: a.version }));
     case "linkSource":
       return map((p) => {
         const paramSources = { ...p.paramSources };
@@ -62,8 +117,28 @@ function reducer(state: DemoProject[], a: Action): DemoProject[] {
   }
 }
 
+/** Правка справочника допущений: каждая правка публикуется новой версией (до этапа 10 — без черновиков). */
+export type AssumptionAction =
+  | { type: "edit"; param: ParameterId; patch: Partial<Pick<AssumptionItem, "value" | "status" | "from">>; why: string; author: string }
+  | { type: "approve"; params: ParameterId[]; why: string; author: string };
+
+export function assumptionsReducer(state: AssumptionVersion[], a: AssumptionAction): AssumptionVersion[] {
+  const last = latest(state);
+  const patch = (item: AssumptionItem): AssumptionItem => {
+    if (a.type === "edit") return item.param === a.param ? { ...item, ...a.patch } : item;
+    return a.params.includes(item.param) ? { ...item, status: "approved" } : item;
+  };
+  const items = last.items.map(patch);
+  if (JSON.stringify(items) === JSON.stringify(last.items)) return state;
+  const today = new Date().toISOString().slice(0, 10);
+  return [...state, { version: last.version + 1, date: today, author: a.author, note: a.why, items }];
+}
+
 interface Store {
   projects: DemoProject[];
+  /** Версии справочника допущений компании; последняя — текущая, новые проекты создаются на ней. */
+  assumptions: AssumptionVersion[];
+  dispatchAssumptions: (a: AssumptionAction) => void;
   dispatch: (a: Action) => void;
   model: (p: DemoProject) => ProjectModel;
   /** Отметки «проверено» по общим источникам (ID источника → кто, когда, комментарий). */
@@ -83,16 +158,19 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ seed, children }: { seed: Seed; children: ReactNode }) {
   const [projects, dispatch] = useReducer(reducer, seed.projects);
   const [sourceChecks, dispatchCheck] = useReducer(checksReducer, {});
-  const models = useMemo(() => new Map(projects.map((p) => [p.id, computeProject(p)])), [projects]);
+  const [assumptions, dispatchAssumptions] = useReducer(assumptionsReducer, SPEC_ASSUMPTIONS);
+  const models = useMemo(() => new Map(projects.map((p) => [p.id, computeProject(p, assumptions)])), [projects, assumptions]);
   const store = useMemo<Store>(
     () => ({
       projects,
       dispatch,
-      model: (p) => models.get(p.id) ?? computeProject(p),
+      assumptions,
+      dispatchAssumptions,
+      model: (p) => models.get(p.id) ?? computeProject(p, assumptions),
       sourceChecks,
       setSourceCheck: (id, check) => dispatchCheck({ id, check }),
     }),
-    [projects, models, sourceChecks],
+    [projects, models, sourceChecks, assumptions],
   );
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

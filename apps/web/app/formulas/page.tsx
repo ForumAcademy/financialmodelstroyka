@@ -65,7 +65,6 @@ function Details({ f }: { f: SpecFormula }) {
           const s = getSource(id);
           return (
             <li key={id}>
-              <span className={`lvl lvl${s.level}`}>{s.level}</span>{" "}
               {s.url ? (
                 <a href={s.url} target="_blank" rel="noreferrer">
                   {s.title}

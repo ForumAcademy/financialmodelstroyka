@@ -309,7 +309,7 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .tab-count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--need-bg); color: var(--warn); font-size: 11px; font-weight: 600; text-align: center; }
 .issues-toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
 .issues-table { width: 100%; border-collapse: collapse; }
-.issues-table th, .issues-table td { border-bottom: 1px solid var(--grid); padding: 8px; text-align: left; vertical-align: top; }
+.issues-table th, .issues-table td { border-bottom: 1px solid var(--grid); padding: 8px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
 .issues-table th { font-size: 11px; text-transform: uppercase; color: var(--muted); }
 .issues-table .issue-no { width: 36px; color: var(--muted); font-weight: 600; }
 .issues-table .issue-main { min-width: 320px; }
@@ -339,7 +339,8 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
   .issues-table thead { display: none; }
   .issues-table, .issues-table tbody, .issues-table tr, .issues-table td { display: block; width: auto !important; }
   .issues-table tr { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; background: var(--surface); }
-  .issues-table td { border: 0; padding: 4px 0; white-space: normal; }
+  .issues-table td { border: 0; padding: 4px 0; white-space: normal; min-width: 0 !important; }
+  .issues-table tr { overflow: hidden; }
   .issues-table td::before { content: attr(data-label); display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 }
 .btn.small { padding: 4px 10px; font-size: 12px; }

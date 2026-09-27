@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Decimal from "decimal.js";
 import { getParameter, spec, type FormulaId, type ParameterId } from "@fm/spec";
+import { ChangedMark, NoLink, useChange } from "./Change";
 import { compositeSummary } from "./DataView";
 import { useHow } from "./HowPanel";
 import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from "@/lib/model";
@@ -66,19 +67,22 @@ function parseInput(kind: string, unit: string, raw: string): unknown {
 }
 
 function Field({ project, model, id }: { project: DemoProject; model: ProjectModel; id: ParameterId }) {
-  const { dispatch } = useStore();
   const { open } = useHow();
   const p = getParameter(id);
   const own = project.input.values[id];
   const traced = model.result.parameters[id];
   const shown = own ?? traced?.value ?? p.default;
-  const readonly = p.scope === "template";
+  const summary = compositeSummary(shown);
+  // Любое значение проекта можно изменить (с комментарием «почему»); ряды и таблицы справочника смотрятся в карточке.
+  const reference = p.scope === "template";
+  const readonly = reference && (summary !== null || p.kind === "table" || p.kind === "series");
   const need = model.missing.has(id);
-  const commit = (raw: string) => dispatch({ type: "value", id: project.id, param: id, value: parseInput(p.kind, p.unit, raw) });
+  const change = useChange(project, id, shown);
+  const hasValue = shown !== null && shown !== undefined && shown !== "" && !(Array.isArray(shown) && shown.length === 0);
+  const commit = (raw: string) => change.commit(parseInput(p.kind, p.unit, raw));
   const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : typeof shown === "number" ? fmt.inputNumber(shown) : String(shown);
 
   let control: ReactNode;
-  const summary = compositeSummary(shown);
   if (summary && (readonly || p.kind !== "table")) {
     control = (
       <button className="link ro-link" onClick={() => open({ kind: "param", id })}>
@@ -120,20 +124,29 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   } else if (p.kind === "series") {
     control = <span className="ro muted">помесячный ряд — ввод на этапе 8</span>;
   } else {
-    control = <input key={text} className={need ? "need" : ""} type={p.kind === "date" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && commit(e.target.value)} />;
+    control = <input key={`${text}-${change.pending}`} className={need ? "need" : ""} type={p.kind === "date" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && commit(e.target.value)} />;
   }
 
   return (
     <div className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
-      <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
-        {p.name}
-        {readonly ? <span className="tag">справочник</span> : null}
-        {need ? <span className="need-badge">Заполните</span> : null}
-      </button>
+      <div className="field-head">
+        <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
+          {p.name}
+          {reference && !project.changes?.[id] ? <span className="tag">справочник</span> : null}
+          {need ? <span className="need-badge">Заполните</span> : null}
+        </button>
+        {hasValue || project.changes?.[id] ? (
+          <div className="field-marks">
+            {hasValue ? <NoLink project={project} id={id} /> : null}
+            <ChangedMark project={project} id={id} />
+          </div>
+        ) : null}
+      </div>
       <div className="field-control">
         {control}
         {p.kind !== "table" || readonly ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" && p.kind !== "table" && !summary ? fmt.unit(p.unit) : ""}</span> : null}
       </div>
+      {change.form}
     </div>
   );
 }
@@ -215,6 +228,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   const p = getParameter(id);
   const columns = (p.columns ?? []).filter((c) => c.key !== "source_ids");
   const raw = project.input.values[id];
+  const change = useChange(project, id, raw);
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {
     // Значение в формате исходного Excel (режим совместимости) — только просмотр, понятными словами.
     return (
@@ -233,9 +247,19 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   }
   const rows = (raw as Row[] | undefined) ?? [];
   if (columns.length === 0) return <span className="ro">{fmt.value(rows.length ? rows : null)}</span>;
-  const set = (next: Row[]) => dispatch({ type: "value", id: project.id, param: id, value: next });
-  const cell = (r: number, key: string, raw: string, unit: string) => set(rows.map((row, i) => (i === r ? { ...row, [key]: parseInput(unit === "дата" ? "date" : "scalar", unit, raw) } : row)));
-  const addRow = () => set([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
+  const set = (next: Row[]) => change.commit(next);
+  // Пустая строка или пустая ячейка заполняются без комментария: исходного значения, которое меняется, ещё нет.
+  const fill = (next: Row[]) => {
+    const c = project.changes?.[id];
+    if (c) dispatch({ type: "change", id: project.id, param: id, before: c.before, value: next, why: c.why, ...(c.url ? { url: c.url } : {}), author: c.author });
+    else dispatch({ type: "value", id: project.id, param: id, value: next });
+  };
+  const cell = (r: number, key: string, raw: string, unit: string) => {
+    const next = rows.map((row, i) => (i === r ? { ...row, [key]: parseInput(unit === "дата" ? "date" : "scalar", unit, raw) } : row));
+    const old = rows[r]?.[key];
+    (old === null || old === undefined || old === "" ? fill : set)(next);
+  };
+  const addRow = () => fill([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
   return (
     <div className="table-editor">
       <table className={id === "TIME.MILESTONES" ? "fit" : ""}>
@@ -256,14 +280,14 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
                 return (
                   <td key={c.key} className={`col-${c.key}`}>
                     {c.options ? (
-                      <select value={text} onChange={(e) => cell(r, c.key, e.target.value, "текст")}>
+                      <select key={`${text}-${change.pending}`} value={text} onChange={(e) => cell(r, c.key, e.target.value, "текст")}>
                         <option value="">—</option>
                         {c.options.map((o) => (
                           <option key={o}>{o}</option>
                         ))}
                       </select>
                     ) : (
-                      <input key={text} type={c.unit === "дата" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && cell(r, c.key, e.target.value, c.unit)} />
+                      <input key={`${text}-${change.pending}`} type={c.unit === "дата" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && cell(r, c.key, e.target.value, c.unit)} />
                     )}
                   </td>
                 );
@@ -280,6 +304,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
       <button className="link small" onClick={addRow}>
         + строка
       </button>
+      {change.form}
     </div>
   );
 }

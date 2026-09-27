@@ -22,8 +22,6 @@ interface Row {
   verified: boolean | null;
   /** Требует перепроверки: не сверен с текстом документа или проверен больше REVIEW_PERIOD_MONTHS назад. */
   issue: SourceIssue;
-  /** Тип проектного источника из справочника: сам документ прикладывается в проекте. */
-  kind?: "type";
   /** ID общего источника (для отметки «проверено»). */
   sourceId?: string;
   check?: SourceCheck | undefined;
@@ -45,8 +43,8 @@ function NewSourceForm({ projectId, onDone }: { projectId: string; onDone: () =>
   return (
     <div className="inline-form">
       <select value={f.level} onChange={(e) => setF({ ...f, level: Number(e.target.value) as 4 | 5 })}>
-        <option value={4}>4 — документ проекта (ГПЗУ, ППТ, ТЭП, договор, term sheet)</option>
-        <option value={5}>5 — экспертная оценка</option>
+        <option value={4}>Документ проекта (ГПЗУ, ППТ, ТЭП, договор, term sheet)</option>
+        <option value={5}>Экспертная оценка специалиста</option>
       </select>
       <input placeholder="Название документа" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
       <input placeholder="Ссылка на документ (облако, СЭД)" value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} />
@@ -101,27 +99,6 @@ function SourcesPage() {
         })),
     [sourceChecks],
   );
-  // Типы проектных источников (документы проекта, term sheet, экспертная оценка): справочник на них ссылается,
-  // а конкретные документы появляются только после добавления в проект — показываем тип и где он допускается.
-  const typeProjects = scope === "project" ? (project ? [project] : []) : projects;
-  const typeRows: Row[] = spec.sources
-    .filter((s) => s.scope === "project")
-    .map((s) => {
-      const docs = typeProjects.reduce((n, p) => n + p.sources.filter((d) => d.level === s.level).length, 0);
-      return {
-        key: s.id,
-        title: s.title,
-        level: s.level,
-        url: null,
-        usedFor: `${s.used_for}. Документов этого уровня в ${scope === "project" ? "проекте" : "проектах"}: ${docs}${docs ? "" : " — добавьте кнопкой «+ Источник проекта»"}`,
-        checked: "—",
-        verified: null,
-        issue: null,
-        kind: "type",
-        params: spec.parameters.filter((p) => (p.source_ids as string[]).includes(s.id)).map((p) => p.id),
-        searchText: `${s.id} ${s.title} ${s.used_for}`.toLowerCase(),
-      };
-    });
   const projectRows: Row[] = (scope === "global" ? [] : scope === "project" ? (project ? [project] : []) : projects).flatMap((p) =>
     p.sources.map((s) => ({
       key: `${p.id}-${s.id}`,
@@ -139,7 +116,7 @@ function SourcesPage() {
   );
   const [section, setSection] = useState<string | null>(null);
   const [onlyIssues, setOnlyIssues] = useState(false);
-  const allRows = [...projectRows, ...typeRows, ...(scope === "project" ? [] : globalRows)].filter((r) => !q || r.searchText.includes(q.toLowerCase()));
+  const allRows = [...projectRows, ...(scope === "project" ? [] : globalRows)].filter((r) => !q || r.searchText.includes(q.toLowerCase()));
   const issuesTotal = allRows.filter((r) => r.issue).length;
   const rows = onlyIssues ? allRows.filter((r) => r.issue) : allRows;
   const issueBadge = (list: Row[]) => {
@@ -207,7 +184,6 @@ function SourcesPage() {
         <thead>
           <tr>
             <th>Название</th>
-            <th>Уровень</th>
             <th>Ссылка</th>
             <th>Для чего</th>
             <th>Проверено</th>
@@ -229,11 +205,6 @@ function SourcesPage() {
             <tr key={r.key} className={r.issue ? "needs-check" : ""}>
               <td>
                 {r.title}
-                {r.kind === "type" ? (
-                  <div className="small muted">
-                    <span className="tag">тип источника</span> справочник только разрешает такой источник; конкретный документ прикладывается в проекте
-                  </div>
-                ) : null}
                 {r.project ? (
                   <div className="small">
                     <span className="tag">проект</span>{" "}
@@ -244,15 +215,12 @@ function SourcesPage() {
                 ) : null}
               </td>
               <td>
-                <span className={`lvl lvl${r.level}`}>{r.level}</span>
-              </td>
-              <td>
                 {r.url ? (
                   <a href={r.url} target="_blank" rel="noreferrer">
                     открыть
                   </a>
                 ) : (
-                  "—"
+                  <span className="nolink-badge">нет ссылки</span>
                 )}
               </td>
               <td className="small">{r.usedFor}</td>

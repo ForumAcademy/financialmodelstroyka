@@ -227,8 +227,6 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .dep-value { font-weight: 600; white-space: nowrap; }
 .sources { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .how-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
-.lvl { display: inline-block; min-width: 18px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 0 4px; color: #fff; }
-.lvl1 { background: #2f5d8a; } .lvl2 { background: #3f7fa8; } .lvl3 { background: #5c8f6e; } .lvl4 { background: #8a7a4a; } .lvl5 { background: #b0603f; }
 
 /* Источники и формулы */
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fbfcfe; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
@@ -273,3 +271,16 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
   .charts { grid-template-columns: 1fr; }
   .project-head { flex-direction: column; align-items: flex-start; }
 }
+
+/* «Откуда» и изменения в проекте */
+.changed { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; white-space: nowrap; }
+.changed-badge { display: inline-block; padding: 0 7px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; cursor: help; }
+.nolink-badge { display: inline-block; margin-left: 8px; padding: 0 6px; border-radius: 10px; border: 1px dashed var(--muted); color: var(--muted); font-size: 11px; line-height: 16px; white-space: nowrap; cursor: help; }
+.change-form { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; padding: 8px 10px; border: 1px solid var(--input-border); background: var(--input); border-radius: 8px; }
+.change-form textarea, .change-form input { font: inherit; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); }
+.change-actions { display: flex; align-items: center; gap: 8px; }
+.whence { margin: 0 0 4px; }
+.field-head { min-width: 0; }
+.field-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.field-marks .nolink-badge, .field-marks .changed { margin-left: 0; }
+.field .change-form { grid-column: 1 / -1; }

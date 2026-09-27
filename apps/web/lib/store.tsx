@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { spec, type ParameterId } from "@fm/spec";
-import type { DemoProject, ProjectSource, Seed } from "./types";
+import type { DemoProject, ProjectSource, Seed, ValueChange } from "./types";
 import { computeProject, type ProjectModel } from "./model";
 import type { SourceCheck } from "./sources";
 
@@ -14,13 +14,17 @@ type Action =
   | { type: "value"; id: string; param: ParameterId; value: unknown }
   | { type: "addSource"; id: string; source: ProjectSource }
   | { type: "removeSource"; id: string; sourceId: string }
-  | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null };
+  | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null }
+  | { type: "change"; id: string; param: ParameterId; before: unknown; value: unknown; why: string; url?: string; author: string }
+  | { type: "revert"; id: string; param: ParameterId };
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 function touch(p: DemoProject, patch: Partial<DemoProject>): DemoProject {
   return { ...p, ...patch, updatedAt: new Date().toISOString(), specVersion: spec.specVersion };
 }
 
-function reducer(state: DemoProject[], a: Action): DemoProject[] {
+export function reducer(state: DemoProject[], a: Action): DemoProject[] {
   const map = (fn: (p: DemoProject) => DemoProject) => state.map((p) => ("id" in a && p.id === a.id ? fn(p) : p));
   switch (a.type) {
     case "create":
@@ -52,6 +56,33 @@ function reducer(state: DemoProject[], a: Action): DemoProject[] {
           paramSources: Object.fromEntries(Object.entries(p.paramSources).filter(([, v]) => v !== a.sourceId)),
         }),
       );
+    case "change":
+      return map((p) => {
+        const own = p.input.values[a.param];
+        const prev = p.changes?.[a.param];
+        const hadOwn = prev ? prev.hadOwn : own !== undefined && own !== null;
+        const before = prev ? prev.before : a.before;
+        const changes = { ...p.changes };
+        // Возврат к исходному значению снимает пометку «изменено».
+        if (same(before, a.value)) delete changes[a.param];
+        else {
+          const c: ValueChange = { before, hadOwn, after: a.value, why: a.why, author: a.author, at: new Date().toISOString() };
+          if (a.url) c.url = a.url;
+          changes[a.param] = c;
+        }
+        return touch(p, { changes, input: { ...p.input, values: { ...p.input.values, [a.param]: a.value } } });
+      });
+    case "revert":
+      return map((p) => {
+        const c = p.changes?.[a.param];
+        if (!c) return p;
+        const values = { ...p.input.values };
+        if (c.hadOwn) values[a.param] = c.before;
+        else delete values[a.param];
+        const changes = { ...p.changes };
+        delete changes[a.param];
+        return touch(p, { changes, input: { ...p.input, values } });
+      });
     case "linkSource":
       return map((p) => {
         const paramSources = { ...p.paramSources };

@@ -8,23 +8,25 @@ export function isStale(accessed: string, today: Date = new Date()): boolean {
   return limit < today;
 }
 
-/** Отметка «проверено», поставленная пользователем в разделе «Источники» (кто, когда, комментарий). */
+/** Статус, выставленный пользователем в разделе «Источники»: «Сверен» / «Не сверен» и дата выбора. */
 export interface SourceCheck {
-  by: string;
+  verified: boolean;
   date: string;
-  comment?: string | undefined;
 }
 
 export type SourceIssue = "unverified" | "stale" | null;
 
-/** Текущий статус общего источника с учётом отметки пользователя: она делает источник сверенным и обновляет дату проверки. */
+/**
+ * Текущий статус общего источника с учётом выбора пользователя:
+ * «Сверен» — источник сверенный, дата проверки = дата выбора; «Не сверен» — источник требует сверки.
+ */
 export function sourceStatus(
   s: { verified: boolean | null | undefined; accessed: string | null | undefined },
   check: SourceCheck | undefined,
   today: Date = new Date(),
 ): { verified: boolean; accessed: string | null; issue: SourceIssue } {
-  const verified = check ? true : s.verified !== false;
-  const accessed = check ? check.date : (s.accessed ?? null);
+  const verified = check ? check.verified : s.verified !== false;
+  const accessed = check?.verified ? check.date : (s.accessed ?? null);
   const issue: SourceIssue = !verified ? "unverified" : accessed && isStale(accessed, today) ? "stale" : null;
   return { verified, accessed, issue };
 }

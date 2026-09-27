@@ -95,7 +95,7 @@ export async function exportProject(project: DemoProject, checks: Record<string,
   for (const s of spec.sources.filter((x) => x.scope === "global")) {
     const c = checks[s.id];
     const st = sourceStatus(s, c);
-    const status = st.issue === "unverified" ? "не сверен" : st.issue === "stale" ? "устарел" : c ? `проверил ${c.by}${c.comment ? ` — ${c.comment}` : ""}` : "сверен";
+    const status = st.issue === "unverified" ? "не сверен" : st.issue === "stale" ? "устарел" : c ? `сверен ${fmt.date(c.date)}` : "сверен";
     const row = src.addRow({ title: s.title, level: s.level, scope: "общий", used: s.used_for, accessed: fmt.date(st.accessed), status });
     if (s.url) {
       row.getCell("title").value = { text: s.title, hyperlink: s.url };

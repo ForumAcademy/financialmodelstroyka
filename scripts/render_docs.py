@@ -70,11 +70,21 @@ for p in params:
     d = p.get("default")
     d = "—" if d is None else (esc(d) if not isinstance(d, (list, dict)) else "таблица")
     out.append(f"| `{p['id']}` | {esc(p['name'])} | {p['unit']} | {p['scope']} | {d} | {links(p['source_ids'])} | {p['status']} | {esc(p['basis'])} |\n")
-out.append("\n## Статьи бюджета (capex_items.yaml)\n\n| Статья | Группа | База | График | Источники | Обоснование | Исходник |\n|---|---|---|---|---|---|---|\n")
+out.append("\n## Статьи бюджета (capex_items.yaml)\n\n| Статья | Группа | База | График | НДС | Индекс | Источники | Обоснование | Исходник |\n|---|---|---|---|---|---|---|---|---|\n")
+INDEX_LABEL = {"investment": "дефлятор инвестиций", "cpi": "ИПЦ", "none": "не индексируется"}
+def vat_text(c):
+    v = c["vat_rate"]
+    t = f"{v}" if not isinstance(v, str) else f"`{v}`"
+    if c.get("vat_taxable_share") is not None:
+        t += f" × доля `{c['vat_taxable_share']}`"
+    for r in c.get("vat_rules") or []:
+        cond = ", ".join(f"{k} = {v2}" for k, v2 in r["when"].items())
+        t += f"; если {esc(cond)} — {r['vat_rate']}" + ("" if r.get("verified") else " (не сверено)")
+    return t + f" — {esc(c['vat_basis'])} {links(c['vat_source_ids'])}"
 for c in capex:
     lg = c["legacy"]
     leg = f"Бюджет стр.{lg.get('budget_row')}: {esc(lg.get('amount'))}" + (f" — {esc(lg['issue'])}" if lg.get("issue") else "")
-    out.append(f"| `{c['item_id']}` {esc(c['name'])} | {c['group']} | {c['base']} | {c['schedule_rule']} | {links(c['source_ids'])} | {esc(c['basis'])} | {leg} |\n")
+    out.append(f"| `{c['item_id']}` {esc(c['name'])} | {c['group']} | {c['base']} | {c['schedule_rule']} | {vat_text(c)} | {INDEX_LABEL[c['index_type']]} | {links(c['source_ids'])} | {esc(c['basis'])} | {leg} |\n")
 out.append("\n## Связь с исходным Excel по параметрам\n")
 for p in params:
     for l in p.get("legacy") or []:

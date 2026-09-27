@@ -93,8 +93,10 @@ export const MILESTONE_KEYS = [
   "construction_start",
   "construction_end",
   "rnv_date",
+  "handover_start",
   "handover_end",
   "sales_start",
+  "vri_change_date",
 ] as const;
 
 export const capexItemSchema = z
@@ -110,6 +112,28 @@ export const capexItemSchema = z
     schedule_to: z.enum(MILESTONE_KEYS).nullable().optional(),
     source_ids: idList.min(1, "нужен хотя бы один источник"),
     basis: z.string().min(1),
+    /** Ставка НДС статьи: доля из TAX.VAT_RATE_OPTIONS или ID параметра (TAX.VAT_RATE). */
+    vat_rate: z.union([z.number(), z.string().min(1)]),
+    /** Условные ставки НДС: первое правило, у которого выполнены все условия when, заменяет vat_rate. */
+    vat_rules: z
+      .array(
+        z
+          .object({
+            when: z.record(z.string().min(1), z.string().min(1)),
+            vat_rate: z.union([z.number(), z.string().min(1)]),
+            source_ids: idList.min(1),
+            verified: z.boolean(),
+            note: z.string().optional(),
+          })
+          .strict(),
+      )
+      .optional(),
+    /** Доля суммы статьи, облагаемая НДС (для смешанных статей): число 0..1 или ID параметра. По умолчанию 1. */
+    vat_taxable_share: z.union([z.number(), z.string().min(1)]).optional(),
+    vat_source_ids: idList.min(1, "нужен источник ставки НДС"),
+    vat_basis: z.string().min(1),
+    /** Индекс пересчёта цен: investment — дефлятор инвестиций (CAPEX.COST_INDEX), cpi — ИПЦ (CAPEX.OPEX_INDEX), none — не индексируется. */
+    index_type: z.enum(["investment", "cpi", "none"]),
     legacy: z
       .object({
         budget_row: z.number().int().nullable(),
@@ -160,7 +184,8 @@ export const regionSchema = z
     parking_norm_apart: z
       .object({
         source_ids: idList,
-        rule: z.enum(["to_fill", "per_unit", "per_m2"]),
+        /** per_unit — машино-мест на единицу (апартамент); per_100_m2 — на 100 м² площади апартаментов. */
+        rule: z.enum(["to_fill", "per_unit", "per_100_m2"]),
         values: z.array(z.record(z.string(), z.unknown())).nullable(),
         status: z.enum(["to_fill", "needs_verification", "verified"]),
       })

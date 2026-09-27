@@ -1,13 +1,15 @@
 // Файл сгенерирован packages/spec/scripts/build-spec.ts из data/*.yaml. Не редактировать вручную.
 
 /** Версия справочника: хеш содержимого data/*.yaml. Сохраняется в каждой версии расчёта. */
-export const SPEC_VERSION = "d4f213f8ac40";
+export const SPEC_VERSION = "0905f43613d6";
 /** Дата актуализации справочника: самая поздняя дата проверки источника. */
-export const SPEC_ACTUALIZED_AT = "2026-09-25";
+export const SPEC_ACTUALIZED_AT = "2026-09-27";
 
 /** ID источников из data/sources.yaml */
 export const SOURCE_IDS = [
   "S_NK_149",
+  "S_NK_146",
+  "S_MINFIN_03_07_07_12728",
   "S_NK_164",
   "S_FZ_425_VAT22",
   "S_MINFIN_VAT_DDU_2023",
@@ -100,7 +102,12 @@ export const PARAMETER_IDS = [
   "LAND.AGENT_FEE_RATE",
   "LAND.VRI_FEE",
   "LAND.RENT_ANNUAL",
-  "LAND.CITY_OBLIGATIONS",
+  "LAND.RENT_PAYMENT_FREQ",
+  "LAND.RENT_INDEXATION",
+  "LAND.RENT_END_MILESTONE",
+  "LAND.LESSOR_TYPE",
+  "LAND.CITY_CASH_COMPENSATION",
+  "LAND.CITY_OBJECTS_COST",
   "TAX.LAND_RATE",
   "TAX.LAND_COEF_UP_TO_3Y",
   "TAX.LAND_COEF_OVER_3Y",
@@ -134,6 +141,7 @@ export const PARAMETER_IDS = [
   "TEP.STORAGE_PER_APT",
   "TEP.STORAGE_AVG_AREA",
   "TEP.MOP_AREA",
+  "TEP.APART_COUNT",
   "TEP.STORAGE_COUNT",
   "TEP.PARKING_AREA_PER_SPACE",
   "TEP.PARKING_SPACE_MIN_LENGTH",
@@ -148,6 +156,8 @@ export const PARAMETER_IDS = [
   "TEP.PARKING_NORM_APART",
   "TEP.APT_AREA_TOLERANCE",
   "TIME.MILESTONES",
+  "TIME.HORIZON_TAIL_M",
+  "TIME.HORIZON_WARN_M",
   "TIME.ESCROW_RELEASE_LAG_M",
   "TIME.RNS_TO_RNV_TAX_YEARS",
   "CAPEX.ITEMS",
@@ -155,6 +165,7 @@ export const PARAMETER_IDS = [
   "CAPEX.NCS_BENCHMARK_ENABLED",
   "CAPEX.NCS_BENCH_TOLERANCE",
   "CAPEX.COST_INDEX",
+  "CAPEX.OPEX_INDEX",
   "SALES.PRODUCTS",
   "SALES.PACE",
   "SALES.PRICE_MARKET_GROWTH",
@@ -170,6 +181,7 @@ export const PARAMETER_IDS = [
   "FIN.FEE_ARRANGEMENT",
   "FIN.FEE_COMMITMENT",
   "FIN.COLLATERAL_DISCOUNT",
+  "TAX.VAT_RATE_OPTIONS",
   "TAX.VAT_RATE",
   "TAX.VAT_REGIME",
   "TAX.INPUT_VAT_RECOVERABLE",
@@ -177,6 +189,7 @@ export const PARAMETER_IDS = [
   "TAX.LOSS_CARRYFORWARD_LIMIT",
   "OPEX.MARKETING_RATE",
   "OPEX.BROKERAGE_RATE",
+  "OPEX.OVERHEAD_VAT_SHARE",
   "OPEX.DEV_FEE_RATE",
   "VAL.RISK_FREE",
   "VAL.EQUITY_PREMIUM",
@@ -281,6 +294,7 @@ export const FORMULA_IDS = [
   "F.CF.CFADS",
   "F.CF.FCFE",
   "F.CF.CASH_BALANCE",
+  "F.CF.HORIZON",
   "F.KPI.DISCOUNT_RATE",
   "F.KPI.NPV",
   "F.KPI.IRR",
@@ -317,7 +331,8 @@ export const CAPEX_ITEM_IDS = [
   "LAND_AGENT",
   "LAND_TAX_OR_RENT",
   "LAND_VRI",
-  "CITY_OBLIGATIONS",
+  "CITY_CASH_COMPENSATION",
+  "CITY_OBJECTS_CONSTRUCTION",
   "IRD",
   "PREDESIGN",
   "SURVEYS",

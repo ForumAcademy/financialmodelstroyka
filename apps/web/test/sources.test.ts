@@ -10,17 +10,20 @@ describe("устаревание источника (квартальный ци
   });
 });
 
-describe("статус источника с отметкой пользователя", () => {
+describe("статус источника с выбором пользователя", () => {
   const today = new Date("2026-10-01");
-  it("не сверен без отметки", () => {
+  it("не сверен без выбора", () => {
     expect(sourceStatus({ verified: false, accessed: "2026-09-25" }, undefined, today).issue).toBe("unverified");
   });
-  it("отметка «проверено» делает источник сверенным и обновляет дату", () => {
-    const st = sourceStatus({ verified: false, accessed: "2026-01-10" }, { by: "Аналитик", date: "2026-09-30" }, today);
+  it("«Сверен» делает источник сверенным и обновляет дату", () => {
+    const st = sourceStatus({ verified: false, accessed: "2026-01-10" }, { verified: true, date: "2026-09-30" }, today);
     expect(st).toEqual({ verified: true, accessed: "2026-09-30", issue: null });
   });
-  it("сверенный, но старый — устарел; отметка снимает", () => {
+  it("«Не сверен» у сверенного источника — требует сверки", () => {
+    expect(sourceStatus({ verified: true, accessed: "2026-09-25" }, { verified: false, date: "2026-10-01" }, today).issue).toBe("unverified");
+  });
+  it("сверенный, но старый — устарел; повторный выбор «Сверен» обновляет дату", () => {
     expect(sourceStatus({ verified: true, accessed: "2026-05-01" }, undefined, today).issue).toBe("stale");
-    expect(sourceStatus({ verified: true, accessed: "2026-05-01" }, { by: "А", date: "2026-10-01" }, today).issue).toBeNull();
+    expect(sourceStatus({ verified: true, accessed: "2026-05-01" }, { verified: true, date: "2026-10-01" }, today).issue).toBeNull();
   });
 });

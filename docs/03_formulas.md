@@ -382,17 +382,19 @@ apt_check   = apt_diff_m2 / apt_area_total
 **Единица:** шт · **Размерность:** скаляр · **Статус:** needs_verification
 ```
 parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart )
+ЕСЛИ TEP.PARKING_NORM_APART.unit = «на единицу»:         parking_apart = TEP.PARKING_NORM_APART.value × TEP.APART_COUNT
+ЕСЛИ TEP.PARKING_NORM_APART.unit = «на 100 м² площади»:  parking_apart = TEP.PARKING_NORM_APART.value × F.TEP.APART_AREA / 100
 ```
 
-**Пояснение:** Нормативы машино-мест для квартир — из акта региона: Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017. Для апартаментов — норматив градостроительного проектирования для объектов гостиничного назначения (единица — по акту региона). Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type); в обычном режиме запрещено.
+**Пояснение:** Нормативы машино-мест для квартир — из акта региона: Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017. Для апартаментов — норматив градостроительного проектирования для объектов гостиничного назначения: значение и единица («на единицу» или «на 100 м² площади») — из РНГП региона; пока значения региона нет — ручной ввод с документом (решение владельца продукта 27.09.2026). Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type); в обычном режиме запрещено.
 
 **Обозначения:**
 - `parking_required` — результат: требуемое количество машино-мест, шт
 - `norm(a)` — норматив машино-мест на квартиру средней площадью a — из TEP.PARKING_NORM региона
-- `parking_apart` — машино-места для апартаментов по TEP.PARKING_NORM_APART от площади апартаментов F.TEP.APART_AREA
+- `parking_apart` — машино-места для апартаментов по нормативу TEP.PARKING_NORM_APART (значение и единица — из РНГП региона)
 - `k` — тип квартир из квартирографии
 - `CEILING(x)` — округление вверх до целого
-**Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`, `TEP.PARKING_NORM`, `TEP.PARKING_NORM_APART`, `F.TEP.APART_AREA`
+**Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`, `TEP.PARKING_NORM`, `TEP.PARKING_NORM_APART`, `TEP.APART_COUNT`, `F.TEP.APART_AREA`
 
 **Почему так:** Нормативы обеспеченности — обязательное требование РНГП; число мест определяет подземную часть и выручку
 
@@ -562,7 +564,7 @@ ground_parking = landscape − roads − green
 ### `F.LAND.TAX_COEF` — Повышающий коэффициент земельного налога
 **Единица:** коэф · **Размерность:** t · **Статус:** needs_verification
 ```
-ЕСЛИ TAX.LAND_COEF_APPLY = нет:
+ЕСЛИ TAX.LAND_COEF_APPLY = нет  ИЛИ  date[t] < vri_change_date:
   coef[t] = 1
 ИНАЧЕ ЕСЛИ years_since(land_acquired, date[t]) <= TIME.RNS_TO_RNV_TAX_YEARS:
   coef[t] = TAX.LAND_COEF_UP_TO_3Y
@@ -570,13 +572,14 @@ ground_parking = landscape − roads − green
   coef[t] = TAX.LAND_COEF_OVER_3Y
 ```
 
-**Пояснение:** Повышающий коэффициент действует до государственной регистрации прав на построенный объект (≈ окончание передачи ключей последней очереди).
+**Пояснение:** Повышающий коэффициент действует до государственной регистрации прав на построенный объект (≈ окончание передачи ключей последней очереди). До даты смены ВРИ коэффициенты не применяются — они привязаны к ВРИ «жилищное строительство» (решение владельца продукта 27.09.2026).
 
 **Обозначения:**
 - `coef[t]` — результат: коэффициент к земельному налогу в месяце t
 - `years_since(a, b)` — число лет от даты a до даты b
 - `land_acquired` — дата приобретения участка (TIME.MILESTONES)
 - `date[t]` — последний день месяца t (F.TIME.DATE)
+- `vri_change_date` — дата смены ВРИ (TIME.MILESTONES) — если смена ВРИ предстоит
 **Зависит от:** `TAX.LAND_COEF_APPLY`, `TAX.LAND_COEF_UP_TO_3Y`, `TAX.LAND_COEF_OVER_3Y`, `TIME.MILESTONES`, `TIME.RNS_TO_RNV_TAX_YEARS`, `F.TIME.DATE`
 
 **Почему так:** п.15 ст.396 НК РФ; для участков > 300 млн руб. — позиция ФНС (письмо 25.08.2026)
@@ -590,23 +593,32 @@ ground_parking = landscape − roads − green
 **Единица:** руб · **Размерность:** t · **Статус:** needs_verification
 ```
 ЕСЛИ LAND.TENURE = собственность:
-  land_pay[t] = cad_value[year(t)] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{ land_acquired <= date[t] <= handover_end_last }
+  land_pay[t] = cad_value[t] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{ land_acquired <= date[t] <= handover_end_last }
 ЕСЛИ LAND.TENURE = аренда:
-  land_pay[t] = LAND.RENT_ANNUAL × index[year(t)] / 12 × 1{ lease_period }
+  rent_month[t] = LAND.RENT_ANNUAL × (1 + LAND.RENT_INDEXATION) ^ FLOOR(years_since(land_acquired, date[t])) / 12 × 1{ land_acquired <= date[t] < rent_end }
+  ЕСЛИ LAND.RENT_PAYMENT_FREQ = ежемесячно:                          land_pay[t] = rent_month[t]
+  ЕСЛИ LAND.RENT_PAYMENT_FREQ = поквартально авансом:                land_pay[t] = Σ_{m ∈ квартал(t)} rent_month[m] × 1{ t — первый месяц квартала }
+  ЕСЛИ LAND.RENT_PAYMENT_FREQ = поквартально по окончании квартала:  land_pay[t] = Σ_{m ∈ квартал(t)} rent_month[m] × 1{ t — последний месяц квартала }
 
-ЕСЛИ ВРИ изменён:  cad_value = LAND.CADASTRAL_VALUE_AFTER_VRI
-ИНАЧЕ:             cad_value = LAND.CADASTRAL_VALUE
+ЕСЛИ vri_change_date задана И date[t] >= vri_change_date:  cad_value[t] = LAND.CADASTRAL_VALUE_AFTER_VRI
+ИНАЧЕ:                                                     cad_value[t] = LAND.CADASTRAL_VALUE
+rent_end = MIN_p TIME.MILESTONES[p][LAND.RENT_END_MILESTONE]
 ```
+
+**Пояснение:** Аренда (решение владельца продукта 27.09.2026): ставка — по договору (уровень 4) или региональной методике; платёж по умолчанию поквартально авансом; индексация — по договору (раз в год с даты приобретения, если договор не говорит иное); аренда прекращается с даты передачи первого помещения — участок переходит в общую долевую собственность собственников помещений МКД (LAND.RENT_END_MILESTONE, по умолчанию handover_start первой очереди; needs_verification). Смена ВРИ: с месяца вехи vri_change_date — новая кадастровая стоимость; дата начала применения новой кадастровой стоимости (ст.391 НК РФ) — needs_verification.
 
 **Обозначения:**
 - `land_pay[t]` — результат: земельный налог или арендная плата за месяц t, руб
-- `cad_value[y]` — кадастровая стоимость участка, действующая в году y, руб
+- `cad_value[t]` — кадастровая стоимость участка, действующая в месяце t, руб
+- `rent_month[t]` — арендная плата, приходящаяся на месяц t (до группировки платежей по периодичности), руб
+- `rent_end` — дата окончания аренды: самая ранняя среди очередей дата вехи LAND.RENT_END_MILESTONE
+- `vri_change_date` — дата смены ВРИ (TIME.MILESTONES)
 - `land_acquired` — дата приобретения участка (TIME.MILESTONES)
 - `handover_end_last` — окончание передачи ключей последней очереди (TIME.MILESTONES)
-- `index[y]` — индекс арендной платы года y
-- `lease_period` — месяц t входит в период аренды
+- `years_since(a, b)` — число лет от даты a до даты b
+- `FLOOR(x)` — округление вниз до целого
 - `1{условие}` — 1, если условие выполнено, иначе 0
-**Зависит от:** `LAND.TENURE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `TAX.LAND_RATE`, `F.LAND.TAX_COEF`, `LAND.RENT_ANNUAL`, `TIME.MILESTONES`, `F.TIME.DATE`
+**Зависит от:** `LAND.TENURE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `TAX.LAND_RATE`, `F.LAND.TAX_COEF`, `LAND.RENT_ANNUAL`, `LAND.RENT_PAYMENT_FREQ`, `LAND.RENT_INDEXATION`, `LAND.RENT_END_MILESTONE`, `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** Налог — от кадастровой стоимости (ст.390–391 НК РФ) по ставке муниципалитета; платёж только за период владения. Одна строка вместо двух в исходнике — нет двойного счёта
 
@@ -629,7 +641,7 @@ ground_parking = landscape − roads − green
   vri_fee = 0
 ```
 
-**Пояснение:** Москва: плата считается от прироста кадастровой стоимости (КС2 − КС1) × коэффициент территории по приложению к ПП 593-ПП.
+**Пояснение:** Москва: плата считается от прироста кадастровой стоимости (КС2 − КС1) × коэффициент территории по приложению к ПП 593-ПП. Платится в месяц вехи смены ВРИ (TIME.MILESTONES.vri_change_date, статья LAND_VRI); веха обязательна, если задана LAND.CADASTRAL_VALUE_AFTER_VRI (проверка CHECK.ALL → VRI_DATE_REQUIRED) (решение владельца продукта 27.09.2026).
 
 **Обозначения:**
 - `vri_fee` — результат: плата за изменение вида разрешённого использования, руб
@@ -650,17 +662,20 @@ ground_parking = landscape − roads − green
 ### `F.CAPEX.ITEM_TOTAL` — Сумма статьи в ценах даты расценки
 **Единица:** руб · **Размерность:** i · **Статус:** verified
 ```
-item_total[i] = rate[i] × base_qty[i]
+ЕСЛИ base[i] = фикс:          item_total[i] = rate[i]
+ЕСЛИ base[i] = фикс_в_месяц:  item_total[i] = rate[i] × Σ_t day_share[i,t]
+ИНАЧЕ:                        item_total[i] = rate[i] × base_qty[i]
 ```
 
-**Пояснение:** База статьи задаётся в capex_items.base: значение параметра или формулы; для статей «фикс» база равна 1.
+**Пояснение:** База задаётся в capex_items.base: параметр или формула. Статьи «фикс в месяц» (SITE_SECURITY, DEVELOPER_OVERHEAD): ставка в месяц × число месяцев между вехами schedule_from и schedule_to; неполные первый и последний месяцы — пропорционально дням (решение владельца продукта 27.09.2026). Индексация — в F.CAPEX.INDEX, помесячно.
 
 **Обозначения:**
 - `item_total[i]` — результат: сумма статьи i в ценах даты расценки, руб
 - `i` — статья бюджета
 - `rate[i]` — ставка статьи (параметр rate_param)
 - `base_qty[i]` — объём базы статьи (м², шт, руб и т. п.)
-**Зависит от:** `CAPEX.ITEMS`
+- `day_share[i,t]` — доля дней месяца t внутри интервала [schedule_from; schedule_to): 1 — полный месяц, дни / дней в месяце — первый и последний
+**Зависит от:** `CAPEX.ITEMS`, `TIME.MILESTONES`, `F.TIME.DATE`, `F.TIME.DAYS`
 
 **Почему так:** Сумма всегда выводится из ставки и объёма — любую цифру можно объяснить
 
@@ -674,50 +689,66 @@ item_total[i] = rate[i] × base_qty[i]
 ### `F.CAPEX.INDEX` — Индекс пересчёта из цен даты расценки в цены месяца t
 **Единица:** коэф · **Размерность:** i, t · **Статус:** verified
 ```
-index[i,t] = Π_y (1 + CAPEX.COST_INDEX[y]) ^ share[y]
+ЕСЛИ index_type[i] = none:  index[i,t] = 1
+ИНАЧЕ:                      index[i,t] = Π_y (1 + g[y]) ^ share[i,y,t]
+g[y] = CAPEX.COST_INDEX[y]  при index_type[i] = investment
+g[y] = CAPEX.OPEX_INDEX[y]  при index_type[i] = cpi
+для y после последнего года прогноза:  g[y] = g[последний год]
 ```
+
+**Пояснение:** Строительные статьи (СМР, сети, благоустройство, соцобъекты, ПИР, техзаказчик и т. п.) — дефлятор инвестиций в основной капитал; содержание застройщика, охрана, маркетинг — ИПЦ; суммы по договору и статьи со своей формулой — без индексации. После 2029 — последнее значение прогноза МЭР (допущение, S_EXPERT) (решение владельца продукта 27.09.2026).
 
 **Обозначения:**
 - `index[i,t]` — результат: множитель пересчёта статьи i в цены месяца t
-- `y` — годы интервала от даты расценки статьи price_date[i] до date[t]
-- `share[y]` — доля года y, попавшая в этот интервал
 - `Π_y` — произведение по годам y
-**Зависит от:** `CAPEX.COST_INDEX`, `CAPEX.ITEMS`
+- `g[y]` — годовой индекс года y: CAPEX.COST_INDEX (index_type = investment) или CAPEX.OPEX_INDEX (index_type = cpi)
+- `share[i,y,t]` — доля года y в интервале от даты уровня цен ставки price_date[i] до конца месяца t (каждый месяц — своя доля, индекс растёт помесячно)
+- `price_date[i]` — дата уровня цен ставки статьи (CAPEX.ITEMS)
+- `index_type[i]` — тип индекса статьи (capex_items.yaml): investment | cpi | none
+**Зависит от:** `CAPEX.COST_INDEX`, `CAPEX.OPEX_INDEX`, `CAPEX.ITEMS`, `F.TIME.DATE`
 
-**Почему так:** Стройка длится 3–6 лет; без индексации затраты занижены. Индексы — прогноз МЭР / Минстроя
+**Почему так:** Стройка длится 3–6 лет; без индексации затраты занижены. Стройка дорожает по дефлятору инвестиций, зарплаты и услуги — по ИПЦ; оба — прогноз МЭР (сценарные условия, базовый вариант)
 
 **Отклонённые варианты:**
 - Отсутствие индексации (исходник)
+- Один индекс на все статьи — зарплаты и охрана растут с инфляцией, стройка — с дефлятором инвестиций
 
-**Источники:** [S_MINEC_SCENARIO_2027](https://www.garant.ru/products/ipo/prime/doc/414115625/), [S_FGISCS](https://fgiscs.minstroyrf.ru/)
+**Источники:** [S_MINEC_SCENARIO_2027](https://www.garant.ru/products/ipo/prime/doc/414115625/), [S_FGISCS](https://fgiscs.minstroyrf.ru/), `S_EXPERT`
 
 ### `F.CAPEX.SCHEDULE_WEIGHT` — Вес месяца в графике статьи
 **Единица:** доля · **Размерность:** i, t · **Статус:** verified
 ```
-uniform:       w[t] = 1 / N,  from <= t < to
-s_curve:       x_t = (t − t_from + 1) / N;   C(x) = 3x² − 2x³;   w[t] = C(x_t) − C(x_{t−1})
-at_milestone:  w[t] = 1 в месяце вехи
-follow_smr:    w[t] = smr_cash[t] / Σ smr_cash
-follow_sales:  w[t] = sales_value[t] / Σ sales_value
-manual:        w[t] = ряд пользователя
+from = MIN_p schedule_from[p];   to = MAX_p schedule_to[p]
+uniform:                w[t] = 1 / N,  from <= t < to
+uniform (фикс_в_месяц): w[t] = day_share[t] / Σ day_share
+s_curve:                x_t = (t − t_from + 1) / N;   C(x) = 3x² − 2x³;   w[t] = C(x_t) − C(x_{t−1})
+at_milestone:           w[t] = 1 в месяце вехи from
+follow_smr:             w[t] = smr_cash[t] / Σ smr_cash
+follow_sales:           w[t] = sales_value[t] / Σ sales_value
+manual:                 w[t] = ряд пользователя
+режим совместимости:    w[m] = w_q[q] / 3  для каждого из трёх месяцев m квартала q
 ```
 
-**Пояснение:** Способ распределения (uniform, s_curve и т. д.) задаётся у статьи бюджета. Проверка: сумма весов по месяцам Σ_t w = 1.
+**Пояснение:** Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1.
 
 **Обозначения:**
 - `w[t]` — результат: доля суммы статьи, приходящаяся на месяц t
 - `N` — число месяцев распределения
-- `from, to` — первый месяц распределения и месяц после последнего
+- `from, to` — начало и конец распределения: самая ранняя веха schedule_from и самая поздняя веха schedule_to среди всех очередей
 - `t_from` — первый месяц распределения
 - `C(x)` — S-кривая: накопленная доля к моменту x
 - `smr_cash[t]` — платежи по СМР в месяце t
 - `sales_value[t]` — стоимость договоров, заключённых в месяце t (F.SALES.CONTRACT_VALUE)
-**Зависит от:** `CAPEX.ITEMS`, `TIME.MILESTONES`
+- `day_share[t]` — доля дней месяца t внутри интервала [from; to) — для статей «фикс в месяц»
+- `w_q[q]` — доля квартала q из ручного ряда исходника (tests/cases → capex_legacy), режим совместимости
+**Зависит от:** `CAPEX.ITEMS`, `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** График привязан к вехам: сдвиг РНС автоматически сдвигает затраты. S-кривая C(x) = 3x²−2x³ — симметричная кривая освоения с пиком в середине стройки
 
 **Отклонённые варианты:**
 - Ручные проценты по кварталам (исходник CF1 строки «Проставить темп,%») — не двигаются вместе с датами, суммы рядов ≠ 100% не контролируются
+- Отдельный график по каждой очереди с делением суммы пропорционально продаваемой площади (вариант Б) — точнее, но требует полных вех и квартирографии по всем очередям; отложено
+- Режим совместимости: вся доля квартала — на последний месяц квартала — сдвигает затраты позже и занижает проценты и потребность в финансировании
 
 **Источники:** `S_EXPERT`
 
@@ -730,8 +761,10 @@ manual:        w[t] = ряд пользователя
 ```
 item_cash[i,t] = item_total[i] × w[i,t] × index[i,t] × vat_k[i]
 ЕСЛИ vat_included[i]:  vat_k[i] = 1
-ИНАЧЕ:                 vat_k[i] = 1 + TAX.VAT_RATE × vat_applicable[i]
+ИНАЧЕ:                 vat_k[i] = 1 + vat_rate[i] × vat_taxable_share[i]
 ```
+
+**Пояснение:** Ставка НДС задаётся у каждой статьи (решение владельца продукта 27.09.2026): покупка участка, плата за ВРИ, денежная компенсация городу — 0; земельный налог — вне НДС, аренда государственной / муниципальной земли — 0, у частного собственника — 0,22 (LAND.TENURE, LAND.LESSOR_TYPE); подрядчики — 0,22, на УСН — 0,05 / 0,07 по договору; содержание застройщика — облагаемая доля OPEX.OVERHEAD_VAT_SHARE.
 
 **Обозначения:**
 - `item_cash[i,t]` — результат: платёж по статье i в месяце t с НДС, руб
@@ -740,15 +773,17 @@ item_cash[i,t] = item_total[i] × w[i,t] × index[i,t] × vat_k[i]
 - `index[i,t]` — индекс пересчёта цен (F.CAPEX.INDEX)
 - `vat_k[i]` — множитель НДС статьи
 - `vat_included[i]` — ставка статьи уже включает НДС (да/нет)
-- `vat_applicable[i]` — статья облагается НДС: 1 или 0
-**Зависит от:** `F.CAPEX.ITEM_TOTAL`, `F.CAPEX.SCHEDULE_WEIGHT`, `F.CAPEX.INDEX`, `TAX.VAT_RATE`
+- `vat_rate[i]` — ставка НДС статьи (capex_items.yaml): TAX.VAT_RATE или 0 / 0,05 / 0,07 / 0,22; первое подходящее правило vat_rules заменяет её
+- `vat_taxable_share[i]` — облагаемая НДС доля суммы статьи; по умолчанию 1 (для DEVELOPER_OVERHEAD — OPEX.OVERHEAD_VAT_SHARE)
+**Зависит от:** `F.CAPEX.ITEM_TOTAL`, `F.CAPEX.SCHEDULE_WEIGHT`, `F.CAPEX.INDEX`, `TAX.VAT_RATE`, `TAX.VAT_RATE_OPTIONS`, `LAND.TENURE`, `LAND.LESSOR_TYPE`, `OPEX.OVERHEAD_VAT_SHARE`
 
 **Почему так:** Денежный поток — с НДС (так платят подрядчикам); вычитаемая часть НДС возвращается в модуле TAX
 
 **Отклонённые варианты:**
 - Смешение сумм с НДС и без НДС в исходнике (не указано)
+- Единый флаг «облагается / не облагается» — не учитывает ставки подрядчиков на УСН (5% / 7%) и смешанные статьи
 
-**Источники:** [S_NK_164](https://www.consultant.ru/document/cons_doc_LAW_28165/35cc6698564adc4507baa31c9cfdbb4f2516d068/)
+**Источники:** [S_NK_164](https://www.consultant.ru/document/cons_doc_LAW_28165/35cc6698564adc4507baa31c9cfdbb4f2516d068/), [S_NK_146](https://www.consultant.ru/document/cons_doc_LAW_28165/08c2f3c592f23af58538e4378ae625a583418fb0/), [S_NK_149](https://www.consultant.ru/document/cons_doc_LAW_28165/c8ebcedc9ddce9d959d6c520c3b0d602f71e8e12/)
 
 **Исходный Excel:** `CF1!F21:AS76 (нечётные строки)` → fix
 
@@ -1542,6 +1577,32 @@ cash[t] = cash[t−1] + fcfe[t] + equity_in[t] − distributions[t]
 
 **Исходный Excel:** `CF1!F134:AS137` → fix
 
+### `F.CF.HORIZON` — Горизонт модели
+**Единица:** мес · **Размерность:** скаляр · **Статус:** verified
+```
+T_end = MAX( t_last_sale, t_release_last, t_debt_repaid, t_profit_tax_last ) + TIME.HORIZON_TAIL_M
+```
+
+**Пояснение:** Горизонт вычисляется, не вводится (решение владельца продукта 27.09.2026). Предупреждение, если T_end > TIME.HORIZON_WARN_M: вероятно, не распродан остаток или не погашен долг. Пока модули SALES, FIN и TAX не реализованы (этапы 4–6), горизонт предварительный: последняя веха + лаг раскрытия эскроу.
+
+**Обозначения:**
+- `T_end` — результат: число месяцев модели от GEN.MODEL_START_DATE
+- `t_last_sale` — последний месяц с продажами (F.SALES.SOLD_AREA)
+- `t_release_last` — месяц раскрытия эскроу последней очереди (F.TIME.FLAG_ESCROW_RELEASE)
+- `t_debt_repaid` — месяц полного погашения долга и процентов (F.FIN.DEBT)
+- `t_profit_tax_last` — месяц уплаты налога на прибыль за последний год (F.TAX.PROFIT_TAX)
+**Зависит от:** `F.SALES.SOLD_AREA`, `F.TIME.FLAG_ESCROW_RELEASE`, `F.FIN.DEBT`, `F.TAX.PROFIT_TAX`, `TIME.HORIZON_TAIL_M`, `TIME.HORIZON_WARN_M`
+
+**Почему так:** Срок проекта — следствие вех, продаж, кредита и налогов; ручной срок обрезает хвост продаж, погашение долга и уплату налога
+
+**Отклонённые варианты:**
+- Срок проекта числом (исходник ТЭПы!C5 = 7,25 года) — не связан с датами
+- Последняя веха + фиксированный хвост — не учитывает непроданный остаток и погашение долга
+
+**Источники:** `S_EXPERT`
+
+**Исходный Excel:** `ТЭПы!C5` → replace
+
 ## KPI
 
 ### `F.KPI.DISCOUNT_RATE` — Ставка дисконтирования
@@ -1778,6 +1839,9 @@ UNDERGROUND_CAP   : F.CHECK.UNDERGROUND_CAPACITY (стадия «концепц�
 BENCH_MIN_COMPS   : число аналогов >= BENCH.MARKET_MIN_COMPS ИЛИ экспертное обоснование
 APT_MIX_SHARE_SUM : стадия «оценка участка» → |Σ_k area_share[k] − 1| < 1e-9
 PARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA
+VRI_DATE_REQUIRED : LAND.CADASTRAL_VALUE_AFTER_VRI задана → vri_change_date заполнена
+LESSOR_REQUIRED   : LAND.TENURE = аренда → LAND.LESSOR_TYPE задан
+HORIZON_LONG      : F.CF.HORIZON > TIME.HORIZON_WARN_M → предупреждение
 ```
 
 **Пояснение:** Свод проверок модели. APART_ALLOWED проверяется по вложенному ГПЗУ; если апартаменты не допускаются, продукт «апартаменты» недоступен. BENCH_MIN_COMPS: если пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS, скидка апартаментов — экспертная (уровень 5), без блокировки расчёта. UNDERGROUND_CAP даёт ошибку или предупреждение по вместимости подземной части. T — последний месяц модели.
@@ -1791,7 +1855,7 @@ PARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA
 - `cash[t]` — остаток денег (F.CF.CASH_BALANCE)
 - `deviation` — отклонение СМР от НЦС (F.CAPEX.NCS_BENCH)
 - `apt_check` — расхождение квартирографии и ТЭП (F.TEP.APT_AREA_CHECK)
-**Зависит от:** `F.CHECK.GPZU_LIMITS`, `F.CHECK.UNDERGROUND_CAPACITY`
+**Зависит от:** `F.CHECK.GPZU_LIMITS`, `F.CHECK.UNDERGROUND_CAPACITY`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `LAND.TENURE`, `LAND.LESSOR_TYPE`, `TIME.MILESTONES`, `F.CF.HORIZON`, `TIME.HORIZON_WARN_M`
 
 **Почему так:** Ни одна из этих ошибок исходника не должна повториться незаметно
 

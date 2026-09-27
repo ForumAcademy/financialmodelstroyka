@@ -93,14 +93,10 @@ table.data-view th, table.data-view td { font-size: 12px; padding: 5px 7px; whit
 .data-kv dd { margin: 0; font-weight: 600; }
 
 /* отметка «проверено» у источника */
-.check-cell { min-width: 170px; }
-.btn.small-btn { padding: 3px 9px; font-size: 12px; border-radius: 6px; }
-.check-btn { margin-top: 5px; }
-.check-form { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
-.check-form input { padding: 4px 7px; font-size: 12px; }
-.check-actions { display: flex; align-items: center; gap: 10px; }
-.checked-by { margin-top: 4px; color: #2f6b36; }
-.checked-by .link { display: block; margin-top: 2px; }
+.check-cell { min-width: 130px; }
+.status-select { margin-top: 5px; padding: 3px 6px; font-size: 12px; border-radius: 6px; }
+.status-select.ok { border-color: #9cc9a3; background: #f1f8f2; color: #2f6b36; }
+.status-select.bad { border-color: #e7a79a; background: #fdf1ee; color: var(--danger); }
 .used-in + .used-in { margin-top: 3px; }
 .issue-tag { display: inline-block; margin-top: 3px; padding: 0 6px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 600; line-height: 16px; }
 .section-seg .block-count { background: var(--block); }

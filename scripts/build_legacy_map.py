@@ -80,7 +80,7 @@ def value_target(sheet, row, col):
             (65, "D"): ("FIN.EQUITY_SHARE", "remove", "дубль CF1!D132"),
             (68, "D"): ("F.FIN.FEES", "remove", "«банковские расходы 15%» дублируют проценты"),
             (21, "F"): ("LAND.RENT_ANNUAL", "replace", "итог без расчёта"),
-            (24, "F"): ("LAND.CITY_OBLIGATIONS", "fix", "перенести в правообладание"),
+            (24, "F"): ("LAND.CITY_OBJECTS_COST", "fix", "перенести в правообладание; в исходнике одной суммой — отнесено на строительство объектов для города"),
         }
         if (row, c) in special:
             return special[(row, c)]

@@ -138,6 +138,14 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .table-editor input, .table-editor select { background: var(--input); border-color: var(--input-border); width: 130px; padding: 4px 6px; }
 .table-editor input[type="date"] { width: 138px; }
 .table-editor td.col-phase input { width: 64px; }
+/* Вехи: таблица ровно по ширине блока, без горизонтальной прокрутки */
+.table-editor table.fit { width: 100%; min-width: 1000px; table-layout: fixed; }
+.table-editor table.fit input::-webkit-calendar-picker-indicator { margin: 0; padding: 0; width: 11px; }
+.table-editor table.fit th { white-space: normal; line-height: 1.2; vertical-align: bottom; padding: 3px 3px; }
+.table-editor table.fit td { padding: 2px 2px; }
+.table-editor table.fit input { width: 100%; min-width: 0; font-size: 12.5px; padding: 4px 3px; }
+.table-editor table.fit th:first-child { width: 58px; }
+.table-editor table.fit th.col-del { width: 28px; }
 .table-editor td.col-type_name input, .table-editor td.col-product input { width: 190px; }
 
 /* Расчёт */

@@ -169,13 +169,13 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   const addRow = () => set([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
   return (
     <div className="table-editor">
-      <table>
+      <table className={id === "TIME.MILESTONES" ? "fit" : ""}>
         <thead>
           <tr>
             {columns.map((c) => (
               <th key={c.key}>{COLUMN_LABEL[c.key] ?? c.key}</th>
             ))}
-            <th />
+            <th className="col-del" />
           </tr>
         </thead>
         <tbody>

@@ -101,11 +101,18 @@ export function F_TIME_FLAG_POST_RNV(ctx: FormulaContext): number[][] {
 }
 
 export function F_TIME_FLAG_ESCROW_RELEASE(ctx: FormulaContext): number[][] {
-  const lag = ctx.requireNum("TIME.ESCROW_RELEASE_LAG_M").toNumber();
   const date = ctx.formula<IsoDate[]>("F.TIME.DATE");
   const start = date[0];
   const rows = milestones(ctx);
   if (start === undefined) return rows.map(() => []);
+  // Режим совместимости: одна дата раскрытия для всех очередей, как вбито в исходнике (CF1!AB6)
+  if (ctx.mode === "legacy") {
+    const d = ctx.require<IsoDate>("TIME.LEGACY_ESCROW_RELEASE_DATE");
+    if (!isIsoDate(d)) throw new CalcError("дата раскрытия эскроу — ГГГГ-ММ-ДД", "TIME.LEGACY_ESCROW_RELEASE_DATE");
+    const releaseT = monthDiff(start, d);
+    return rows.map(() => date.map((_, t) => (t === releaseT ? 1 : 0)));
+  }
+  const lag = ctx.requireNum("TIME.ESCROW_RELEASE_LAG_M").toNumber();
   return rows.map((row) => {
     const releaseT = monthDiff(start, milestone(row, "rnv_date")) + lag;
     return date.map((_, t) => (t === releaseT ? 1 : 0));

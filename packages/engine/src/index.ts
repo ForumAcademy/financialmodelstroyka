@@ -9,7 +9,8 @@ import type { CalcOptions, ProjectInput, ResultSet } from "./types";
 
 export { Engine, CalcError, MissingInputError, sinkFormulas, type FormulaContext, type FormulaFn } from "./context";
 export { FORMULAS, IMPLEMENTED_MODULES } from "./registry";
-export { legacyCaseInput, type LegacyCase } from "./legacy";
+export { legacyCaseInput, type LegacyCase, type LegacyChecks } from "./legacy";
+export { legacyChecks } from "./legacy-checks";
 export type * from "./types";
 
 /** Модули ядра в порядке расчёта (docs/01_architecture.md). */

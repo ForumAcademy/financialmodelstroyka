@@ -10,7 +10,7 @@ import Decimal from "decimal.js";
 import type { FormulaContext } from "../context";
 import { CalcError } from "../context";
 import { isIsoDate, monthDiff, yearOf, type IsoDate } from "../lib/dates";
-import { fmt, parsePercent } from "../lib/format";
+import { fmt, fmtDate, parsePercent } from "../lib/format";
 import { growth } from "./capex";
 import { milestone, milestones, type MilestoneRow } from "./time";
 
@@ -67,6 +67,7 @@ interface PaceRow {
 interface MixRow {
   product: string;
   mortgage_share: number;
+  mortgage_down_payment?: number | null;
   full_payment_share: number;
   installment_share: number;
   installment_months?: number | null;
@@ -145,7 +146,7 @@ export function F_SALES_SOLD_AREA(ctx: FormulaContext): RowSeries {
       const sold = manualPace(p, rowPace.manual, date);
       const total = sold.reduce((s, x) => s.add(x), ZERO);
       if (stock !== null && total.gt(stock.mul(ONE.add(tol)))) {
-        ctx.message("warning", `«${p.key}»: по темпу исходника продано ${fmt(total)} ${unitName(p)} при запасе ${fmt(stock)} ${unitName(p)} — в обычном режиме продажи ограничены запасом`, "SALES.PACE");
+        ctx.message("warning", `«${p.key}»: по темпу исходника продано ${fmt(total)} ${unitName(p)} при запасе ${fmt(stock)} ${unitName(p)} — в обычном режиме продажи ограничены запасом`, "SALES.PACE", `SALES.OVER_STOCK:${p.key}`);
       }
       out[p.key] = sold;
       continue;
@@ -287,6 +288,8 @@ function mixFor(rows: MixRow[], p: Product): { now: Decimal; down: Decimal; rest
   if (!m) throw new CalcError(`Заполните структуру оплат для продукта «${p.row.product}»`, "SALES.PAYMENT_MIX");
   const shares = [m.mortgage_share, m.full_payment_share, m.installment_share];
   if (shares.some((x) => typeof x !== "number" || x < 0)) throw new CalcError(`«${p.row.product}»: доли оплат — неотрицательные числа`, "SALES.PAYMENT_MIX");
+  const own = m.mortgage_down_payment;
+  if (own !== undefined && own !== null && (typeof own !== "number" || own < 0 || own > m.mortgage_share)) throw new CalcError(`«${p.row.product}»: первоначальный взнос по ипотеке — доля выручки от 0 до доли ипотечных сделок`, "SALES.PAYMENT_MIX");
   const sum = shares.reduce((s, x) => s.add(x), ZERO);
   if (!sum.eq(ONE)) throw new CalcError(`«${p.row.product}»: сумма долей ипотеки, 100% оплаты и рассрочки ${fmt(sum)} — должна быть 1`, "SALES.PAYMENT_MIX");
   const inst = new Decimal(m.installment_share);
@@ -300,31 +303,47 @@ export function F_SALES_CASH_IN(ctx: FormulaContext): CashIn {
   const value = ctx.formula<RowSeries>("F.SALES.CONTRACT_VALUE");
   const mix = ctx.require<MixRow[]>("SALES.PAYMENT_MIX");
   if (!Array.isArray(mix)) throw new CalcError("Структура оплат: нужен список строк по продуктам", "SALES.PAYMENT_MIX");
-  const postRnv = ctx.formula<number[][]>("F.TIME.FLAG_POST_RNV");
+  // Режим совместимости: ДДУ — сделки по дату из исходника (CF1!F8:AS8), поступления после SALES.LEGACY_CASH_IN_END
+  // в CF не попадают (CF1!F15:AH15) — Excel один в один
+  const legacy = ctx.mode === "legacy";
+  const date = legacy ? ctx.formula<IsoDate[]>("F.TIME.DATE") : [];
+  const dduEnd = legacy ? ctx.require<IsoDate>("TIME.LEGACY_ESCROW_DEPOSIT_END") : null;
+  const cashEnd = legacy ? ctx.param<IsoDate>("SALES.LEGACY_CASH_IN_END") : null;
+  const postRnv = legacy ? [] : ctx.formula<number[][]>("F.TIME.FLAG_POST_RNV");
+  const lastT = cashEnd && date[0] ? monthDiff(date[0], cashEnd) : Infinity;
   const total: RowSeries = {};
   const ddu: RowSeries = {};
+  let lost = ZERO;
   for (const p of products(ctx)) {
     const v = value[p.key] as Decimal[];
     const m = mixFor(mix, p);
     const all = v.map(() => ZERO);
     const toEscrow = v.map(() => ZERO);
     const flags = postRnv[p.phaseIndex] ?? [];
+    const lostBefore = lost;
     v.forEach((x, tau) => {
       if (x.isZero()) return;
-      const isDdu = flags[tau] !== 1;
+      const isDdu = legacy ? (date[tau] as IsoDate) <= (dduEnd as IsoDate) : flags[tau] !== 1;
       const add = (t: number, amount: Decimal) => {
         if (t >= all.length) return;
+        if (t > lastT) {
+          lost = lost.add(amount);
+          return;
+        }
         all[t] = (all[t] as Decimal).add(amount);
         if (isDdu) toEscrow[t] = (toEscrow[t] as Decimal).add(amount);
       };
       add(tau, x.mul(m.now));
       for (let t = tau + 1; t <= tau + m.n; t++) add(t, x.mul(m.rest).div(m.n));
     });
-    const got = all.reduce((s, x) => s.add(x), ZERO);
+    const got = all.reduce((s, x) => s.add(x), ZERO).add(lost.sub(lostBefore));
     const due = v.reduce((s, x) => s.add(x), ZERO);
     if (due.sub(got).gt(ONE)) ctx.message("warning", `«${p.key}»: платежи по рассрочке на ${fmt(due.sub(got))} руб. приходятся на месяцы после горизонта модели`, "SALES.PAYMENT_MIX");
     total[p.key] = all;
     ddu[p.key] = toEscrow;
+  }
+  if (!lost.isZero()) {
+    ctx.message("warning", `Поступления от продаж после ${fmtDate(cashEnd as string)} (${fmt(lost)} руб.) в денежный поток не попали: так считает исходник — в обычном режиме они учитываются`, "SALES.LEGACY_CASH_IN_END", "SALES.CASH_IN_CUT");
   }
   return { total, ddu };
 }

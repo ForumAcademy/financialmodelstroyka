@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 X = ROOT / "legacy" / "Кальк Саевой привязка КОД.xlsx"
 wv = openpyxl.load_workbook(X, data_only=True)
 t, b, cf, ps, es, d = (wv[n] for n in ["ТЭПы", "Бюджет ", "CF1 ", "План продаж", "Эскроу", "Dashboard"])
+wf = openpyxl.load_workbook(X)  # формулы: какие ячейки вбиты числом
 
 def num(x):
     if isinstance(x, float):
@@ -40,8 +41,8 @@ for it in capex:
     if sched_rows:
         entry["manual_schedule_quarterly"] = {"cf_row": sched_rows[0], "values_F_to_AS": series(cf, sched_rows[0], 6, 45),
                                               "sum": num(sum(series(cf, sched_rows[0], 6, 45)))}
-    elif it["base"] == "формула" and lg.get("cf_rows"):
-        # статья со своей формулой без ряда «темп»: суммы CF1 по кварталам (распределение исходника для режима совместимости)
+    elif (it["base"] == "формула" or it["schedule_rule"] == "follow_sales") and lg.get("cf_rows"):
+        # статья со своей формулой или от выручки без ряда «темп»: суммы CF1 по кварталам (распределение исходника для режима совместимости)
         r = lg["cf_rows"][0]
         entry["cf_amounts_quarterly"] = {"cf_row": r, "values_F_to_AS": series(cf, r, 6, 45), "sum": num(sum(series(cf, r, 6, 45)))}
     capex_legacy.append(entry)
@@ -137,6 +138,21 @@ case = {
         "price_growth_quarterly": ps["E30"].value,
     },
     "capex_legacy": capex_legacy,
+    # Ячейки исходника для проверок режима совместимости (расхождения внутри Excel → предупреждения)
+    "legacy_checks": {
+        "tep": {"apt_area_C22": t["C22"].value, "psn_stock_C23": t["C23"].value, "saleable_area_C35": t["C35"].value,
+                "saleable_area_C35_formula": wf["ТЭПы"]["C35"].value if str(wf["ТЭПы"]["C35"].value).startswith("=") else None,
+                "psn_stock_C48": t["C48"].value, "psn_lot_D48": t["D48"].value, "escrow_release_C12": t["C12"].value},
+        "sales_plan": {"revenue_row25_from_1q2026": series(ps, 25, 5, 40), "psn_lots_row43_sum": num(ps["D43"].value)},
+        "budget": {"marketing_rate_D51": b["D51"].value, "marketing_F51": num(b["F51"].value), "marketing_F51_formula": wf["Бюджет "]["F51"].value,
+                   "brokerage_rate_D52": b["D52"].value, "brokerage_F52": num(b["F52"].value),
+                   "contingency_D42": num(b["D42"].value), "contingency_E42": b["E42"].value, "contingency_F42": num(b["F42"].value),
+                   "contingency_F42_formula": wf["Бюджет "]["F42"].value},
+        "cf1": {"revenue_row15": series(cf, 15, 6, 45), "revenue_row15_last_formula_col": max(c for c in range(6, 46) if wf["CF1 "].cell(15, c).value) - 6,
+                "brokerage_row78": series(cf, 78, 6, 45), "marketing_row79": series(cf, 79, 6, 45),
+                "escrow_release_row6": series(cf, 6, 6, 45), "escrow_release_row6_typed": [c - 6 for c in range(6, 46) if not str(wf["CF1 "].cell(6, c).value).startswith("=")],
+                "escrow_deposit_row8": series(cf, 8, 6, 45), "escrow_date_D6_formula": wf["CF1 "]["D6"].value},
+    },
     "legacy_outputs_for_reference": {
         "_warning": "Значения исходника. Многие рассчитаны с ошибками (docs/02_legacy_audit.md) — использовать только для сверки, не как эталон.",
         "revenue_sales_plan": num(ps["D25"].value),

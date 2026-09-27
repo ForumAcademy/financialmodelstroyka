@@ -281,6 +281,11 @@ export function F_CAPEX_SCHEDULE_WEIGHT(ctx: FormulaContext): Series {
   const check = (item: Item, w: Decimal[]) => {
     const sum = w.reduce((s, x) => s.add(x), ZERO);
     if (sum.sub(ONE).abs().gte(tol)) {
+      // Режим совместимости повторяет исходник: ряд берётся как есть, расхождение — предупреждение
+      if (ctx.mode === "legacy") {
+        ctx.message("warning", `«${item.name}»: в денежный поток попадает ${fmtShare(sum)} суммы бюджета — так в исходнике; в обычном режиме график равен 100%`, "CAPEX.ITEMS", `CAPEX.SCHEDULE_SUM:${item.id}`);
+        return;
+      }
       ctx.message("error", `«${item.name}»: сумма долей графика в горизонте модели ${fmtShare(sum)} вместо 100% — график выходит за горизонт или ручной ряд не равен 100% (SCHEDULE_SUM)`, "CAPEX.ITEMS");
     }
   };

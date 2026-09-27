@@ -18,3 +18,9 @@ export function parsePercent(text: string): Decimal | null {
   const m = /^\s*(\d+(?:[.,]\d+)?)\s*%\s*$/.exec(text);
   return m ? new Decimal((m[1] as string).replace(",", ".")).div(PERCENT) : null;
 }
+
+/** Дата для текста сообщения: «2033-03-31» → «31.03.2033». */
+export function fmtDate(iso: string): string {
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}

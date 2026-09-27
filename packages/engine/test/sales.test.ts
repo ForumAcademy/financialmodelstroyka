@@ -1,7 +1,8 @@
 import Decimal from "decimal.js";
 import { describe, expect, it } from "vitest";
 import { spec } from "@fm/spec";
-import { calculate, type ResultSet } from "../src";
+import type { FormulaId } from "@fm/spec";
+import { calculate, FORMULAS, sinkFormulas, type LegacyChecks, type ResultSet } from "../src";
 import { legacyInput, loadCase } from "./support/cases";
 
 type RowSeries = Record<string, Decimal[]>;
@@ -10,12 +11,13 @@ const sum = (xs: Decimal[]) => xs.reduce((a, b) => a.add(b), new Decimal(0));
 const rows = (r: ResultSet, id: "F.SALES.SOLD_AREA" | "F.SALES.PRICE" | "F.SALES.CONTRACT_VALUE") => r.formulas[id]?.value as RowSeries;
 const nums = (xs: Decimal[] | undefined) => (xs ?? []).map((x) => Number(x.toFixed(6)));
 
-// Горизонт — до 4 кв 2033 (последний квартал продаж ПСН исходника): t = 0 — декабрь 2025
-const LEGACY_HORIZON = 100;
+// Горизонт — до 4 кв 2035 (последний столбец CF1!AS: там кончаются ряды маркетинга и брокериджа): t = 0 — декабрь 2025
+const LEGACY_HORIZON = 121;
 
 describe("SALES: Дербеневская в режиме совместимости", () => {
   const c = loadCase("derbenevskaya_legacy");
-  const r = calculate(legacyInput(c), { horizonMonths: LEGACY_HORIZON });
+  const r = calculate(legacyInput(c), { horizonMonths: LEGACY_HORIZON }, [...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]), "F.SALES.REVENUE_TOTAL"]);
+  const lc = c.legacy_checks as LegacyChecks;
   const rev = r.formulas["F.SALES.REVENUE_TOTAL"]?.value as { gross: Decimal; byRow: Record<string, Decimal> };
   const t = c.reconciliation_targets as Record<string, number>;
 
@@ -31,9 +33,13 @@ describe("SALES: Дербеневская в режиме совместимос
     expect(rev.gross.sub(t.sales_value_total as number).abs().lt(1)).toBe(true);
   });
 
-  it("поступления от покупателей = выручке плана продаж (исходник CF1 — 117 514 091 710,14)", () => {
+  it("поступления в CF — как в CF1: 117 514 091 710,14, продажи после 1 кв 2033 выпадают — с предупреждением", () => {
     const cash = r.formulas["F.SALES.CASH_IN"]?.value as { total: RowSeries };
-    expect(sum(Object.values(cash.total).flat()).sub(rev.gross).abs().lt(1e-6)).toBe(true);
+    const cf1 = lc.cf1.revenue_row15.reduce((a, b) => a + b, 0);
+    expect(sum(Object.values(cash.total).flat()).sub(cf1).abs().lt(1)).toBe(true);
+    expect(sum(Object.values(cash.total).flat()).toFixed(2)).toBe("117514091710.14");
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", key: "SALES.CASH_IN_CUT", text: expect.stringMatching(/после 31\.03\.2033 \(616\s196\s314,37 руб\.\)/) }));
+    expect(r.messages.filter((m) => m.formulaId === "F.SALES.CASH_IN")).toHaveLength(1);
   });
 
   it("ПСН продано больше запаса, как в исходнике, — с предупреждением", () => {
@@ -47,26 +53,35 @@ describe("SALES: Дербеневская в режиме совместимос
     expect(nums(p.slice(0, 5))).toEqual([497703, 497703, 497703, 497703, 507657.06]);
   });
 
-  it("брокеридж и маркетинг в CF = 3,5% × выручка по месяцам продаж (исходник CF1 — 2 733 176 548,21)", () => {
+  it("маркетинг и брокеридж — как в исходнике: бюджет F51 и F52, в CF — ряды CF1 со сдвигом на 7 кварталов", () => {
+    const total = r.formulas["F.CAPEX.ITEM_TOTAL"]?.value as Record<string, Decimal>;
     const cash = r.formulas["F.CAPEX.ITEM_CASH"]?.value as Record<string, Decimal[]>;
-    expect(sum(cash.BROKERAGE as Decimal[]).toFixed(2)).toBe("4134560080.86");
-    expect(sum(cash.MARKETING as Decimal[]).toFixed(2)).toBe("4134560080.86");
-    // график — как договоры: в месяце с продажами доля = доле выручки месяца
-    const value = Object.values(rows(r, "F.SALES.CONTRACT_VALUE"));
-    const month1 = sum(value.map((s) => s[1] as Decimal));
-    expect((cash.BROKERAGE?.[1] as Decimal).sub(month1.mul(0.035)).abs().lt(1e-6)).toBe(true);
+    expect(total.MARKETING?.toFixed(2)).toBe("4194809207.75");
+    expect(total.BROKERAGE?.toFixed(2)).toBe("4134560080.86");
+    expect(sum(cash.MARKETING as Decimal[]).sub(4134560080.857632).abs().lt(1e-3)).toBe(true);
+    expect(sum(cash.BROKERAGE as Decimal[]).toFixed(2)).toBe("2733176548.21");
+    // первые платежи — 4 кв 2027, через 7 кварталов после первых продаж (1 кв 2026)
+    const date = r.formulas["F.TIME.DATE"]?.value as string[];
+    expect(date[(cash.BROKERAGE as Decimal[]).findIndex((x) => !x.isZero())]).toBe("2027-10-31");
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", key: "CAPEX.SCHEDULE_SUM:BROKERAGE", text: expect.stringContaining("66,11%") }));
   });
 
-  it("эскроу: всё, что поступило, раскрыто после РНВ очереди, остаток в конце — 0", () => {
+  it("ипотечные сделки 0,9 (0,7 кредит + 0,2 ПВ), 100% оплата 0,1", () => {
+    const mix = legacyInput(c).values["SALES.PAYMENT_MIX"] as { mortgage_share: number; mortgage_down_payment: number; full_payment_share: number }[];
+    expect(mix[0]).toMatchObject({ mortgage_share: 0.9, mortgage_down_payment: 0.2, full_payment_share: 0.1 });
+  });
+
+  it("эскроу — как в CF1: взносы по 2 кв 2031 (88 986 276 880,29), раскрытие 30.09.2031 (CF1!AB6 вбито руками)", () => {
     const dep = r.formulas["F.ESC.DEPOSIT"]?.value as Decimal[][];
     const esc = r.formulas["F.ESC.BALANCE"]?.value as { balance: Decimal[][]; release: Decimal[][] };
-    // продажи исходника не разделены по очередям — все в последней очереди (РНВ 01.07.2031, раскрытие — август 2031)
+    // продажи исходника не разделены по очередям — все в последней очереди
     expect(dep.map((d) => sum(d).isZero())).toEqual([true, true, false]);
+    expect(sum(dep[2] as Decimal[]).toFixed(2)).toBe("88986276880.29");
     expect(sum(esc.release[2] as Decimal[]).sub(sum(dep[2] as Decimal[])).abs().lt(1e-6)).toBe(true);
     expect(esc.balance[2]?.at(-1)?.isZero()).toBe(true);
     const date = r.formulas["F.TIME.DATE"]?.value as string[];
     const first = (esc.release[2] as Decimal[]).findIndex((x) => !x.isZero());
-    expect(date[first]).toBe("2031-08-31");
+    expect(date[first]).toBe("2031-09-30");
   });
 });
 
@@ -162,12 +177,12 @@ describe("SALES и ESCROW: правила обычного режима", () => 
     const dep = (r.formulas["F.ESC.DEPOSIT"]?.value as Decimal[][])[0] as Decimal[];
     const esc = r.formulas["F.ESC.BALANCE"]?.value as { balance: Decimal[][]; release: Decimal[][] };
     const rel = esc.release[0] as Decimal[];
-    // РНВ в мае (t = 5) + лаг 1 месяц → раскрытие в июне (t = 6)
-    expect(rel.slice(0, 6).every((x) => x.isZero())).toBe(true);
-    expect(rel[6]?.sub(sum(dep.slice(0, 7))).abs().lt(1e-6)).toBe(true);
-    expect(rel[7]?.eq(dep[7] as Decimal)).toBe(true);
-    expect(esc.balance[0]?.slice(6).every((x) => x.isZero())).toBe(true);
-    expect(esc.balance[0]?.[5]?.sub(sum(dep.slice(0, 6))).abs().lt(1e-6)).toBe(true);
+    // РНВ в мае (t = 5) + лаг по умолчанию 3 месяца → раскрытие в августе (t = 8)
+    expect(rel.slice(0, 8).every((x) => x.isZero())).toBe(true);
+    expect(rel[8]?.sub(sum(dep.slice(0, 9))).abs().lt(1e-6)).toBe(true);
+    expect(rel[9]?.eq(dep[9] as Decimal)).toBe(true);
+    expect(esc.balance[0]?.slice(8).every((x) => x.isZero())).toBe(true);
+    expect(esc.balance[0]?.[7]?.sub(sum(dep.slice(0, 8))).abs().lt(1e-6)).toBe(true);
   });
 
   it("покрытие долга эскроу — на этапе 5", () => {

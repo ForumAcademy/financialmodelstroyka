@@ -2,12 +2,43 @@
  * Расчёт проекта в интерфейсе: вызов ядра и вспомогательные преобразования для таблиц.
  * Формул модели здесь нет — только то, что вернуло ядро (@fm/engine).
  */
-import { calculate, dataQuestions, ENGINE_MODULES, FORMULAS, sinkFormulas, type DataQuestion, type ResultSet } from "@fm/engine";
+import { calculate, dataQuestions, ENGINE_MODULES, LEGACY_QUESTION_MAX_NO, FORMULAS, legacyCaseInput, sinkFormulas, type DataQuestion, type LegacyCase, type ProjectInput, type ResultSet } from "@fm/engine";
 import { getFormula, getParameter, PARAMETER_IDS, type FormulaId, type ParameterId } from "@fm/spec";
+import { assumptionParams, SPEC_ASSUMPTIONS, standardValues, versionOf, type AssumptionVersion } from "./assumptions";
+import { standardQuestions } from "./standard-questions";
 import type { DemoProject } from "./types";
 
+const excelCache = new WeakMap<LegacyCase, Partial<Record<ParameterId, unknown>>>();
+
+/** Значения исходного Excel для параметров справочника допущений (расчёт «как в исходном Excel» берёт их, а не стандарт). */
+function excelAssumptionValues(c: LegacyCase, versions: AssumptionVersion[]): Partial<Record<ParameterId, unknown>> {
+  if (!excelCache.has(c)) {
+    const params = assumptionParams(versions);
+    const all = legacyCaseInput(c).values;
+    excelCache.set(c, Object.fromEntries(Object.entries(all).filter(([k]) => params.has(k as ParameterId))));
+  }
+  return excelCache.get(c) ?? {};
+}
+
+/**
+ * Входные данные ядра: значения проекта + стандарт компании по версии проекта. В расчёте «как в исходном Excel»
+ * параметры справочника берутся из исходного Excel (один в один), если в проекте их не меняли.
+ */
+export function effectiveInput(project: DemoProject, versions: AssumptionVersion[] = SPEC_ASSUMPTIONS): ProjectInput {
+  const standard = standardValues(versionOf(versions, project.assumptionsVersion));
+  const legacy = project.input.mode === "legacy" && project.legacyCase;
+  const values = legacy ? { ...excelAssumptionValues(project.legacyCase as LegacyCase, versions), ...project.input.values } : project.input.values;
+  return { ...project.input, values, standard };
+}
+
+/** Действующее значение параметра в проекте: своё → стандарт компании → значение по умолчанию. */
+export function effectiveValue(project: DemoProject, id: ParameterId, versions: AssumptionVersion[] = SPEC_ASSUMPTIONS): unknown {
+  const input = effectiveInput(project, versions);
+  return input.values[id] ?? input.standard?.[id] ?? getParameter(id).default ?? null;
+}
+
 /** Горизонт модели: до последней вехи + лаг раскрытия эскроу. Предварительно — правило ещё не утверждено в спецификации. */
-export function provisionalHorizon(project: DemoProject): number | null {
+export function provisionalHorizon(project: DemoProject, versions: AssumptionVersion[] = SPEC_ASSUMPTIONS): number | null {
   const start = project.input.values["GEN.MODEL_START_DATE"];
   const rows = project.input.values["TIME.MILESTONES"];
   if (typeof start !== "string" || !Array.isArray(rows)) return null;
@@ -19,7 +50,7 @@ export function provisionalHorizon(project: DemoProject): number | null {
   if (dates.length === 0) return null;
   const last = dates.reduce((a, b) => (b > a ? b : a));
   const monthsTo = (d: string) => (Number(d.slice(0, 4)) - Number(start.slice(0, 4))) * 12 + (Number(d.slice(5, 7)) - Number(start.slice(5, 7)));
-  const lag = Number(getParameter("TIME.ESCROW_RELEASE_LAG_M").default ?? 0);
+  const lag = Number(effectiveValue(project, "TIME.ESCROW_RELEASE_LAG_M", versions) ?? 0);
   return Math.max(monthsTo(last) + 1 + lag, manualScheduleEnd(project, monthsTo) + 1, salesPaceEnd(project, monthsTo) + 1, 1);
 }
 
@@ -69,17 +100,22 @@ export interface ProjectModel {
   horizon: number | null;
   /** Параметры, которые нужно заполнить (ошибка «заполните …» в расчёте). */
   missing: Set<ParameterId>;
+  /** Стандартные значения компании по версии справочника проекта. */
+  standard: Partial<Record<ParameterId, unknown>>;
+  /** Версии справочника допущений, с которыми посчитан проект. */
+  versions: AssumptionVersion[];
 }
 
-export function computeProject(project: DemoProject): ProjectModel {
-  const horizon = provisionalHorizon(project);
-  const calc = calculate(project.input, horizon === null ? {} : { horizonMonths: horizon }, TARGETS);
+export function computeProject(project: DemoProject, versions: AssumptionVersion[] = SPEC_ASSUMPTIONS): ProjectModel {
+  const horizon = provisionalHorizon(project, versions);
+  const input = effectiveInput(project, versions);
+  const calc = calculate(input, horizon === null ? {} : { horizonMonths: horizon }, TARGETS);
   const result = project.input.mode === "legacy" && project.legacyWarnings ? { ...calc, messages: [...calc.messages, ...project.legacyWarnings] } : calc;
   const missing = new Set(result.messages.filter((m) => m.severity === "error" && m.parameterId).map((m) => m.parameterId as ParameterId));
-  return { result, horizon, missing };
+  return { result, horizon, missing, standard: input.standard ?? {}, versions };
 }
 
-const otherModeCache = new WeakMap<DemoProject, ProjectModel | null>();
+const otherModeCache = new WeakMap<DemoProject, { versions: AssumptionVersion[]; model: ProjectModel | null }>();
 
 /**
  * Пара расчётов «расчёт «как в исходном Excel» / расчёт сервиса» для проекта из исходного Excel: текущий расчёт и
@@ -87,16 +123,16 @@ const otherModeCache = new WeakMap<DemoProject, ProjectModel | null>();
  */
 export function modePair(project: DemoProject, current: ProjectModel): { legacy: ProjectModel; normal: ProjectModel; normalProject: DemoProject } | null {
   if (!project.legacyCase) return null;
-  if (!otherModeCache.has(project)) {
+  if (otherModeCache.get(project)?.versions !== current.versions) {
     let other: ProjectModel | null;
     try {
-      other = computeProject({ ...project, input: { ...project.input, mode: project.input.mode === "legacy" ? "normal" : "legacy" } });
+      other = computeProject({ ...project, input: { ...project.input, mode: project.input.mode === "legacy" ? "normal" : "legacy" } }, current.versions);
     } catch {
       other = null;
     }
-    otherModeCache.set(project, other);
+    otherModeCache.set(project, { versions: current.versions, model: other });
   }
-  const other = otherModeCache.get(project);
+  const other = otherModeCache.get(project)?.model;
   if (!other) return null;
   return project.input.mode === "legacy"
     ? { legacy: current, normal: other, normalProject: { ...project, input: { ...project.input, mode: "normal" } } }
@@ -108,12 +144,26 @@ export function compatWarnings(project: DemoProject, m: ProjectModel) {
   return project.input.mode === "legacy" ? m.result.messages.filter((x) => x.severity === "warning" && x.key) : [];
 }
 
-/** Вопросы к данным по предупреждениям расчёта «как в исходном Excel»: только у проектов из исходного Excel, в любом режиме. */
+/**
+ * Вопросы к данным: расхождения исходного Excel (только у проектов из Excel, в любом режиме) + неподтверждённые
+ * стандартные значения компании (у всех проектов; влияние — по расчёту сервиса).
+ */
 export function projectQuestions(project: DemoProject, m: ProjectModel): DataQuestion[] {
+  const legacy = excelQuestions(project, m);
+  const pair = project.legacyCase ? modePair(project, m) : null;
+  const normal = project.input.mode === "legacy" ? pair?.normal : m;
+  // Номера стандартных значений — после номеров исходного Excel, чтобы не менялись, когда пункты Excel решаются.
+  const offset = project.legacyCase ? legacy.reduce((max, q) => Math.max(max, q.no), LEGACY_QUESTION_MAX_NO) : 0;
+  const legacyResult = project.input.mode === "legacy" ? m.result : (pair?.legacy.result ?? null);
+  const std = normal ? standardQuestions(project, effectiveInput({ ...project, input: { ...project.input, mode: "normal" } }, m.versions), normal.result, legacyResult, m.versions, offset) : [];
+  return [...legacy, ...std];
+}
+
+function excelQuestions(project: DemoProject, m: ProjectModel): DataQuestion[] {
   if (!project.legacyCase) return [];
-  if (project.input.mode === "legacy") return dataQuestions(project.legacyCase, project.input, m.result);
+  if (project.input.mode === "legacy") return dataQuestions(project.legacyCase, effectiveInput(project, m.versions), m.result);
   const pair = modePair(project, m);
-  return pair ? dataQuestions(project.legacyCase, { ...project.input, mode: "legacy" }, pair.legacy.result) : [];
+  return pair ? dataQuestions(project.legacyCase, effectiveInput({ ...project, input: { ...project.input, mode: "legacy" } }, m.versions), pair.legacy.result) : [];
 }
 
 /** Этап плана, на котором появится формула (по её модулю). */

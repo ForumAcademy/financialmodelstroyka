@@ -7,6 +7,7 @@ import { spec } from "@fm/spec";
 import type Decimal from "decimal.js";
 import { num, regionName } from "@/lib/format";
 import type { ProjectModel } from "@/lib/model";
+import { latest } from "@/lib/assumptions";
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
 
@@ -58,7 +59,7 @@ function RowMenu({ project }: { project: DemoProject }) {
 }
 
 export default function ProjectsPage() {
-  const { projects, dispatch, model } = useStore();
+  const { projects, dispatch, model, assumptions } = useStore();
   const router = useRouter();
   const [archived, setArchived] = useState(false);
   const list = projects.filter((p) => p.archived === archived).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -68,7 +69,7 @@ export default function ProjectsPage() {
     const name = `Новый проект ${projects.length + 1}`;
     dispatch({
       type: "create",
-      project: { id, name, archived: false, sources: [], paramSources: {}, specVersion: spec.specVersion, updatedAt: new Date().toISOString(), input: { values: { "GEN.PROJECT_NAME": name } } },
+      project: { id, name, archived: false, sources: [], paramSources: {}, specVersion: spec.specVersion, assumptionsVersion: latest(assumptions).version, updatedAt: new Date().toISOString(), input: { values: { "GEN.PROJECT_NAME": name } } },
     });
     router.push(`/projects/${id}`);
   };

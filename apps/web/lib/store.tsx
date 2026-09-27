@@ -5,6 +5,7 @@ import { spec, type ParameterId } from "@fm/spec";
 import type { DemoProject, IssueEvent, IssueNote, ProjectSource, Seed, ValueChange } from "./types";
 import { computeProject, type ProjectModel } from "./model";
 import type { SourceCheck } from "./sources";
+import { latest, SPEC_ASSUMPTIONS, type AssumptionItem, type AssumptionVersion } from "./assumptions";
 
 type Action =
   | { type: "create"; project: DemoProject }
@@ -20,7 +21,8 @@ type Action =
   | { type: "change"; id: string; param: ParameterId; before: unknown; value: unknown; why: string; url?: string; author: string }
   | { type: "revert"; id: string; param: ParameterId }
   | { type: "issue"; id: string; key: string; no: number; question: string; event: IssueEvent }
-  | { type: "issueNote"; id: string; key: string; no: number; question: string; note: IssueNote };
+  | { type: "issueNote"; id: string; key: string; no: number; question: string; note: IssueNote }
+  | { type: "assumptionsVersion"; id: string; version: number };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -103,6 +105,8 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
         const state = { status: prev?.status ?? "open", history: prev?.history ?? [], no: a.no, question: a.question, notes: [...(prev?.notes ?? []), a.note] };
         return touch(p, { issues: { ...p.issues, [a.key]: state } });
       });
+    case "assumptionsVersion":
+      return map((p) => touch(p, { assumptionsVersion: a.version }));
     case "linkSource":
       return map((p) => {
         const paramSources = { ...p.paramSources };
@@ -113,8 +117,28 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
   }
 }
 
+/** Правка справочника допущений: каждая правка публикуется новой версией (до этапа 10 — без черновиков). */
+export type AssumptionAction =
+  | { type: "edit"; param: ParameterId; patch: Partial<Pick<AssumptionItem, "value" | "status" | "from">>; why: string; author: string }
+  | { type: "approve"; params: ParameterId[]; why: string; author: string };
+
+export function assumptionsReducer(state: AssumptionVersion[], a: AssumptionAction): AssumptionVersion[] {
+  const last = latest(state);
+  const patch = (item: AssumptionItem): AssumptionItem => {
+    if (a.type === "edit") return item.param === a.param ? { ...item, ...a.patch } : item;
+    return a.params.includes(item.param) ? { ...item, status: "approved" } : item;
+  };
+  const items = last.items.map(patch);
+  if (JSON.stringify(items) === JSON.stringify(last.items)) return state;
+  const today = new Date().toISOString().slice(0, 10);
+  return [...state, { version: last.version + 1, date: today, author: a.author, note: a.why, items }];
+}
+
 interface Store {
   projects: DemoProject[];
+  /** Версии справочника допущений компании; последняя — текущая, новые проекты создаются на ней. */
+  assumptions: AssumptionVersion[];
+  dispatchAssumptions: (a: AssumptionAction) => void;
   dispatch: (a: Action) => void;
   model: (p: DemoProject) => ProjectModel;
   /** Отметки «проверено» по общим источникам (ID источника → кто, когда, комментарий). */
@@ -134,16 +158,19 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ seed, children }: { seed: Seed; children: ReactNode }) {
   const [projects, dispatch] = useReducer(reducer, seed.projects);
   const [sourceChecks, dispatchCheck] = useReducer(checksReducer, {});
-  const models = useMemo(() => new Map(projects.map((p) => [p.id, computeProject(p)])), [projects]);
+  const [assumptions, dispatchAssumptions] = useReducer(assumptionsReducer, SPEC_ASSUMPTIONS);
+  const models = useMemo(() => new Map(projects.map((p) => [p.id, computeProject(p, assumptions)])), [projects, assumptions]);
   const store = useMemo<Store>(
     () => ({
       projects,
       dispatch,
-      model: (p) => models.get(p.id) ?? computeProject(p),
+      assumptions,
+      dispatchAssumptions,
+      model: (p) => models.get(p.id) ?? computeProject(p, assumptions),
       sourceChecks,
       setSourceCheck: (id, check) => dispatchCheck({ id, check }),
     }),
-    [projects, models, sourceChecks],
+    [projects, models, sourceChecks, assumptions],
   );
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }

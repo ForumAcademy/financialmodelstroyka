@@ -1,5 +1,5 @@
 {
-  "specVersion": "02d607d1998d",
+  "specVersion": "35a04164d917",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -3545,6 +3545,31 @@
           "cell": "Эскроу!D8:H8",
           "value": 0,
           "verdict": "remove"
+        }
+      ]
+    },
+    {
+      "id": "SALES.MORTGAGE_BANK_FEE_RATE",
+      "name": "Комиссия банку по ипотеке, доля ипотечного кредита",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "range": [
+        0,
+        0.2
+      ],
+      "source_ids": [
+        "S_BANK_TERMSHEET",
+        "S_COMPANY_ACTUALS"
+      ],
+      "basis": "Застройщик платит банку-партнёру комиссию за ипотечные сделки (субсидирование ставки покупателю). База — только ипотечный кредит, без первоначального взноса покупателя (SALES.PAYMENT_MIX: mortgage_share − mortgage_down_payment). Значение — из договора с банком; стандарт компании — в справочнике допущений (data/company_assumptions.yaml)",
+      "how_to_fill": "Взять из договора с банком-партнёром по ипотеке",
+      "status": "needs_verification",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new — в исходном Excel комиссии банку по ипотеке нет"
         }
       ]
     },
@@ -13140,6 +13165,220 @@
         "verdict": "new"
       },
       "status": "verified"
+    }
+  ],
+  "assumptions": [
+    {
+      "version": 1,
+      "date": "2026-09-27",
+      "author": "Первичное наполнение",
+      "note": "Значения из исходного Excel «Кальк Саевой привязка КОД.xlsx», не проверены. Резерв — значение расчёта сервиса по методике Минстроя, лаг раскрытия эскроу — решение владельца продукта.",
+      "items": [
+        {
+          "param": "OPEX.MARKETING_RATE",
+          "group": "sales",
+          "value": 0.035,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «Бюджет»: маркетинг 3,5% выручки",
+            "url": null
+          }
+        },
+        {
+          "param": "OPEX.BROKERAGE_RATE",
+          "group": "sales",
+          "value": 0.035,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «Бюджет»: брокеридж 3,5% выручки",
+            "url": null
+          }
+        },
+        {
+          "param": "SALES.PAYMENT_MIX",
+          "group": "sales",
+          "value": [
+            {
+              "product": "квартиры",
+              "mortgage_share": 0.9,
+              "mortgage_down_payment": 0.2,
+              "full_payment_share": 0.1,
+              "installment_share": 0,
+              "installment_months": 18,
+              "installment_down_payment": 0
+            },
+            {
+              "product": "ПСН",
+              "mortgage_share": 0.9,
+              "mortgage_down_payment": 0.2,
+              "full_payment_share": 0.1,
+              "installment_share": 0,
+              "installment_months": 18,
+              "installment_down_payment": 0
+            },
+            {
+              "product": "машино-места",
+              "mortgage_share": 0.9,
+              "mortgage_down_payment": 0.2,
+              "full_payment_share": 0.1,
+              "installment_share": 0,
+              "installment_months": 18,
+              "installment_down_payment": 0
+            }
+          ],
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «Эскроу»: ипотека 0,7 (кредит) и первоначальный взнос 0,2, оплата 100% — 0,1, рассрочки нет; одна структура для всех продуктов",
+            "url": null
+          },
+          "note": "Для апартаментов и кладовых стандарта нет: в исходном Excel их не было"
+        },
+        {
+          "param": "SALES.MORTGAGE_BANK_FEE_RATE",
+          "group": "sales",
+          "value": null,
+          "status": "unverified",
+          "from": {
+            "text": "В исходном Excel комиссии банку по ипотеке нет",
+            "url": null
+          },
+          "note": "Нужно значение из договора с банком-партнёром"
+        },
+        {
+          "param": "SALES.PRICE_STAGE_UPLIFT",
+          "group": "sales",
+          "value": null,
+          "status": "unverified",
+          "from": {
+            "text": "В исходном Excel цена растёт на 2% в квартал без деления на рост рынка и надбавки за готовность",
+            "url": null
+          },
+          "note": "Надбавки по стадиям готовности не заданы"
+        },
+        {
+          "param": "CAPEX.CONTINGENCY_RATE",
+          "group": "budget",
+          "value": 0.02,
+          "status": "unverified",
+          "from": {
+            "text": "Методика Минстроя 421/пр: 2% для объектов непроизводственного назначения (значение расчёта сервиса)",
+            "url": "https://www.consultant.ru/document/cons_doc_LAW_362957/"
+          },
+          "note": "В исходном Excel задумано 10% от расценок СМР, но формула резерва считает не то; значение сервиса не меняли"
+        },
+        {
+          "param": "OPEX.DEV_FEE_RATE",
+          "group": "budget",
+          "value": 0.02,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «Бюджет»: вознаграждение за управление проектом 2% выручки",
+            "url": null
+          }
+        },
+        {
+          "param": "TIME.ESCROW_RELEASE_LAG_M",
+          "group": "escrow",
+          "value": 3,
+          "status": "approved",
+          "from": {
+            "text": "Решение владельца продукта 27.09.2026: 3 месяца после ввода в эксплуатацию; закон — не позднее 10 рабочих дней после представления разрешения (ч.6 ст.15.5 214-ФЗ)",
+            "url": "https://www.consultant.ru/document/cons_doc_LAW_51038/7e20edcc51ba599c70fb328204e3ac1226e7d912/"
+          }
+        },
+        {
+          "param": "FIN.EQUITY_SHARE",
+          "group": "fin",
+          "value": 0.1,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: собственные средства 10% бюджета",
+            "url": null
+          }
+        },
+        {
+          "param": "FIN.RATE_PREFERENTIAL",
+          "group": "fin",
+          "value": 0.05,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: льготная ставка 5% на часть долга, покрытую эскроу",
+            "url": null
+          }
+        },
+        {
+          "param": "FIN.RATE_BASE_SPREAD",
+          "group": "fin",
+          "value": 0.0575,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: базовая ставка 20% при ключевой 14,25% — надбавка 5,75 п.п.",
+            "url": null
+          },
+          "note": "В исходном Excel базовая ставка задана целиком, без привязки к ключевой"
+        },
+        {
+          "param": "FIN.RATE_DISCOUNT_COEF",
+          "group": "fin",
+          "value": -0.02,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: скидка к ставке −2 п.п. при избыточном покрытии эскроу",
+            "url": null
+          }
+        },
+        {
+          "param": "FIN.RATE_MIN",
+          "group": "fin",
+          "value": 0.001,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: минимальная ставка 0,1%",
+            "url": null
+          }
+        },
+        {
+          "param": "FIN.ESCROW_RESERVE_RATE",
+          "group": "fin",
+          "value": 0,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: остатки эскроу для ставки не уменьшаются",
+            "url": null
+          }
+        },
+        {
+          "param": "FIN.FEE_ARRANGEMENT",
+          "group": "fin",
+          "value": 0.01,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: комиссия за выдачу 1% лимита",
+            "url": null
+          }
+        },
+        {
+          "param": "FIN.FEE_COMMITMENT",
+          "group": "fin",
+          "value": null,
+          "status": "unverified",
+          "from": {
+            "text": "В исходном Excel комиссии за неиспользованный лимит нет",
+            "url": null
+          },
+          "note": "Нужно значение из кредитного решения банка"
+        },
+        {
+          "param": "FIN.COLLATERAL_DISCOUNT",
+          "group": "fin",
+          "value": 0.15,
+          "status": "unverified",
+          "from": {
+            "text": "Исходный Excel, лист «CF1»: дисконт залоговой стоимости 15%",
+            "url": null
+          }
+        }
+      ]
     }
   ]
 }

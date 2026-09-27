@@ -1,5 +1,5 @@
 """
-Генерирует docs/03_formulas.md, docs/04_parameters.md, docs/05_sources.md из data/*.yaml.
+Генерирует docs/03_formulas.md, docs/04_parameters.md (с разделом «Справочник допущений компании»), docs/05_sources.md из data/*.yaml.
 Документация НЕ редактируется руками — только через YAML.
 """
 from pathlib import Path
@@ -11,6 +11,7 @@ src = {s["id"]: s for s in yaml.safe_load(open(D / "sources.yaml"))["sources"]}
 params = yaml.safe_load(open(D / "parameters.yaml"))["parameters"]
 forms = yaml.safe_load(open(D / "formulas.yaml"))["formulas"]
 capex = yaml.safe_load(open(D / "capex_items.yaml"))["items"]
+assumptions = yaml.safe_load(open(D / "company_assumptions.yaml"))["versions"]
 
 HEADER = "<!-- Файл сгенерирован scripts/render_docs.py из data/*.yaml. Не редактировать вручную. -->\n\n"
 
@@ -96,6 +97,26 @@ for p in params:
             note = f" — {esc(l['note'])}" if l.get("note") else ""
             val = f" = `{esc(l['value'])}`" if "value" in l else ""
             out.append(f"- `{p['id']}` ← `{l['cell']}`{val} → **{l['verdict']}**{note}\n")
+out.append("\n## Справочник допущений компании (company_assumptions.yaml)\n\n"
+           "Стандартные значения для нового проекта без исходного Excel. Проект запоминает версию, на которой создан; "
+           "изменения справочника переходят в проект только по кнопке «Обновить» в проекте.\n")
+GROUP_LABEL = {"sales": "Продажи", "budget": "Бюджет", "escrow": "Эскроу", "fin": "Финансирование"}
+STATUS_LABEL = {"unverified": "не проверено", "approved": "утверждено"}
+PNAME = {p["id"]: p["name"] for p in params}
+def a_value(v):
+    if v is None:
+        return "не задано"
+    if isinstance(v, list):
+        return "таблица: " + "; ".join(", ".join(f"{k} {esc(x)}" for k, x in r.items()) for r in v)
+    return esc(v)
+for v in assumptions:
+    out.append(f"\n### Версия {v['version']} · {v['date']} · {esc(v['author'])}\n\n{esc(v['note'])}\n\n"
+               "| Раздел | Параметр | Значение | Статус | Откуда |\n|---|---|---|---|---|\n")
+    for it in v["items"]:
+        frm = it["from"]
+        frm_t = f"[{esc(frm['text'])}]({frm['url']})" if frm.get("url") else f"{esc(frm['text'])} *(нет ссылки)*"
+        note = f"<br>{esc(it['note'])}" if it.get("note") else ""
+        out.append(f"| {GROUP_LABEL[it['group']]} | `{it['param']}` {esc(PNAME.get(it['param'], ''))} | {a_value(it['value'])} | {STATUS_LABEL[it['status']]} | {frm_t}{note} |\n")
 (ROOT / "docs" / "04_parameters.md").write_text("".join(out), encoding="utf-8")
 
 # ---------------- sources

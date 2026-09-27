@@ -85,6 +85,7 @@ export class Engine {
   readonly mode: CalcMode;
   readonly horizonMonths: number | null;
   private readonly values: ProjectInput["values"];
+  private readonly standard: NonNullable<ProjectInput["standard"]>;
   private readonly nodes = new Map<FormulaId, TraceNode>();
   private readonly failed = new Set<FormulaId>();
   private readonly params = new Map<ParameterId, ParameterTrace>();
@@ -97,6 +98,7 @@ export class Engine {
     options: CalcOptions = {},
   ) {
     this.values = input.values;
+    this.standard = input.standard ?? {};
     this.mode = input.mode ?? "normal";
     this.horizonMonths = options.horizonMonths ?? null;
   }
@@ -164,10 +166,15 @@ export class Engine {
     return this.values[id];
   }
 
-  /** Значение параметра: проект → регион (regions.yaml) → значение по умолчанию из parameters.yaml. */
+  /**
+   * Значение параметра: проект → справочник допущений компании → регион (regions.yaml) → значение по умолчанию из
+   * parameters.yaml.
+   */
   private resolve(id: ParameterId): { value: unknown; origin: ValueOrigin } | null {
     const own = this.values[id];
     if (own !== undefined && own !== null) return { value: own, origin: "project" };
+    const std = this.standard[id];
+    if (std !== undefined && std !== null) return { value: std, origin: "standard" };
     const fromRegion = REGION_VALUES[id];
     const region = this.projectRegion();
     if (fromRegion && region) {

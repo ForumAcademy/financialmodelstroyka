@@ -194,12 +194,14 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .legacy-view dt { font-size: 11px; color: var(--muted); }
 .legacy-view dd { margin: 0; font-weight: 600; }
 .table-editor { overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
-.table-editor table { border-collapse: collapse; }
+/* Таблицы ввода растянуты на ширину блока; узкий блок — прокрутка по горизонтали */
+.table-editor table { border-collapse: collapse; width: 100%; }
 .table-editor th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 3px 6px; white-space: nowrap; }
 .table-editor td { padding: 2px 4px; }
-.table-editor input, .table-editor select { background: var(--input); border-color: var(--input-border); width: 130px; padding: 4px 6px; }
-.table-editor input[type="date"] { width: 138px; }
-.table-editor td.col-phase input { width: 64px; }
+.table-editor input, .table-editor select { background: var(--input); border-color: var(--input-border); width: 100%; min-width: 96px; padding: 4px 6px; }
+.table-editor input[type="date"] { min-width: 132px; }
+.table-editor td.col-phase input { min-width: 56px; }
+.table-editor th.col-del, .table-editor td.col-del { width: 1%; }
 /* Вехи: таблица ровно по ширине блока, без горизонтальной прокрутки */
 .table-editor table.fit { width: 100%; min-width: 1000px; table-layout: fixed; }
 .table-editor table.fit input::-webkit-calendar-picker-indicator { margin: 0; padding: 0; width: 11px; }
@@ -208,7 +210,7 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .table-editor table.fit input { width: 100%; min-width: 0; font-size: 12.5px; padding: 4px 3px; }
 .table-editor table.fit th:first-child { width: 58px; }
 .table-editor table.fit th.col-del { width: 28px; }
-.table-editor td.col-type_name input, .table-editor td.col-product input { width: 190px; }
+.table-editor td.col-type_name input, .table-editor td.col-name input { min-width: 150px; }
 
 /* Расчёт */
 .calc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
@@ -370,3 +372,28 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 
 /* строка, к которой перешли из панели «Как посчитано» */
 .row-flash td { background: var(--need-bg); }
+
+/* Справочник допущений компании: источник значения в проекте и статус в справочнике */
+.source-badge { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 11px; line-height: 18px; white-space: nowrap; cursor: help; border: 1px solid transparent; }
+.source-standard { background: var(--need-bg); color: var(--warn); border-color: #ecd9a8; }
+.source-confirmed { background: #e8f5ec; color: #2d6a3e; border-color: #bfe0c9; }
+.source-project { background: var(--group-head); color: var(--accent); border-color: var(--input-border); }
+.status-badge { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 11px; line-height: 18px; white-space: nowrap; }
+.status-unverified { background: var(--need-bg); color: var(--warn); }
+.status-approved { background: #e8f5ec; color: #2d6a3e; }
+.assumptions-table { table-layout: fixed; width: 100%; min-width: 860px; }
+.assumptions-table th:nth-child(1) { width: 24%; }
+.assumptions-table th:nth-child(2) { width: 20%; }
+.assumptions-table th:nth-child(3) { width: 11%; }
+.assumptions-table th:nth-child(5) { width: 110px; }
+.assumptions-table td { vertical-align: top; }
+.assumptions-table td:first-child .linklike { text-align: left; }
+.assumptions-table .a-value { font-weight: 600; white-space: nowrap; }
+.assumptions-table .a-value.wrap { white-space: normal; font-weight: 500; }
+.assumption-form { display: grid; gap: 6px; margin-top: 6px; max-width: 520px; }
+.assumption-form .row-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.version-list { list-style: none; padding: 0; margin: 0; }
+.version-list li { padding: 8px 0; border-bottom: 1px solid var(--grid); }
+.version-list ul { margin: 4px 0 0; padding-left: 18px; }
+.assumptions-update { border: 1px solid var(--input-border); background: var(--group-head); border-radius: 8px; padding: 10px 14px; margin: 10px 0; }
+.assumptions-update ul { margin: 6px 0; padding-left: 18px; }

@@ -9,9 +9,12 @@ describe("Расхождения с Excel: вопросы и статусы", ()
   if (!demo) throw new Error("нет демо-проекта");
   const questions = projectQuestions(demo, computeProject(demo));
 
-  it("12 вопросов демо-проекта, все не решены", () => {
-    expect(questions.map((q) => q.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    expect(issueCounts(demo, questions)).toEqual({ open: 12, total: 12 });
+  it("12 вопросов по исходному Excel и 10 по стандартным значениям компании, все не решены", () => {
+    expect(questions.filter((q) => !q.parameterId).map((q) => q.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    // номера стандартных значений — после 12, по месту в справочнике; маркетинг, брокеридж, резерв и вознаграждение
+    // за управление в демо-проекте заданы суммами Excel — ставки из справочника в расчёте не участвуют, вопросов нет
+    expect(questions.filter((q) => q.parameterId).map((q) => q.no)).toEqual([15, 20, 21, 22, 23, 24, 25, 26, 27, 29]);
+    expect(issueCounts(demo, questions)).toEqual({ open: 22, total: 22 });
   });
 
   it("статус с комментарием, автором и историей сохраняется по ключу; «Решено» уходит из нерешённых", () => {
@@ -20,7 +23,7 @@ describe("Расхождения с Excel: вопросы и статусы", ()
     s = reducer(s, { type: "issue", id: demo.id, key: "LEGACY.CONTINGENCY_F42", no: 4, question: "q", event: { status: "done", author: "Анна", at, comment: "ставка 10% подтверждена" } });
     const p = s[0]!;
     expect(p.issues?.["LEGACY.CONTINGENCY_F42"]?.history.map((e) => e.status)).toEqual(["work", "done"]);
-    expect(issueCounts(p, projectQuestions(p, computeProject(p)))).toEqual({ open: 11, total: 12 });
+    expect(issueCounts(p, projectQuestions(p, computeProject(p)))).toEqual({ open: 21, total: 22 });
   });
 
   it("если расхождение пропало, пункт остаётся с пометкой «не воспроизводится», статус не меняется", () => {

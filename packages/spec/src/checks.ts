@@ -99,10 +99,64 @@ export function checkSpec(spec: SpecData): SpecCheckResult {
     errors.push(`regions.yaml: ${spec.regions.length} субъектов вместо ${REGIONS_EXPECTED}`);
   }
 
+  errors.push(...checkAssumptions(spec));
+
   for (const p of spec.parameters) if (p.status === "needs_verification") warnings.push(`параметр ${p.id}: needs_verification`);
   for (const f of spec.formulas) if (f.status === "needs_verification") warnings.push(`формула ${f.id}: needs_verification`);
 
   return { errors, warnings };
+}
+
+/**
+ * Справочник допущений компании (data/company_assumptions.yaml): версии по порядку, параметры существуют и не
+ * региональные (региональные значения — в regions.yaml), значение подходит параметру: число в допустимом диапазоне
+ * для скалярных, таблица со столбцами параметра для табличных.
+ */
+export function checkAssumptions(spec: Pick<SpecData, "parameters" | "assumptions">): string[] {
+  const errors: string[] = [];
+  const params = new Map(spec.parameters.map((p) => [p.id, p]));
+  spec.assumptions.forEach((v, i) => {
+    const owner = `справочник допущений, версия ${v.version}`;
+    if (v.version !== i + 1) errors.push(`${owner}: версии нумеруются по порядку с 1, ожидалась ${i + 1}`);
+    const prev = spec.assumptions[i - 1];
+    if (prev && v.date < prev.date) errors.push(`${owner}: дата ${v.date} раньше даты версии ${prev.version}`);
+    for (const dup of duplicates(v.items.map((x) => x.param))) errors.push(`${owner}: параметр ${dup} указан дважды`);
+    for (const item of v.items) {
+      const p = params.get(item.param);
+      if (!p) {
+        errors.push(`${owner}: параметр ${item.param} отсутствует в parameters.yaml`);
+        continue;
+      }
+      if (p.scope === "region") errors.push(`${owner}: ${item.param} — региональный параметр, его значения в regions.yaml`);
+      const problem = assumptionValueProblem(p, item.value);
+      if (problem) errors.push(`${owner}: ${item.param} — ${problem}`);
+    }
+  });
+  return errors;
+}
+
+/** Почему значение не подходит параметру (null — подходит). Пустое значение (null) допустимо: стандарта нет. */
+export function assumptionValueProblem(p: SpecData["parameters"][number], value: unknown): string | null {
+  if (value === null) return null;
+  if (p.kind === "scalar") {
+    if (typeof value !== "number" || !Number.isFinite(value)) return "нужно число";
+    if (p.range && (value < p.range[0] || value > p.range[1])) return `значение ${value} вне допустимого диапазона ${p.range[0]}…${p.range[1]}`;
+    return null;
+  }
+  if (p.kind === "table") {
+    if (!Array.isArray(value) || value.length === 0) return "нужна таблица хотя бы из одной строки";
+    const columns = new Map((p.columns ?? []).map((c) => [c.key, c]));
+    for (const row of value) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) return "строка таблицы — набор «столбец: значение»";
+      for (const [k, cell] of Object.entries(row)) {
+        const col = columns.get(k);
+        if (!col) return `столбца ${k} нет у параметра`;
+        if (col.options && !col.options.includes(String(cell))) return `${k} = ${String(cell)} нет среди вариантов`;
+      }
+    }
+    return null;
+  }
+  return `вид параметра ${p.kind} в справочнике допущений не поддерживается`;
 }
 
 /** Поиск цикла без лага в графе depends_on формул (DFS с раскраской). Возвращает путь цикла или null. */

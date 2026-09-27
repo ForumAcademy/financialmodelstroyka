@@ -6,6 +6,7 @@ import { compositeSummary } from "./DataView";
 import { useStore } from "@/lib/store";
 import type { DemoProject, ValueChange } from "@/lib/types";
 import { whence } from "@/lib/whence";
+import { confirmation, SOURCE_LABEL, valueSource } from "@/lib/assumptions";
 import * as fmt from "@/lib/format";
 
 const AUTHOR_KEY = "fm.author";
@@ -51,9 +52,30 @@ export function ChangedMark({ project, id }: { project: DemoProject; id: Paramet
   );
 }
 
+/** Источник значения справочника допущений в проекте: «стандарт компании» / «введено для проекта» / «подтверждено финансистами». */
+export function SourceMark({ project, id }: { project: DemoProject; id: ParameterId }) {
+  const { assumptions } = useStore();
+  const source = valueSource(project, id, assumptions);
+  // «Как в исходном Excel» берёт значения справочника из самого Excel — метка стандарта там не показывается
+  if (!source || (project.input.mode === "legacy" && project.legacyCase)) return null;
+  const c = source === "confirmed" ? confirmation(project, id) : null;
+  const title =
+    source === "standard"
+      ? `Стандартное значение компании (справочник допущений, версия ${project.assumptionsVersion}). Для проекта не подтверждено — вопрос в «Расхождениях».`
+      : source === "confirmed"
+        ? `Стандарт компании, подтверждён для проекта${c ? `: ${c.author}, ${fmt.date(c.at.slice(0, 10))}${c.comment ? `. ${c.comment}` : ""}` : ""}`
+        : "Значение введено для этого проекта";
+  return (
+    <span className={`source-badge source-${source}`} title={title}>
+      {SOURCE_LABEL[source]}
+    </span>
+  );
+}
+
 /** Значок «нет ссылки»: у значения нет ссылки на документ, есть только текст «Откуда». */
 export function NoLink({ project, id }: { project: DemoProject | null; id: ParameterId }) {
-  const w = whence(id, project);
+  const { assumptions } = useStore();
+  const w = whence(id, project, assumptions);
   if (w.url) return null;
   return (
     <span className="nolink-badge" title={`Откуда: ${w.text}. Ссылки на документ нет.`}>

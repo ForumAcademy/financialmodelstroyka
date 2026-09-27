@@ -267,6 +267,40 @@ export const formulaSchema = z
   })
   .strict();
 
+// ---------- company_assumptions.yaml ----------
+
+/** Раздел справочника допущений; порядок значений в версии задаёт номера вопросов к данным. */
+export const ASSUMPTION_GROUPS = ["sales", "budget", "escrow", "fin"] as const;
+/** unverified — «не проверено», approved — «утверждено». */
+export const ASSUMPTION_STATUSES = ["unverified", "approved"] as const;
+
+export const assumptionItemSchema = z
+  .object({
+    param: z.string().min(1),
+    group: z.enum(ASSUMPTION_GROUPS),
+    /** null — стандарта нет, значение вводится в проекте. */
+    value: z.unknown().refine((v) => v !== undefined, "нужно поле value (null — стандарта нет)"),
+    status: z.enum(ASSUMPTION_STATUSES),
+    from: z
+      .object({
+        text: z.string().min(1),
+        url: z.string().regex(/^https?:\/\//, "URL должен начинаться с http(s)://").nullable(),
+      })
+      .strict(),
+    note: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const assumptionVersionSchema = z
+  .object({
+    version: z.number().int().min(1),
+    date: isoDate,
+    author: z.string().min(1),
+    note: z.string().min(1),
+    items: z.array(assumptionItemSchema).min(1),
+  })
+  .strict();
+
 // ---------- файлы целиком ----------
 
 export const sourcesFileSchema = z.object({ sources: z.array(sourceSchema) }).strict();
@@ -274,12 +308,15 @@ export const parametersFileSchema = z.object({ parameters: z.array(parameterSche
 export const capexFileSchema = z.object({ items: z.array(capexItemSchema) }).strict();
 export const regionsFileSchema = z.object({ regions: z.array(regionSchema) }).strict();
 export const formulasFileSchema = z.object({ formulas: z.array(formulaSchema) }).strict();
+export const assumptionsFileSchema = z.object({ versions: z.array(assumptionVersionSchema).min(1) }).strict();
 
 export type Source = z.infer<typeof sourceSchema>;
 export type Parameter = z.infer<typeof parameterSchema>;
 export type CapexItem = z.infer<typeof capexItemSchema>;
 export type Region = z.infer<typeof regionSchema>;
 export type Formula = z.infer<typeof formulaSchema>;
+export type AssumptionItem = z.infer<typeof assumptionItemSchema>;
+export type AssumptionVersion = z.infer<typeof assumptionVersionSchema>;
 
 /** Весь справочник после проверки схемами. */
 export interface SpecData {
@@ -288,4 +325,6 @@ export interface SpecData {
   capexItems: CapexItem[];
   regions: Region[];
   formulas: Formula[];
+  /** Справочник допущений компании по версиям (data/company_assumptions.yaml). */
+  assumptions: AssumptionVersion[];
 }

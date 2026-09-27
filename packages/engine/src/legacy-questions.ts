@@ -8,14 +8,15 @@
  * сроки денег (для сроков — сумма, которая сдвигается). Знак «+» — в Excel больше, «−» — меньше.
  */
 import Decimal from "decimal.js";
-import { getCapexItem, getParameter, isCapexItemId, type FormulaId } from "@fm/spec";
+import { getCapexItem, getParameter, isCapexItemId, type FormulaId, type ParameterId } from "@fm/spec";
 import type { LegacyCase } from "./legacy";
 import { isIsoDate, monthDiff, type IsoDate } from "./lib/dates";
 import { fmt, fmtQuarter, fmtRub, fmtShare } from "./lib/format";
 import type { CalcMessage, ProjectInput, ResultSet } from "./types";
 
 export type QuestionBlock = "sales" | "budget" | "cf" | "escrow" | "fin";
-export type ImpactKind = "выручка" | "расходы" | "поступления" | "расходы в CF" | "сроки денег" | "нет";
+/** «зависит» — сумма, которая зависит от значения (для стандартных значений компании), без знака «Excel − исправленное». */
+export type ImpactKind = "выручка" | "расходы" | "поступления" | "расходы в CF" | "сроки денег" | "зависит" | "нет";
 
 export interface Impact {
   /** Excel − исправленное, руб.; для сроков денег — сдвигаемая сумма; null — оценить нельзя. */
@@ -45,6 +46,8 @@ export interface DataQuestion {
   impact: Impact;
   recommendation: string;
   formulaId: FormulaId;
+  /** Параметр, о котором вопрос (стандартное значение компании): «как посчитано» открывает его карточку. */
+  parameterId?: ParameterId;
   /** Текст предупреждения расчёта, из которого построен вопрос. */
   warning: string;
 }
@@ -67,6 +70,9 @@ const NUMBERS: Record<string, number> = {
   "LEGACY.CF1_LAG": 11,
   "LEGACY.ESCROW_DATE": 12,
 };
+
+/** Последний постоянный номер пункта по исходному Excel: номера следующих вопросов (стандарт компании) идут после него. */
+export const LEGACY_QUESTION_MAX_NO = Math.max(...Object.values(NUMBERS));
 
 /** Строки темпа продаж исходника (План продаж) по строкам продуктов, для ссылок на ячейки. */
 const PACE_ROWS: Record<string, string> = { ПСН: "План продаж!E43:AM43" };
@@ -136,7 +142,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
     return [lg?.budget_row ? `Бюджет!F${lg.budget_row}` : null, cfRow ? `CF1 строка ${cfRow}` : null].filter(Boolean).join(", ");
   };
   const itemName = (id: string) => (isCapexItemId(id) ? getCapexItem(id).name : id);
-  const lag = Number(input.values["TIME.ESCROW_RELEASE_LAG_M"] ?? getParameter("TIME.ESCROW_RELEASE_LAG_M").default ?? 0) || null;
+  const lag = Number(input.values["TIME.ESCROW_RELEASE_LAG_M"] ?? input.standard?.["TIME.ESCROW_RELEASE_LAG_M"] ?? getParameter("TIME.ESCROW_RELEASE_LAG_M").default ?? 0) || null;
 
   type Built = Omit<DataQuestion, "key" | "no" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
   const build = (m: CalcMessage): Built => {

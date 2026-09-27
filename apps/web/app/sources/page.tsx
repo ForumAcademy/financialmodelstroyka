@@ -5,10 +5,12 @@ import { Suspense, useMemo, useState } from "react";
 import { getParameter, spec, type ParameterId } from "@fm/spec";
 import { useHow } from "@/components/HowPanel";
 import * as fmt from "@/lib/format";
+import { isStale, REVIEW_PERIOD_MONTHS } from "@/lib/sources";
 import { useStore } from "@/lib/store";
 import type { ProjectSource } from "@/lib/types";
 
 type Scope = "all" | "global" | "project";
+
 
 interface Row {
   key: string;
@@ -18,6 +20,8 @@ interface Row {
   usedFor: string;
   checked: string;
   verified: boolean | null;
+  /** Требует перепроверки: не сверен с текстом документа или проверен больше REVIEW_PERIOD_MONTHS назад. */
+  issue: "unverified" | "stale" | null;
   params: ParameterId[];
   project?: { id: string; name: string; sourceId: string };
   searchText: string;
@@ -81,8 +85,9 @@ function SourcesPage() {
           level: s.level,
           url: s.url,
           usedFor: s.used_for,
-          checked: s.accessed ? `${fmt.date(s.accessed)}${s.verified === false ? " · не сверен" : ""}` : "—",
+          checked: s.accessed ? fmt.date(s.accessed) : "—",
           verified: s.verified,
+          issue: s.verified === false ? "unverified" : s.accessed && isStale(s.accessed) ? "stale" : null,
           params: spec.parameters.filter((p) => (p.source_ids as string[]).includes(s.id)).map((p) => p.id),
           searchText: `${s.id} ${s.title} ${s.used_for}`.toLowerCase(),
         })),
@@ -97,13 +102,25 @@ function SourcesPage() {
       usedFor: `${p.name} · ${s.author}${s.level === 5 ? ` · ${s.rationale}; диапазон ${s.min}–${s.max}` : ""}`,
       checked: fmt.date(s.date),
       verified: null,
+      issue: null,
       params: (Object.entries(p.paramSources) as [ParameterId, string][]).filter(([, v]) => v === s.id).map(([k]) => k),
       project: { id: p.id, name: p.name, sourceId: s.id },
       searchText: `${s.title} ${s.author} ${p.name}`.toLowerCase(),
     })),
   );
   const [section, setSection] = useState<string | null>(null);
-  const rows = [...projectRows, ...(scope === "project" ? [] : globalRows)].filter((r) => !q || r.searchText.includes(q.toLowerCase()));
+  const [onlyIssues, setOnlyIssues] = useState(false);
+  const allRows = [...projectRows, ...(scope === "project" ? [] : globalRows)].filter((r) => !q || r.searchText.includes(q.toLowerCase()));
+  const issuesTotal = allRows.filter((r) => r.issue).length;
+  const rows = onlyIssues ? allRows.filter((r) => r.issue) : allRows;
+  const issueBadge = (list: Row[]) => {
+    const n = list.filter((r) => r.issue).length;
+    return n ? (
+      <span className="issue-count" title={`Требуют перепроверки: ${n}`}>
+        {n}
+      </span>
+    ) : null;
+  };
 
   return (
     <main className="page wide">
@@ -134,14 +151,26 @@ function SourcesPage() {
       </div>
       <div className="seg section-seg">
         <button className={section === null ? "on" : ""} onClick={() => setSection(null)}>
-          Все разделы
+          Все разделы {issueBadge(allRows)}
         </button>
         {SECTIONS.map((sec) => (
           <button key={sec.title} className={section === sec.title ? "on" : ""} onClick={() => setSection(sec.title)}>
-            {sec.title} <span className="block-count">{rows.filter((r) => sec.levels.includes(r.level)).length}</span>
+            {sec.title} <span className="block-count">{allRows.filter((r) => sec.levels.includes(r.level)).length}</span>
+            {issueBadge(allRows.filter((r) => sec.levels.includes(r.level)))}
           </button>
         ))}
       </div>
+      {issuesTotal ? (
+        <div className="issue-legend">
+          <span className="issue-count">{issuesTotal}</span>
+          <span>
+            {fmt.plural(issuesTotal, ["источник требует", "источника требуют", "источников требуют"])} перепроверки: не сверены с текстом документа или проверены больше {REVIEW_PERIOD_MONTHS} месяцев назад. Такие строки выделены красным.
+          </span>
+          <label className="small">
+            <input type="checkbox" checked={onlyIssues} onChange={(e) => setOnlyIssues(e.target.checked)} /> только требующие перепроверки
+          </label>
+        </div>
+      ) : null}
       {adding && project ? <NewSourceForm projectId={project.id} onDone={() => setAdding(false)} /> : null}
       <div className="hscroll">
       <table className="sheet">
@@ -167,7 +196,7 @@ function SourcesPage() {
                 </td>
               </tr>,
               ...list.map((r) => (
-            <tr key={r.key}>
+            <tr key={r.key} className={r.issue ? "needs-check" : ""}>
               <td>
                 {r.title}
                 {r.project ? (
@@ -192,18 +221,26 @@ function SourcesPage() {
                 )}
               </td>
               <td className="small">{r.usedFor}</td>
-              <td className={`small ${r.verified === false ? "warn" : ""}`}>{r.checked}</td>
+              <td className="small">
+                {r.checked}
+                {r.issue ? (
+                  <div>
+                    <span className="issue-tag" title={r.issue === "unverified" ? "Значение и ссылка ещё не сверены с текстом документа" : `Проверка старше ${REVIEW_PERIOD_MONTHS} месяцев — нужна актуализация`}>
+                      {r.issue === "unverified" ? "не сверен" : "устарел"}
+                    </span>
+                  </div>
+                ) : null}
+              </td>
               <td className="small">
                 {r.params.length === 0 ? (
                   <span className="muted">—</span>
                 ) : (
-                  r.params.map((id, i) => (
-                    <span key={id}>
-                      {i > 0 ? ", " : ""}
+                  r.params.map((id) => (
+                    <div key={id} className="used-in">
                       <button className="link small" onClick={() => (setProject(r.project?.id ?? null), open({ kind: "param", id }))}>
                         {getParameter(id).name}
                       </button>
-                    </span>
+                    </div>
                   ))
                 )}
               </td>

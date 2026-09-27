@@ -55,7 +55,7 @@ h3 { font-size: 12px; margin: 14px 0 6px; text-transform: uppercase; letter-spac
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .icon { border: 0; background: none; cursor: pointer; font-size: 16px; color: var(--muted); padding: 2px 8px; border-radius: 6px; }
 .icon:hover { background: var(--block); }
-.link { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; }
+.link { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; text-align: left; display: inline; }
 .link:hover { text-decoration: underline; }
 .seg { display: inline-flex; background: var(--block); border: 1px solid var(--border); border-radius: 8px; padding: 2px; margin-bottom: 12px; }
 .toolbar .seg, .calc-head .seg { margin-bottom: 0; }
@@ -74,6 +74,15 @@ table.sheet tr.block td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
 table.sheet tbody tr.block:first-child td { border-top: 0; }
 .block-count { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 9px; background: var(--surface); color: var(--muted); font-size: 11px; letter-spacing: 0; }
 .section-seg { flex-wrap: wrap; }
+/* Источники, требующие перепроверки (не сверены / устарели) */
+.issue-count { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; vertical-align: 1px; }
+.issue-legend { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 12px; border: 1px solid #f1c6bd; background: #fdf1ee; border-radius: 8px; font-size: 13px; color: #7a2e20; }
+.issue-legend .issue-count { margin-left: 0; }
+.issue-legend label { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+table.sheet tr.needs-check td { background: #fdf3f1; }
+table.sheet tr.needs-check td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.used-in + .used-in { margin-top: 3px; }
+.issue-tag { display: inline-block; margin-top: 3px; padding: 0 6px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 600; line-height: 16px; }
 .section-seg .block-count { background: var(--block); }
 .block-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 12px; margin-top: 2px; }
 table.sheet tr.total td { border-top: 1px solid var(--border); background: #fafbfc; }

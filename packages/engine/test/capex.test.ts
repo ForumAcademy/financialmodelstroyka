@@ -135,26 +135,36 @@ describe("CAPEX: индекс, НДС, платёж", () => {
     expect(totals(r).PREDESIGN?.toNumber()).toBe(100);
   });
 
-  it("выручка ещё не считается — статьи от выручки ждут этапа 4 и не входят в итог", () => {
+  it("статьи от выручки без плана продаж не считаются и не входят в итог", () => {
     const r = calculate(project([]), { horizonMonths: 12 }, ["F.CAPEX.TOTAL"]);
-    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", text: expect.stringContaining("«Маркетинг»: база — выручка, расчёт на этапе 4") }));
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", text: expect.stringContaining("«Маркетинг» не посчитана: не посчитана формула F.SALES.REVENUE_TOTAL") }));
     expect(r.messages).toContainEqual(expect.objectContaining({ formulaId: "F.CAPEX.TOTAL", text: expect.stringContaining("Маркетинг") }));
   });
 });
 
 describe("CAPEX: Дербеневская в режиме совместимости", () => {
-  // горизонт — до последнего квартала рядов CF1 (аренда/налог ЗУ — по 1 кв 2033)
-  const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 88 });
+  // горизонт — до последнего квартала CF1 (AS = 4 кв 2035: там кончаются ряды маркетинга и брокериджа)
+  const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 121 });
   const cash = series(r, "F.CAPEX.ITEM_CASH");
   const w = series(r, "F.CAPEX.SCHEDULE_WEIGHT");
+  // Excel один в один: ряды CF1, у которых доли не равны 100%
+  const cf1Share: Record<string, number> = { OTHER_SMR: 0, ROADS_UDS: 0, CONTINGENCY: 1.246, MARKETING: 4134560080.857632 / 4194809207.75, BROKERAGE: 2733176548.211842 / 4134560080.857636 };
 
-  it("сумма весов = 1 для каждой статьи с суммой", () => {
-    for (const [id, total] of Object.entries(totals(r))) if (!total.isZero()) expect(sum(w[id] as Decimal[]).sub(1).abs().lt(1e-9), id).toBe(true);
+  it("доли графика — как в CF1: 100%, а где в исходнике иначе — как есть, с предупреждением", () => {
+    for (const [id, total] of Object.entries(totals(r))) {
+      if (total.isZero()) continue;
+      expect(sum(w[id] as Decimal[]).sub(cf1Share[id] ?? 1).abs().lt(1e-9), id).toBe(true);
+    }
+    const keys = r.messages.filter((m) => m.key?.startsWith("CAPEX.SCHEDULE_SUM:")).map((m) => m.key?.split(":")[1]);
+    expect(keys.sort()).toEqual(Object.keys(cf1Share).sort());
+    expect(r.messages.filter((m) => m.severity === "error" && m.formulaId.startsWith("F.CAPEX"))).toEqual([]);
   });
 
-  it("УДС и «Прочие СМР» попадают в денежный поток (исходник: УДС нет в CF1, прочие СМР не распределены)", () => {
-    expect(sum(cash.ROADS_UDS as Decimal[]).toNumber()).toBeCloseTo(535620851, 4);
-    expect(sum(cash.OTHER_SMR as Decimal[]).toNumber()).toBeCloseTo(16904952.57, 4);
+  it("УДС и «Прочие СМР» в денежный поток не попадают, как в CF1 (в бюджете — есть)", () => {
+    expect(sum(cash.ROADS_UDS as Decimal[]).isZero()).toBe(true);
+    expect(sum(cash.OTHER_SMR as Decimal[]).isZero()).toBe(true);
+    expect(totals(r).ROADS_UDS?.toNumber()).toBe(535620851);
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", key: "CAPEX.SCHEDULE_SUM:ROADS_UDS", text: expect.stringContaining("0% суммы бюджета") }));
   });
 
   it("без индексации: суммы исходника в ценах исходника, эффект индексации = 0", () => {
@@ -186,9 +196,8 @@ describe("CAPEX: Дербеневская в режиме совместимос
     expect(c[22]?.toNumber()).toBeCloseTo(1260033986.66 / 6, 4);
   });
 
-  it("резерв = ставка × итого СМР, а не E42 + D42", () => {
-    const smr = r.formulas["F.CAPEX.SMR_TOTAL"]?.value as Decimal;
-    expect(totals(r).CONTINGENCY?.toNumber()).toBeCloseTo(smr.mul(0.02).toNumber(), 2);
-    expect(totals(r).CONTINGENCY?.gt(202839.892889)).toBe(true);
+  it("резерв — как в исходнике E42 + D42 = 202 839,89 руб., в CF — 124,6% по ряду СМР", () => {
+    expect(totals(r).CONTINGENCY?.toNumber()).toBeCloseTo(202839.892889, 6);
+    expect(sum(cash.CONTINGENCY as Decimal[]).toNumber()).toBeCloseTo(202839.892889 * 1.246, 4);
   });
 });

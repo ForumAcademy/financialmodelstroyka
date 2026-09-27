@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { spec, type ParameterId } from "@fm/spec";
-import type { DemoProject, ProjectSource, Seed, ValueChange } from "./types";
+import type { DemoProject, IssueEvent, ProjectSource, Seed, ValueChange } from "./types";
 import { computeProject, type ProjectModel } from "./model";
 import type { SourceCheck } from "./sources";
 
@@ -14,9 +14,11 @@ type Action =
   | { type: "value"; id: string; param: ParameterId; value: unknown }
   | { type: "addSource"; id: string; source: ProjectSource }
   | { type: "removeSource"; id: string; sourceId: string }
+  | { type: "renameSource"; id: string; sourceId: string; title: string }
   | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null }
   | { type: "change"; id: string; param: ParameterId; before: unknown; value: unknown; why: string; url?: string; author: string }
-  | { type: "revert"; id: string; param: ParameterId };
+  | { type: "revert"; id: string; param: ParameterId }
+  | { type: "issue"; id: string; key: string; no: number; question: string; event: IssueEvent };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -56,6 +58,8 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
           paramSources: Object.fromEntries(Object.entries(p.paramSources).filter(([, v]) => v !== a.sourceId)),
         }),
       );
+    case "renameSource":
+      return map((p) => touch(p, { sources: p.sources.map((s) => (s.id === a.sourceId ? { ...s, title: a.title } : s)) }));
     case "change":
       return map((p) => {
         const own = p.input.values[a.param];
@@ -82,6 +86,12 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
         const changes = { ...p.changes };
         delete changes[a.param];
         return touch(p, { changes, input: { ...p.input, values } });
+      });
+    case "issue":
+      return map((p) => {
+        const prev = p.issues?.[a.key];
+        const state = { status: a.event.status, history: [...(prev?.history ?? []), a.event], no: a.no, question: a.question };
+        return touch(p, { issues: { ...p.issues, [a.key]: state } });
       });
     case "linkSource":
       return map((p) => {

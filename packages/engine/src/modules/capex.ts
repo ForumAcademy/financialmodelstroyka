@@ -3,7 +3,7 @@
  * Сумма статьи = ставка × база (F.CAPEX.ITEM_TOTAL) → график по правилу (F.CAPEX.SCHEDULE_WEIGHT) →
  * индекс цен (F.CAPEX.INDEX) → платёж с НДС (F.CAPEX.ITEM_CASH) → итог (F.CAPEX.TOTAL).
  *
- * Статья, которую нельзя посчитать (не заполнена ставка, не посчитана база, база — выручка до этапа 4),
+ * Статья, которую нельзя посчитать (не заполнена ставка, не посчитана база или выручка),
  * не останавливает остальные: по ней выдаётся сообщение, в итог она не входит, и это видно в сообщении итога.
  */
 import Decimal from "decimal.js";
@@ -65,9 +65,6 @@ interface Item {
   catalogue: SpecCapexItem;
 }
 
-/** Не посчитано до этапа, на котором появятся продажи: статья пропускается с предупреждением. */
-class PendingStage extends Error {}
-
 function merge(c: SpecCapexItem, row: ItemRow | undefined): Item {
   const from = row?.schedule_from ?? c.schedule_from ?? null;
   const to = row?.schedule_to ?? c.schedule_to ?? null;
@@ -113,8 +110,7 @@ function guard<T>(ctx: FormulaContext, item: Item, fn: () => T): T | null {
   try {
     return fn();
   } catch (e) {
-    if (e instanceof PendingStage) ctx.message("warning", `«${item.name}»: ${e.message}`);
-    else if (e instanceof MissingInputError) ctx.message("error", `«${item.name}»: заполните «${getParameter(e.parameterId).name}» (${e.parameterId})`, e.parameterId);
+    if (e instanceof MissingInputError) ctx.message("error", `«${item.name}»: заполните «${getParameter(e.parameterId).name}» (${e.parameterId})`, e.parameterId);
     else if (e instanceof CalcError) ctx.message("error", `«${item.name}»: ${e.message}`, e.parameterId ?? "CAPEX.ITEMS");
     else if (e instanceof DependencyError) ctx.message("warning", `«${item.name}» не посчитана: не посчитана формула ${e.formulaId}`);
     else throw e;
@@ -122,21 +118,17 @@ function guard<T>(ctx: FormulaContext, item: Item, fn: () => T): T | null {
   }
 }
 
-/** Выручка и договоры (F.SALES.*) — модуль этапа 4. */
-function isSalesFormula(id: string): boolean {
-  return id.startsWith("F.SALES.");
-}
-
 /** Объём базы статьи: параметр, формула или 1 для фиксированной суммы. */
 function baseQty(ctx: FormulaContext, item: Item): Decimal {
   const base = item.base;
   if (base === "фикс") return ONE;
-  if (isSalesFormula(base)) throw new PendingStage("база — выручка, расчёт на этапе 4 (продажи)");
   if (isParameterId(base)) return ctx.requireNum(base);
   if (isFormulaId(base)) {
     const v = ctx.formula<unknown>(base);
     // Благоустройство: база — площадь благоустройства из состава F.TEP.LANDSCAPE_AREA
     if (v && typeof v === "object" && "landscape" in v) return (v as { landscape: Decimal }).landscape;
+    // Статьи-доли выручки: база — выручка с НДС (F.SALES.REVENUE_TOTAL → revenue_gross)
+    if (v && typeof v === "object" && "gross" in v) return (v as { gross: Decimal }).gross;
     if (v instanceof Decimal) return v;
     throw new CalcError(`база ${base} — не число`);
   }
@@ -265,8 +257,14 @@ function ruleWeights(ctx: FormulaContext, item: Item, date: IsoDate[], rows: () 
       for (let k = 0; k < n; k++) put(eomonth(from, k), sCurve(new Decimal(k + 1).div(n)).sub(sCurve(new Decimal(k).div(n))));
       return w;
     }
-    case "follow_sales":
-      throw new PendingStage("график по продажам — расчёт на этапе 4 (продажи)");
+    case "follow_sales": {
+      // Доля выручки месяца: стоимость договоров месяца по всем продуктам / итого
+      const value = ctx.formula<Record<string, Decimal[]>>("F.SALES.CONTRACT_VALUE");
+      for (const s of Object.values(value)) s.forEach((x, t) => (w[t] = (w[t] as Decimal).add(x)));
+      const total = w.reduce((s, x) => s.add(x), ZERO);
+      if (total.isZero()) throw new CalcError("график по продажам: продаж нет");
+      return w.map((x) => x.div(total));
+    }
     default:
       throw new CalcError(`неизвестное правило графика «${item.rule}»`, "CAPEX.ITEMS");
   }
@@ -283,6 +281,11 @@ export function F_CAPEX_SCHEDULE_WEIGHT(ctx: FormulaContext): Series {
   const check = (item: Item, w: Decimal[]) => {
     const sum = w.reduce((s, x) => s.add(x), ZERO);
     if (sum.sub(ONE).abs().gte(tol)) {
+      // Режим совместимости повторяет исходник: ряд берётся как есть, расхождение — предупреждение
+      if (ctx.mode === "legacy") {
+        ctx.message("warning", `«${item.name}»: в денежный поток попадает ${fmtShare(sum)} суммы бюджета — так в исходнике; в обычном режиме график равен 100%`, "CAPEX.ITEMS", `CAPEX.SCHEDULE_SUM:${item.id}`);
+        return;
+      }
       ctx.message("error", `«${item.name}»: сумма долей графика в горизонте модели ${fmtShare(sum)} вместо 100% — график выходит за горизонт или ручной ряд не равен 100% (SCHEDULE_SUM)`, "CAPEX.ITEMS");
     }
   };
@@ -325,7 +328,7 @@ interface YearSeries {
   after_last?: string;
 }
 
-function growth(ctx: FormulaContext, id: ParameterId): (year: number) => Decimal {
+export function growth(ctx: FormulaContext, id: ParameterId): (year: number) => Decimal {
   const s = ctx.require<YearSeries>(id);
   const years = Object.keys(s?.by_year ?? {}).map(Number).sort((a, b) => a - b);
   if (years.length === 0) throw new CalcError(`${id}: нет значений по годам`, id);
@@ -443,6 +446,30 @@ export function F_CAPEX_SMR_TOTAL(ctx: FormulaContext): Decimal {
   return sum;
 }
 
+export function F_CAPEX_SMR_PROGRESS(ctx: FormulaContext): Decimal[] {
+  const date = ctx.formula<IsoDate[]>("F.TIME.DATE");
+  let rows: MilestoneRow[] | null = null;
+  const lazyRows = () => (rows ??= milestones(ctx));
+  const smr = date.map(() => ZERO);
+  for (const item of items(ctx)) {
+    if (!SMR_GROUPS.has(item.group) || item.rule === "follow_smr") continue;
+    try {
+      // График по продажам замкнул бы расчёт: цена ← готовность ← продажи
+      if (item.rule === "follow_sales" || item.rule === "formula") throw new CalcError(`у статьи группы «${item.group}» график не может быть «${item.rule}»`, "CAPEX.ITEMS");
+      const total = rate(ctx, item).mul(baseQty(ctx, item));
+      if (total.isZero()) continue;
+      ruleWeights(ctx, item, date, lazyRows).forEach((w, t) => (smr[t] = (smr[t] as Decimal).add(w.mul(total))));
+    } catch (e) {
+      if (e instanceof CalcError) throw new CalcError(`«${item.name}»: ${e.message}`, e.parameterId);
+      throw e;
+    }
+  }
+  const sum = smr.reduce((s, x) => s.add(x), ZERO);
+  if (sum.isZero()) throw new CalcError("Готовность строительства не считается: в бюджете нет платежей по СМР", "CAPEX.ITEMS");
+  let acc = ZERO;
+  return smr.map((x) => (acc = acc.add(x)).div(sum));
+}
+
 export function F_CAPEX_NCS_BENCH(ctx: FormulaContext): Decimal | null {
   // Показатели НЦС 81-02-01-2026 по классу и этажности в справочник не выписаны (status: needs_verification):
   // контроль не считается, а не подменяется выдуманным значением (CLAUDE.md, правило 8).
@@ -476,6 +503,7 @@ export const CAPEX_FORMULAS = {
   "F.CAPEX.SCHEDULE_WEIGHT": F_CAPEX_SCHEDULE_WEIGHT,
   "F.CAPEX.ITEM_CASH": F_CAPEX_ITEM_CASH,
   "F.CAPEX.SMR_TOTAL": F_CAPEX_SMR_TOTAL,
+  "F.CAPEX.SMR_PROGRESS": F_CAPEX_SMR_PROGRESS,
   "F.CAPEX.NCS_BENCH": F_CAPEX_NCS_BENCH,
   "F.CAPEX.INDEX_EFFECT": F_CAPEX_INDEX_EFFECT,
   "F.CAPEX.TOTAL": F_CAPEX_TOTAL,

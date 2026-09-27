@@ -73,7 +73,7 @@ export interface FormulaContext {
   formula<T = unknown>(id: FormulaId): T;
   /** Регион проекта (GEN.REGION_CODE) из data/regions.yaml. */
   region(): SpecRegion;
-  message(severity: Severity, text: string, parameterId?: ParameterId): void;
+  message(severity: Severity, text: string, parameterId?: ParameterId, key?: string): void;
 }
 
 interface Frame {
@@ -220,8 +220,8 @@ export class Engine {
         if (typeof code !== "string" || !isRegionCode(code)) throw new MissingInputError("GEN.REGION_CODE");
         return getRegion(code);
       },
-      message: (severity, text, parameterId) => {
-        this.push({ severity, formulaId: frame.id, text, ...(parameterId ? { parameterId } : {}) });
+      message: (severity, text, parameterId, key) => {
+        this.push({ severity, formulaId: frame.id, text, ...(parameterId ? { parameterId } : {}), ...(key ? { key } : {}) });
       },
     };
     return ctx;

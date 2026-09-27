@@ -118,12 +118,15 @@ formulas:
     name: "Флаг месяца раскрытия эскроу очереди"
     unit: "0/1"
     dims: [p, t]
-    expr: "flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M }"
+    expr: |
+      flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M }
+      совместимость: flag_release[p,t] = 1{ t == month_index(TIME.LEGACY_ESCROW_RELEASE_DATE) } для всех очередей
+    note: "Лаг по умолчанию 3 месяца (консервативно), 1 месяц — для чувствительности. Тот же месяц раскрытия определяет погашение проектного финансирования и конец начисления процентов (F.FIN.REPAYMENT через F.ESC.BALANCE), чтобы проценты не считались до другой даты, чем раскрытие. Режим совместимости повторяет исходник: одна дата раскрытия, проставленная руками (CF1!AB6)."
     terms:
       "flag_release[p,t]": "1 — в месяце t раскрывается эскроу очереди p, иначе 0"
       "month_index(x)": "номер месяца модели, в который попадает дата x"
       "rnv_date[p]": "дата РНВ очереди p (TIME.MILESTONES)"
-    depends_on: [TIME.MILESTONES, TIME.ESCROW_RELEASE_LAG_M, F.TIME.DATE]
+    depends_on: [TIME.MILESTONES, TIME.ESCROW_RELEASE_LAG_M, F.TIME.DATE, TIME.LEGACY_ESCROW_RELEASE_DATE]
     rationale: "ч.6 ст.15.5 214-ФЗ — перечисление не позднее 10 рабочих дней после РНВ; раскрытие по каждой очереди отдельно"
     rejected:
       - "Раскрытие одной датой для всех очередей по «окончанию ПФ» (исходник) — завышает процентные расходы по ранним очередям"
@@ -681,7 +684,7 @@ formulas:
       follow_sales:           w[t] = sales_value[t] / Σ sales_value
       manual:                 w[t] = ряд пользователя
       режим совместимости:    w[m] = w_q[q] / 3  для каждого из трёх месяцев m квартала q
-    note: "Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. follow_smr: smr_cash — платежи статей групп СМР, сети, благоустройство, соцобъекты по их собственным графикам (сумма × вес, без индекса и НДС; статьи с follow_smr не входят — иначе цикл). schedule_rule = formula (LAND_TAX_OR_RENT): w[t] = land_pay[t] / Σ land_pay. Статья с нулевой суммой графика не требует. Ручной ряд (manual) — столбец schedule_manual: первый месяц, шаг (месяц или квартал) и доли. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1."
+    note: "Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. follow_smr: smr_cash — платежи статей групп СМР, сети, благоустройство, соцобъекты по их собственным графикам (сумма × вес, без индекса и НДС; статьи с follow_smr не входят — иначе цикл). schedule_rule = formula (LAND_TAX_OR_RENT): w[t] = land_pay[t] / Σ land_pay. Статья с нулевой суммой графика не требует. Ручной ряд (manual) — столбец schedule_manual: первый месяц, шаг (месяц или квартал) и доли. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1; в режиме совместимости ряд исходника берётся как есть (Excel один в один, решение владельца продукта 27.09.2026), и Σ_t w ≠ 1 — предупреждение: в CF попадает не та сумма, что в бюджете."
     terms:
       "w[t]": "результат: доля суммы статьи, приходящаяся на месяц t"
       "N": "число месяцев распределения"
@@ -749,6 +752,27 @@ formulas:
     legacy: {cells: "Бюджет!F30", verdict: fix}
     status: verified
 
+
+  - id: F.CAPEX.SMR_PROGRESS
+    module: CAPEX
+    name: "Строительная готовность по платежам СМР"
+    unit: доля
+    dims: [t]
+    expr: |
+      progress[t]  = Σ_{τ<=t} smr_cash[τ] / Σ_τ smr_cash[τ]
+      smr_cash[t]  = Σ_{i ∈ СМР, сети, благоустройство, соцобъекты; правило ≠ follow_smr} rate[i] × base_qty[i] × w[i,t]
+    note: "Слагаемые — как в F.CAPEX.SMR_TOTAL, веса — по правилу графика статьи (как F.CAPEX.SCHEDULE_WEIGHT), без индекса и НДС. Считается напрямую, а не от F.CAPEX.ITEM_CASH: платежи бюджета включают статьи-доли выручки, а выручка зависит от цены, которая зависит от готовности (цикл)."
+    terms:
+      "progress[t]": "результат: доля выполненных СМР на конец месяца t"
+      "smr_cash[t]": "платежи по СМР в месяце t в ценах расценок без НДС, руб"
+      "rate[i], base_qty[i]": "ставка и объём базы статьи (как F.CAPEX.SMR_TOTAL)"
+      "w[i,t]": "вес месяца в графике статьи по её правилу"
+    depends_on: [CAPEX.ITEMS, TIME.MILESTONES, F.TIME.DATE, LAND.AREA, TEP.GFA_ABOVE, TEP.GFA_BELOW, TEP.MOP_AREA, F.TEP.GFA_ABOVE, F.TEP.GFA_BELOW, F.TEP.GFA_TOTAL, F.TEP.SALEABLE_AREA, F.TEP.LANDSCAPE_AREA]
+    rationale: "Надбавка к цене по стадиям готовности (F.SALES.PRICE) привязана к фактическому ходу стройки, а не к календарю"
+    rejected: ["Готовность по доле срока строительства — не учитывает неравномерность платежей (S-кривая)", "Готовность по F.CAPEX.ITEM_CASH — цикл через статьи-доли выручки"]
+    source_ids: [S_EXPERT]
+    legacy: {cells: null, verdict: new}
+    status: verified
   - id: F.CAPEX.NCS_BENCH
     module: CAPEX
     name: "Контроль СМР надземной части по НЦС"
@@ -819,19 +843,27 @@ formulas:
     unit: м2
     dims: [k, p, t]
     expr: |
-      sold[k,t]      = MIN( pace[k,t], remaining[k,t−1] ) × 1{ flag_ddu[p,t] ИЛИ flag_dkp[p,t] }
+      sold[k,t]      = MIN( pace[k,t], remaining[k,t−1] ) × allowed[k,t]
       remaining[k,t] = stock[k] − Σ_{τ<=t} sold[k,τ]
+      allowed[k,t]   = flag_ddu[p,t] × 1{ channel[k] = ДДУ_эскроу } ИЛИ flag_dkp[p,t]
+      pace[k,t]      = share[k] × remaining[k,t−1]                       — способ «доля остатка»
+                     | per_month[k]                                      — способ «в месяц»
+                     | values[k, period(t)] / step_months[k]             — ручной ряд: объём периода поровну по его месяцам
+      режим совместимости: sold[k,t] = pace[k,t] (ручной ряд исходника без ограничений)
+    note: "Режим совместимости повторяет Excel: продажи — как в ряду исходника, без ограничения запасом и периодом продаж; если продано больше запаса, выдаётся предупреждение (исходник: ПСН 10 888,6 м² при запасе 10 322 м²). Непроданный остаток в конце горизонта — предупреждение."
     terms:
-      "sold[k,t]": "результат: продано продукта k в месяце t, м² (для машино-мест — шт)"
-      "k": "продукт (тип квартир, ПСН, машино-места и т. д.)"
+      "sold[k,t]": "результат: продано продукта k в месяце t, м² (для машино-мест и кладовых — шт)"
+      "k": "строка продукта (SALES.PRODUCTS: тип квартир, ПСН, машино-места и т. д.)"
       "p": "очередь, к которой относится продукт k"
       "pace[k,t]": "темп продаж (SALES.PACE)"
-      "remaining[k,t]": "непроданный остаток на конец месяца"
-      "stock[k]": "запас продукта к продаже (SALES.PRODUCTS)"
-      "flag_ddu, flag_dkp": "флаги продаж по ДДУ и по ДКП (F.TIME.FLAG_PRESALE, F.TIME.FLAG_POST_RNV)"
-    depends_on: [SALES.PACE, SALES.PRODUCTS, F.TIME.FLAG_PRESALE, F.TIME.FLAG_POST_RNV]
-    rationale: "Нельзя продать больше, чем построено; продажи — только в разрешённый период"
-    rejected: ["Темпы без ограничения остатком (исходник)"]
+      "remaining[k,t]": "непроданный остаток на конец месяца; remaining[k,−1] = stock[k]"
+      "stock[k]": "запас продукта к продаже (SALES.PRODUCTS: stock_area, для м/м и кладовых — stock_units)"
+      "channel[k]": "как продаётся до РНВ: ДДУ с эскроу или не продаётся (SALES.PRODUCTS)"
+      "flag_ddu, flag_dkp": "флаги продаж по ДДУ (от старта продаж до РНВ) и по ДКП (после РНВ) (F.TIME.FLAG_PRESALE, F.TIME.FLAG_POST_RNV)"
+      "share[k], per_month[k], values, step_months": "параметры темпа (SALES.PACE: value, manual)"
+    depends_on: [SALES.PACE, SALES.PRODUCTS, TIME.MILESTONES, CAPEX.SCHEDULE_SUM_TOLERANCE, F.TIME.DATE, F.TIME.FLAG_PRESALE, F.TIME.FLAG_POST_RNV]
+    rationale: "Нельзя продать больше, чем построено; продажи — только в разрешённый период. Режим совместимости нужен для сверки выручки с Excel по типам (reconciliation_targets), поэтому ряд исходника берётся как есть"
+    rejected: ["Темпы без ограничения остатком (исходник) — в обычном режиме", "Квартальный шаг модели — модель месячная, квартальный ряд делится поровну по месяцам"]
     source_ids: [S_EISZHS_SALES]
     legacy: {cells: "План продаж!E28:AU54", verdict: fix}
     status: verified
@@ -842,20 +874,24 @@ formulas:
     unit: руб/м2
     dims: [k, t]
     expr: |
-      price[k,t]     = start_price[k] × Π_{τ<=t} (1 + g_month[τ]) × stage_factor(progress[p,t])
-      g_month        = (1 + SALES.PRICE_MARKET_GROWTH[year])^(1/12) − 1
-      progress[p,t]  = Σ_{τ<=t} smr_cash[p,τ] / Σ smr_cash[p]
+      price[k,t]        = start_price[k] × Π_{price_date[k] < date[τ] <= date[t]} (1 + g_month[τ]) × stage_factor[p,t]
+      g_month[τ]        = (1 + SALES.PRICE_MARKET_GROWTH[year(τ)])^(1/12) − 1
+      stage_factor[p,t] = Π_{s — стадия, пройденная к месяцу t} (1 + uplift[s])
+      пройдена: «котлован» — progress[t] > 0; «25%», «50%», «75%» — progress[t] >= 25%, 50%, 75%; «РНВ» — date[t] >= rnv_date[p]
+      режим совместимости: price[k,t] = start_price[k] × (1 + rate)^floor( (m(t) − 1) / step_months ),  m(t) — месяцев от price_date[k] до date[t]
+    note: "«Старт продаж» — точка отсчёта: стартовая цена уже цена этой стадии, надбавка к ней не применяется. Для машино-мест и кладовых цена — за штуку. После последнего года ряда SALES.PRICE_MARKET_GROWTH — рост последнего года, если в ряду after_last = last."
     terms:
-      "price[k,t]": "результат: цена 1 м² продукта k в месяце t, руб"
-      "start_price[k]": "стартовая цена продукта (SALES.PRODUCTS)"
+      "price[k,t]": "результат: цена 1 м² (шт) продукта k в месяце t, руб"
+      "start_price[k]": "стартовая цена продукта на дату цены (SALES.PRODUCTS)"
+      "price_date[k]": "дата стартовой цены (SALES.PRODUCTS); если пуста — дата начала модели"
       "g_month": "месячный рост цены из годового"
-      "stage_factor(x)": "произведение надбавок SALES.PRICE_STAGE_UPLIFT за пройденные стадии строительства"
-      "progress[p,t]": "строительная готовность очереди p: накопленные СМР / СМР итого"
-      "smr_cash[p,t]": "платежи по СМР очереди p в месяце t"
-    depends_on: [SALES.PRODUCTS, SALES.PRICE_MARKET_GROWTH, SALES.PRICE_STAGE_UPLIFT, F.CAPEX.ITEM_CASH]
-    lag_depends_on: [F.CAPEX.ITEM_CASH]
-    rationale: "Цена растёт по двум причинам: рынок (инфляция цен) и снижение риска по мере готовности. Раздельно — чтобы сценарии были осмысленны"
-    rejected: ["Константа 2%/квартал на весь срок (исходник) — за 29 кварталов +77%, без связи со стройкой и рынком"]
+      "stage_factor[p,t]": "произведение надбавок SALES.PRICE_STAGE_UPLIFT за пройденные стадии строительства очереди p"
+      "progress[t]": "строительная готовность: накопленные платежи СМР / итого (F.CAPEX.SMR_PROGRESS)"
+      "rnv_date[p]": "дата РНВ очереди p (TIME.MILESTONES)"
+      "rate, step_months": "рост цены за период исходника и длина периода (SALES.LEGACY_PRICE_GROWTH)"
+    depends_on: [SALES.PRODUCTS, SALES.PRICE_MARKET_GROWTH, SALES.PRICE_STAGE_UPLIFT, SALES.LEGACY_PRICE_GROWTH, GEN.MODEL_START_DATE, TIME.MILESTONES, F.TIME.DATE, F.CAPEX.SMR_PROGRESS]
+    rationale: "Цена растёт по двум причинам: рынок (инфляция цен) и снижение риска по мере готовности. Раздельно — чтобы сценарии были осмысленны. Готовность — по деньгам СМР (F.CAPEX.SMR_PROGRESS), одна на проект: бюджет ведётся без разбивки по очередям; «РНВ» — по дате очереди"
+    rejected: ["Константа 2%/квартал на весь срок (исходник) — за 29 кварталов +77%, без связи со стройкой и рынком; остаётся только в режиме совместимости", "Готовность по F.CAPEX.ITEM_CASH — цикл: в платежах есть статьи-доли выручки (маркетинг, брокеридж, вознаграждение девелопера), а выручка зависит от цены"]
     source_ids: [S_EISZHS_SERIES, S_MINEC_SCENARIO_2027]
     legacy: {cells: "План продаж!E31:AM56", verdict: replace}
     status: verified
@@ -882,16 +918,21 @@ formulas:
     name: "Поступления от покупателей по графику оплат"
     unit: руб
     dims: [k, p, t]
-    expr: "cash_in[t] = Σ_{τ<=t} value[τ] × ( (mortgage_share + full_share) × 1{t = τ} + installment_share × ( down × 1{t = τ} + (1 − down) / n × 1{τ < t <= τ + n} ) )"
-    note: "Ипотека и 100% оплата поступают в месяце договора; по рассрочке в месяце договора — первый взнос, остаток — равными долями n месяцев."
+    expr: |
+      cash_in[k,t]     = Σ_{τ<=t} value[k,τ] × ( (mortgage_share + full_share) × 1{t = τ} + installment_share × ( down × 1{t = τ} + (1 − down) / n × 1{τ < t <= τ + n} ) )
+      cash_in_ddu[k,t] = то же по договорам, заключённым до РНВ очереди (1 − flag_dkp[p,τ] = 1)
+      совместимость: ДДУ — договоры по TIME.LEGACY_ESCROW_DEPOSIT_END включительно; cash_in[k,t] = 0 при t > SALES.LEGACY_CASH_IN_END
+    note: "Ипотека и 100% оплата поступают в месяце договора; по рассрочке в месяце договора — первый взнос, остаток — равными долями n месяцев. Доли берутся по продукту строки (SALES.PAYMENT_MIX: product); сумма долей ипотеки, 100% оплаты и рассрочки должна быть 1. Режим совместимости (Excel один в один): ипотечные сделки 0,9 (0,7 кредит + 0,2 ПВ), 100% оплата 0,1, рассрочки нет — вся выручка поступает в месяце сделки, как CF1!F15; на эскроу — сделки по дату из CF1!F8:AS8; поступления после 1 кв 2033 в CF не попадают, как в CF1!F15:AH15 (предупреждение). Первоначальный взнос по ипотеке (mortgage_down_payment) на поступления не влияет: и взнос, и кредит приходят в месяце сделки."
     terms:
-      "cash_in[t]": "результат: поступления от покупателей в месяце t, руб"
-      "value[τ]": "стоимость договоров месяца τ (F.SALES.CONTRACT_VALUE), руб"
+      "cash_in[k,t]": "результат: поступления от покупателей продукта k в месяце t, руб"
+      "cash_in_ddu[k,t]": "результат: из них по договорам ДДУ (идут на эскроу), руб"
+      "value[k,τ]": "стоимость договоров месяца τ (F.SALES.CONTRACT_VALUE), руб"
       "mortgage_share, full_share, installment_share": "доли ипотеки, 100% оплаты и рассрочки (SALES.PAYMENT_MIX)"
       "down": "первый взнос по рассрочке, доля (SALES.PAYMENT_MIX)"
       "n": "срок рассрочки, мес (SALES.PAYMENT_MIX: installment_months)"
-    depends_on: [F.SALES.CONTRACT_VALUE, SALES.PAYMENT_MIX]
-    rationale: "Ипотека и 100% оплата поступают в месяц сделки; рассрочка — первоначальный взнос + равные платежи. Проверка: сумма долей = 1"
+      "flag_dkp[p,τ]": "месяц договора после РНВ очереди — договор ДКП (F.TIME.FLAG_POST_RNV)"
+    depends_on: [F.SALES.CONTRACT_VALUE, SALES.PAYMENT_MIX, SALES.PRODUCTS, TIME.MILESTONES, F.TIME.FLAG_POST_RNV, F.TIME.DATE, TIME.LEGACY_ESCROW_DEPOSIT_END, SALES.LEGACY_CASH_IN_END]
+    rationale: "Ипотека и 100% оплата поступают в месяц сделки; рассрочка — первоначальный взнос + равные платежи. Проверка: сумма долей = 1. Деньги по ДДУ отделяются от ДКП, потому что идут на эскроу"
     rejected: ["Структура оплат на листе «Эскроу» не связана с CF1 и не сходится к 100% (исходник 0,7+0,1+0)"]
     source_ids: [S_CBR_MORTGAGE]
     legacy: {cells: "Эскроу!C5:AL33", verdict: replace}
@@ -938,6 +979,7 @@ formulas:
     expr: |
       revenue_gross = Σ_{k,t} value[k,t]
       revenue_net   = revenue_gross − Σ output_vat
+    note: "Выручка без НДС считается с модулем налогов (этап 6, F.TAX.OUTPUT_VAT); до этого — только выручка с НДС. База статей-долей выручки бюджета (маркетинг, брокеридж, вознаграждение девелопера) — выручка с НДС."
     terms:
       "revenue_gross": "результат: выручка с НДС, руб"
       "revenue_net": "результат: выручка без НДС, руб"
@@ -959,11 +1001,12 @@ formulas:
     name: "Пополнение эскроу"
     unit: руб
     dims: [p, t]
-    expr: "deposit[p,t] = Σ_k cash_in_ddu[k,p,t]"
+    expr: "deposit[p,t] = Σ_{k ∈ очередь p} cash_in_ddu[k,t]"
     terms:
       "deposit[p,t]": "результат: поступления на эскроу очереди p в месяце t, руб"
-      "cash_in_ddu[k,p,t]": "поступления по договорам ДДУ — заключённым в месяцы с flag_ddu = 1 (F.SALES.CASH_IN)"
-    depends_on: [F.SALES.CASH_IN, F.TIME.FLAG_PRESALE]
+      "cash_in_ddu[k,t]": "поступления по договорам ДДУ — заключённым до РНВ очереди (F.SALES.CASH_IN)"
+      "k ∈ очередь p": "строки SALES.PRODUCTS с phase = p"
+    depends_on: [F.SALES.CASH_IN, F.TIME.FLAG_PRESALE, SALES.PRODUCTS, TIME.MILESTONES]
     rationale: "Все платежи по ДДУ, включая рассрочку, поступают на эскроу (ст.15.4 214-ФЗ)"
     rejected: []
     source_ids: [S_214_ART15_4]
@@ -1000,6 +1043,7 @@ formulas:
     expr: |
       coverage[t]  = Σ_p esc_bal_avg[p,t] × (1 − FIN.ESCROW_RESERVE_RATE) / (debt_avg[t] + accrued_interest[t−1])
       esc_bal_avg  = (esc_bal[t−1] + esc_bal[t]) / 2
+    note: "Считается с модулем проектного финансирования (этап 5): нужны долг и проценты F.FIN.*."
     terms:
       "coverage[t]": "результат: покрытие долга остатками эскроу, доля"
       "esc_bal_avg[p,t]": "средний остаток эскроу за месяц"
@@ -1180,16 +1224,16 @@ formulas:
       from_escrow[t] = MIN( Σ_p release[p,t], debt[t−1] + draw[t] + accrued[t] )
       from_dkp[t]    = MIN( dkp_cash[t], debt_left[t] ) × 1{ t > t_release }
       debt[t]        = debt[t−1] + draw[t] − principal_repaid[t]
-    note: "Из раскрытого эскроу сначала гасятся проценты, затем основной долг. После раскрытия эскроу поступления по ДКП полностью идут на погашение (100% sweep)."
+    note: "Из раскрытого эскроу сначала гасятся проценты, затем основной долг. После раскрытия эскроу поступления по ДКП полностью идут на погашение (100% sweep). Месяц раскрытия t_release — тот же флаг F.TIME.FLAG_ESCROW_RELEASE (РНВ + TIME.ESCROW_RELEASE_LAG_M), что и в F.ESC.BALANCE: погашение и конец начисления процентов сдвигаются вместе с раскрытием."
     terms:
       "from_escrow[t]": "погашение за счёт раскрытого эскроу, руб"
       "from_dkp[t]": "погашение за счёт поступлений по ДКП, руб"
       "release[p,t]": "раскрытие эскроу (F.ESC.BALANCE)"
       "dkp_cash[t]": "поступления по ДКП"
       "debt_left[t]": "остаток долга с процентами после погашения из эскроу"
-      "t_release": "месяц раскрытия эскроу"
+      "t_release": "месяц раскрытия эскроу (F.TIME.FLAG_ESCROW_RELEASE)"
       "principal_repaid[t]": "погашенный основной долг"
-    depends_on: [F.ESC.BALANCE, F.FIN.DRAW, F.FIN.INTEREST, F.SALES.CASH_IN]
+    depends_on: [F.ESC.BALANCE, F.TIME.FLAG_ESCROW_RELEASE, F.FIN.DRAW, F.FIN.INTEREST, F.SALES.CASH_IN]
     rationale: "ч.6 ст.15.5 214-ФЗ позволяет направлять средства эскроу в погашение кредита; остаток долга гасится из ДКП"
     rejected: ["Погашение по залоговой стоимости (исходник строки 102–105) не доведено до формул"]
     source_ids: [S_214_ART15_5, S_BANK_TERMSHEET]

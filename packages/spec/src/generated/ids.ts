@@ -1,7 +1,7 @@
 // Файл сгенерирован packages/spec/scripts/build-spec.ts из data/*.yaml. Не редактировать вручную.
 
 /** Версия справочника: хеш содержимого data/*.yaml. Сохраняется в каждой версии расчёта. */
-export const SPEC_VERSION = "e5bb9f432bb2";
+export const SPEC_VERSION = "c0f28876ba8d";
 /** Дата актуализации справочника: самая поздняя дата проверки источника. */
 export const SPEC_ACTUALIZED_AT = "2026-09-27";
 
@@ -159,6 +159,8 @@ export const PARAMETER_IDS = [
   "TIME.HORIZON_TAIL_M",
   "TIME.HORIZON_WARN_M",
   "TIME.ESCROW_RELEASE_LAG_M",
+  "TIME.LEGACY_ESCROW_DEPOSIT_END",
+  "TIME.LEGACY_ESCROW_RELEASE_DATE",
   "TIME.RNS_TO_RNV_TAX_YEARS",
   "CAPEX.ITEMS",
   "CAPEX.CONTINGENCY_RATE",
@@ -172,6 +174,8 @@ export const PARAMETER_IDS = [
   "SALES.PACE",
   "SALES.PRICE_MARKET_GROWTH",
   "SALES.PRICE_STAGE_UPLIFT",
+  "SALES.LEGACY_PRICE_GROWTH",
+  "SALES.LEGACY_CASH_IN_END",
   "SALES.PAYMENT_MIX",
   "FIN.EQUITY_SHARE",
   "FIN.RATE_PREFERENTIAL",
@@ -264,6 +268,7 @@ export const FORMULA_IDS = [
   "F.CAPEX.SCHEDULE_WEIGHT",
   "F.CAPEX.ITEM_CASH",
   "F.CAPEX.SMR_TOTAL",
+  "F.CAPEX.SMR_PROGRESS",
   "F.CAPEX.NCS_BENCH",
   "F.CAPEX.INDEX_EFFECT",
   "F.CAPEX.TOTAL",

@@ -10,7 +10,7 @@ import * as fmt from "@/lib/format";
 
 const AUTHOR_KEY = "fm.author";
 
-function savedAuthor(): string {
+export function savedAuthor(): string {
   try {
     return localStorage.getItem(AUTHOR_KEY) ?? "";
   } catch {

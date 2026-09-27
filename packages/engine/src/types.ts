@@ -4,7 +4,7 @@ import type { FormulaId, ParameterId, RegionCode } from "@fm/spec";
 /** Откуда взято значение параметра. */
 export type ValueOrigin = "project" | "region" | "template";
 
-/** Режим расчёта: обычный или совместимость с исходным Excel (tests/cases/*_legacy.yaml). */
+/** Режим расчёта: расчёт сервиса (normal) или «как в исходном Excel» (legacy, tests/cases/*_legacy.yaml). */
 export type CalcMode = "normal" | "legacy";
 
 /** Входные данные проекта: значения параметров по ID (docs/01, «Расчётное ядро»). */
@@ -32,7 +32,7 @@ export interface CalcMessage {
   parameterId?: ParameterId;
   /**
    * Постоянный ключ условия («CAPEX.SCHEDULE_SUM:ROADS_UDS»): одно и то же расхождение в разных прогонах имеет один
-   * ключ. По нему предупреждения режима совместимости связываются с вопросами к данным.
+   * ключ. По нему предупреждения расчёта «как в исходном Excel» связываются с вопросами к данным.
    */
   key?: string;
 }

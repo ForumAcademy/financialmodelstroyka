@@ -236,6 +236,19 @@ export const formulaSchema = z
     note: z.string().min(1).optional(),
     /** Расшифровка промежуточных обозначений из expr: «need[t]» → что это. */
     terms: z.record(z.string().min(1), z.string().min(1)).optional(),
+    /**
+     * Панель «Как посчитано» для финансиста: название с единицами, пояснение простым языком в 1–3 предложениях
+     * (без обозначений, кодов и английских слов) и пример на цифрах проекта одной строкой (шаблон с подстановкой
+     * {ID} и {=} — результат). Предупреждения, разница с расчётом «как в исходном Excel» и поля ввода берутся из расчёта.
+     */
+    plain: z
+      .object({
+        title: z.string().min(1),
+        how: z.string().min(1),
+        example: z.string().min(1).optional(),
+      })
+      .strict()
+      .optional(),
     depends_on: idList,
     /** Подмножество depends_on, для которого берётся значение прошлого месяца X[t-1]; разрывает цикл графа. */
     lag_depends_on: idList.optional(),

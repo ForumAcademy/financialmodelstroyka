@@ -7,7 +7,7 @@ import { useHow } from "@/components/HowPanel";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
-import { CompatBanner, DiscrepanciesTab } from "@/components/CompatWarnings";
+import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
 import { issueCounts } from "@/lib/issues";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
@@ -80,7 +80,8 @@ function ProjectPage() {
           Выгрузить в Excel
         </button>
       </div>
-      {tab === "issues" ? null : <CompatBanner open={counts.open} total={counts.total} go={() => go("issues", view)} />}
+      {project.legacyCase ? <ModeSwitch project={project} /> : null}
+      {tab === "issues" || project.input.mode !== "legacy" ? null : <CompatBanner open={counts.open} total={counts.total} go={() => go("issues", view)} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>

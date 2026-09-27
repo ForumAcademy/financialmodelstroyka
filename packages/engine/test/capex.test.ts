@@ -142,7 +142,7 @@ describe("CAPEX: индекс, НДС, платёж", () => {
   });
 });
 
-describe("CAPEX: Дербеневская в режиме совместимости", () => {
+describe("CAPEX: Дербеневская в расчёте «как в исходном Excel»", () => {
   // горизонт — до последнего квартала CF1 (AS = 4 кв 2035: там кончаются ряды маркетинга и брокериджа)
   const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 121 });
   const cash = series(r, "F.CAPEX.ITEM_CASH");

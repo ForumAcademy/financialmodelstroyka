@@ -70,8 +70,8 @@ export function SalesTab({ project, model }: Props) {
           { title: "Темп продаж", params: ["SALES.PACE"] },
           ...(project.input.mode === "legacy"
             ? [
-                { title: "Рост цен (как в исходном Excel)", params: ["SALES.LEGACY_PRICE_GROWTH"] as ParameterId[], note: "В режиме совместимости цена растёт ступенькой, как в исходнике. Рост по рынку и стадиям готовности действует в обычном режиме." },
-                { title: "Поступления в денежный поток (как в исходном Excel)", params: ["SALES.LEGACY_CASH_IN_END"] as ParameterId[], note: "В исходнике строка доходов CF1 обрывается раньше продаж, поэтому часть выручки в денежный поток не попадает. В обычном режиме учитываются все поступления." },
+                { title: "Рост цен (как в исходном Excel)", params: ["SALES.LEGACY_PRICE_GROWTH"] as ParameterId[], note: "В расчёте «как в исходном Excel» цена растёт ступенькой, как в исходнике. Рост по рынку и стадиям готовности действует в расчёте сервиса." },
+                { title: "Поступления в денежный поток (как в исходном Excel)", params: ["SALES.LEGACY_CASH_IN_END"] as ParameterId[], note: "В исходнике строка доходов CF1 обрывается раньше продаж, поэтому часть выручки в денежный поток не попадает. В расчёте сервиса учитываются все поступления." },
               ]
             : [
                 {
@@ -106,7 +106,7 @@ export function EscrowTab({ project, model }: Props) {
         groups={[
           { title: "Структура оплат", params: ["SALES.PAYMENT_MIX"] },
           project.input.mode === "legacy"
-            ? { title: "Эскроу (как в исходном Excel)", params: ["TIME.LEGACY_ESCROW_DEPOSIT_END", "TIME.LEGACY_ESCROW_RELEASE_DATE", "FIN.ESCROW_RESERVE_RATE"], note: "В исходнике сделки идут на эскроу до даты, после которой в CF1 вбиты нули, а раскрытие одной датой для всех очередей проставлено руками. В обычном режиме раскрытие — через лаг после РНВ каждой очереди." }
+            ? { title: "Эскроу (как в исходном Excel)", params: ["TIME.LEGACY_ESCROW_DEPOSIT_END", "TIME.LEGACY_ESCROW_RELEASE_DATE", "FIN.ESCROW_RESERVE_RATE"], note: "В исходнике сделки идут на эскроу до даты, после которой в CF1 вбиты нули, а раскрытие одной датой для всех очередей проставлено руками. В расчёте сервиса раскрытие — через лаг после РНВ каждой очереди." }
             : { title: "Раскрытие", params: ["TIME.ESCROW_RELEASE_LAG_M", "FIN.ESCROW_RESERVE_RATE"] },
         ]}
       />

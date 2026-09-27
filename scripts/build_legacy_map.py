@@ -47,7 +47,7 @@ def value_target(sheet, row, col):
             29: ("TEP.LANDSCAPE_SHARE", "keep", "нужна ссылка на ППТ/НГП"),
             30: ("TEP.ROAD_SHARE", "keep", "нужна ссылка на ППТ"),
             31: ("TEP.GREEN_SHARE", "keep", "нужна ссылка на ППТ/НГП"),
-            35: ("CAPEX.ITEMS", "replace", "база только для режима совместимости: перевод вбитых сумм бюджета в ставки на м²; продаваемая площадь — F.TEP.SALEABLE_AREA"),
+            35: ("CAPEX.ITEMS", "replace", "база только для расчёта «как в исходном Excel»: перевод вбитых сумм бюджета в ставки на м²; продаваемая площадь — F.TEP.SALEABLE_AREA"),
             44: ("TEP.APT_MIX" if c == "F" else "TEP.PARKING_COUNT_OVERRIDE", "fix", "итог вбит числом"),
         },
     }
@@ -90,8 +90,8 @@ def value_target(sheet, row, col):
         if res is None and row in budget_row_to_item:
             res = (f"CAPEX.ITEMS[{budget_row_to_item[row]}]", "replace", "сумма/ставка вбита числом → ставка × база")
         if res is not None and c == "F" and row in budget_row_to_item:
-            # режим совместимости: сумма статьи — с НДС (CAPEX.LEGACY_AMOUNTS_WITH_VAT)
-            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера обычно ведутся с НДС")
+            # расчёт «как в исходном Excel»: сумма статьи — с НДС (CAPEX.LEGACY_AMOUNTS_WITH_VAT)
+            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера как правило ведутся с НДС")
         if res is not None:
             return res
     if sheet == "CF1":

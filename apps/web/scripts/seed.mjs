@@ -13,11 +13,11 @@ const data = {
   description: c.description,
   project_inputs: c.project_inputs,
   reconciliation_targets: c.reconciliation_targets,
-  // бюджет исходника для режима совместимости (legacyCaseInput → CAPEX.ITEMS)
+  // бюджет исходника для расчёта «как в исходном Excel» (legacyCaseInput → CAPEX.ITEMS)
   capex_legacy: c.capex_legacy,
   // план продаж исходника (legacyCaseInput → SALES.*)
   sales_legacy: c.sales_legacy,
-  // ячейки исходника для проверок совместимости (legacyChecks → предупреждения)
+  // ячейки исходника для проверок расчёта «как в исходном Excel» (legacyChecks → предупреждения)
   legacy_checks: c.legacy_checks,
   timeline_quarters_F_to_AS: c.timeline_quarters_F_to_AS,
 };

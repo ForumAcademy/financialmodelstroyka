@@ -1,10 +1,10 @@
 /**
- * Вопросы к данным: каждое предупреждение режима совместимости (CalcMessage.key) → вопрос к авторам исходного Excel
+ * Вопросы к данным: каждое предупреждение расчёта «как в исходном Excel» (CalcMessage.key) → вопрос к авторам исходного Excel
  * простым языком: что смутило систему, влияние в рублях, рекомендация (решение владельца продукта 27.09.2026).
  * Один механизм: вопросы строятся только из предупреждений расчёта и проверок исходника (legacyChecks), тексты —
  * по шаблону на каждый тип расхождения из чисел расчёта и ячеек исходника, а не вручную.
  *
- * Влияние — разница «значение Excel − исправленное (обычный режим)» для того, что меняется: выручка, расходы или
+ * Влияние — разница «значение Excel − исправленное (расчёт сервиса)» для того, что меняется: выручка, расходы или
  * сроки денег (для сроков — сумма, которая сдвигается). Знак «+» — в Excel больше, «−» — меньше.
  */
 import Decimal from "decimal.js";
@@ -117,7 +117,7 @@ function signed(excelMinusFixed: Decimal, kind: ImpactKind, more: string, less: 
   return { amount: excelMinusFixed, kind, text };
 }
 
-/** Вопросы по предупреждениям режима совместимости (сообщения с ключом), в порядке номеров. */
+/** Вопросы по предупреждениям расчёта «как в исходном Excel» (сообщения с ключом), в порядке номеров. */
 export function dataQuestions(c: LegacyCase, input: ProjectInput, result: ResultSet): DataQuestion[] {
   const f = result.formulas;
   const lc = c.legacy_checks;
@@ -158,7 +158,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         question: `Какой запас ${arg} верный и откуда взят темп продаж?`,
         explanation: `По плану продаётся ${fmt(s)} м², а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть.${typed ? " Темп введён в файл числами, и ни одна ячейка не даёт эти цифры" : ""} (${refs}).`,
         impact: price ? signed(exact.mul(price), "выручка", "завышена", "занижена") : { amount: null, kind: "выручка", text: "выручка завышена" },
-        recommendation: `Продажи ограничены запасом: по введённому темпу продаётся больше, чем построено (${arg}: ${fmt(s)} м² при запасе ${fmt(stock)} м²). Проверьте темп продаж или площадь в ТЭПах.`,
+        recommendation: `По плану продаж ${arg} получается ${fmt(s)} м², а построено ${fmt(stock)} м². Лишние ${fmt(excess)} м² в расчёт не попадают. Уменьшите темп или проверьте площадь ${arg} в ТЭПах.`,
       };
     }
     if (kind === "LEGACY.PSN_STOCK" && lc) {
@@ -189,7 +189,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         question: "Откуда взята сумма маркетинга в бюджете?",
         explanation: `Маркетинг введён числом ${fmtRub(b.marketing_F51)}, а не как ${fmtShare(new Decimal(b.marketing_rate_D51))} от выручки. Такое число получается из выручки ${fmtRub(new Decimal(b.marketing_F51).div(b.marketing_rate_D51))}, которой в файле нет: по плану продаж выручка ${fmtRub(rev)} (Бюджет!F51).`,
         impact: signed(new Decimal(b.marketing_F51).sub(byRate), "расходы", "завышены", "занижены"),
-        recommendation: `Считать маркетинг как ${fmtShare(new Decimal(b.marketing_rate_D51))} от выручки (${fmtRub(byRate)}); в обычном режиме так и сделано. Подтвердите ставку.`,
+        recommendation: `Считать маркетинг как ${fmtShare(new Decimal(b.marketing_rate_D51))} от выручки (${fmtRub(byRate)}); в расчёте сервиса так и сделано. Подтвердите ставку.`,
       };
     }
     if (kind === "LEGACY.CONTINGENCY_F42" && lc) {
@@ -201,7 +201,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         question: "Правильно ли посчитан резерв на непредвиденные расходы?",
         explanation: `Площадь сложена со ставкой вместо умножения: ${fmt(Math.round(b.contingency_E42))} + ${fmt(Math.round(b.contingency_D42))} = ${fmt(Math.round(b.contingency_F42))} ₽. При умножении получается ${fmtRub(product)} (Бюджет!F42).`,
         impact: signed(new Decimal(b.contingency_F42).sub(product), "расходы", "завышены", "занижены"),
-        recommendation: "Считать как площадь × ставку; подтвердить, что ставка резерва — 10% от ставок СМР. В обычном режиме резерв считается от стоимости СМР по ставке справочника.",
+        recommendation: "Считать как площадь × ставку; подтвердить, что ставка резерва — 10% от ставок СМР. В расчёте сервиса резерв считается от стоимости СМР по ставке справочника.",
       };
     }
     if (kind === "CAPEX.SCHEDULE_SUM") {
@@ -218,7 +218,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
           question: "Какую сумму маркетинга считать верной: из бюджета или из CF?",
           explanation: `В бюджете маркетинг ${fmtRub(amount)}, а в CF1 платежи считаются как 3,5% от выручки по кварталам и дают ${fmtRub(inCf)} — ${fmtShare(share)} бюджета. Связано с №3 и №11 (${cells(arg)}).`,
           impact,
-          recommendation: "В обычном режиме бюджет и CF совпадают: маркетинг — доля выручки, платежи идут вместе с продажами.",
+          recommendation: "В расчёте сервиса бюджет и CF совпадают: маркетинг — доля выручки, платежи идут вместе с продажами.",
         };
       }
       if (arg === "BROKERAGE") {
@@ -228,7 +228,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
           question: "Почему в денежный поток попадает только часть брокериджа?",
           explanation: `Брокеридж в бюджете ${fmtRub(amount)}, а в CF1 — ${fmtRub(inCf)} (${fmtShare(share)}). Ссылки строки брокериджа сначала сдвинуты на 7 кварталов, потом идут без сдвига, поэтому 7 кварталов продаж остаются без брокериджа. Связано с №11 (${cells(arg)}).`,
           impact,
-          recommendation: "В обычном режиме брокеридж платится при каждой сделке, по графику продаж, и в CF попадает вся сумма бюджета.",
+          recommendation: "В расчёте сервиса брокеридж платится при каждой сделке, по графику продаж, и в CF попадает вся сумма бюджета.",
         };
       }
       if (share.isZero()) {
@@ -240,7 +240,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
           question: `Должна ли статья «${name}» попадать в денежный поток?`,
           explanation: `В бюджете статья стоит ${fmtRub(amount)}, но в CF1 её платежей нет: ${hasRow ? "доли графика не проставлены" : "для неё нет строки"}. Расход есть в бюджете, но не уменьшает денежный поток (${cells(arg)}).`,
           impact,
-          recommendation: "В обычном режиме статья платится вслед за СМР и полностью попадает в денежный поток. Подтвердите сумму и график.",
+          recommendation: "В расчёте сервиса статья платится вслед за СМР и полностью попадает в денежный поток. Подтвердите сумму и график.",
         };
       }
       return {
@@ -249,7 +249,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         question: `Почему «${name}» в денежном потоке ${share.gt(1) ? "больше" : "меньше"}, чем в бюджете?`,
         explanation: `Доли графика в CF1 в сумме дают ${fmtShare(share)}, а не 100%: в CF попадает ${fmtRub(inCf)} при бюджете ${fmtRub(amount)}${arg === "CONTINGENCY" ? "; сама сумма резерва тоже под вопросом, см. №4" : ""} (${cells(arg)}).`,
         impact,
-        recommendation: "В обычном режиме доли графика равны 100%, и в CF попадает ровно сумма бюджета.",
+        recommendation: "В расчёте сервиса доли графика равны 100%, и в CF попадает ровно сумма бюджета.",
       };
     }
     if (kind === "SALES.CASH_IN_CUT" && lc && revenue) {
@@ -262,7 +262,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         question: `Почему в денежный поток не попадает выручка${typeof end === "string" ? ` после ${fmtQuarter(end)}` : ""}?`,
         explanation: `Строка доходов CF1 ссылается на план продаж только${typeof end === "string" ? ` до ${fmtQuarter(end)}` : " до части кварталов"}, а продажи идут${lastSale ? ` до ${fmtQuarter(lastSale)}` : " дольше"}. В CF попадает ${fmtRub(inCf)} вместо ${fmtRub(revenue)} (CF1 строка 15, План продаж строка 25).`,
         impact: signed(inCf.sub(revenue), "поступления", "завышены", "занижены"),
-        recommendation: "Похоже на недотянутую формулу. В обычном режиме учитываются все поступления.",
+        recommendation: "Похоже на недотянутую формулу. В расчёте сервиса учитываются все поступления.",
       };
     }
     if (kind === "LEGACY.CF1_LAG" && lc) {
@@ -277,9 +277,9 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         threat: `~${fmtRub(moved)} расходов в Excel платятся на ~${(b0 - s0) * monthsInQuarter} мес. позже, поэтому потребность в финансировании в Excel может быть занижена.`,
         block: "cf",
         question: "Когда на самом деле платятся маркетинг и брокеридж?",
-        explanation: `В CF1 платежи по маркетингу и брокериджу начинаются на ${b0 - s0} кварталов позже первых продаж. Брокеридж обычно платится при сделке, маркетинг — до продаж или вместе с ними (CF1 строки 78 и 79).`,
+        explanation: `В CF1 платежи по маркетингу и брокериджу начинаются на ${b0 - s0} кварталов позже первых продаж. Брокеридж как правило платится при сделке, маркетинг — до продаж или вместе с ними (CF1 строки 78 и 79).`,
         impact: { amount: moved, kind: "сроки денег", text: `сроки денег: ~${fmtRub(moved)} расходов сдвинуты на ~${(b0 - s0) * monthsInQuarter} мес. позже` },
-        recommendation: "В обычном режиме оба платежа идут по графику продаж, без сдвига.",
+        recommendation: "В расчёте сервиса оба платежа идут по графику продаж, без сдвига.",
       };
     }
     if (kind === "LEGACY.ESCROW_DATE" && lc) {
@@ -299,7 +299,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
           kind: "сроки денег",
           text: `сроки денег: ~${fmtRub(dep)} эскроу${months ? ` раскрываются на ~${months} мес. ${months > 0 ? "раньше" : "позже"} срока в ТЭПах` : ""}; меняются проценты по ПФ`,
         },
-        recommendation: `Уточнить плановую дату РНВ; в обычном режиме раскрытие = РНВ + ${lag ?? "лаг"} мес.`,
+        recommendation: `Уточнить плановую дату РНВ; в расчёте сервиса раскрытие = РНВ + ${lag ?? "лаг"} мес.`,
       };
     }
     return {
@@ -308,7 +308,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       question: "Что в этом месте файла верно?",
       explanation: m.text,
       impact: { amount: null, kind: "нет", text: "не оценено" },
-      recommendation: "В обычном режиме это место считается по правилам модели.",
+      recommendation: "В расчёте сервиса это место считается по правилам модели.",
     };
   };
 

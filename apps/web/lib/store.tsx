@@ -10,6 +10,7 @@ type Action =
   | { type: "create"; project: DemoProject }
   | { type: "copy"; id: string; newId: string }
   | { type: "archive"; id: string; archived: boolean }
+  | { type: "mode"; id: string; mode: "normal" | "legacy" }
   | { type: "delete"; id: string }
   | { type: "value"; id: string; param: ParameterId; value: unknown }
   | { type: "addSource"; id: string; source: ProjectSource }
@@ -41,6 +42,8 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
     }
     case "archive":
       return map((p) => touch(p, { archived: a.archived }));
+    case "mode":
+      return map((p) => touch(p, { input: { ...p.input, mode: a.mode } }));
     case "delete":
       return state.filter((p) => p.id !== a.id);
     case "value":

@@ -3,7 +3,7 @@ import type { FormulaId } from "@fm/spec";
 import { calculate, dataQuestions, FORMULAS, legacyChecks, sinkFormulas } from "../src";
 import { legacyInput, loadCase } from "./support/cases";
 
-describe("Вопросы к данным из предупреждений режима совместимости", () => {
+describe("Вопросы к данным из предупреждений расчёта «как в исходном Excel»", () => {
   const c = loadCase("derbenevskaya_legacy");
   const input = legacyInput(c);
   const r = calculate(input, { horizonMonths: 121 }, [...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]), "F.SALES.REVENUE_TOTAL", "F.SALES.WAVG_PRICE"]);
@@ -48,7 +48,7 @@ describe("Вопросы к данным из предупреждений ре�
   it("№1 ПСН: продано на 566 м² больше запаса, выручка завышена", () => {
     expect(by(1)?.explanation).toMatch(/на 566 м² больше.*\(План продаж!E43:AM43, ТЭПы!C23\)\./);
     expect(by(1)?.recommendation).toBe(
-      "Продажи ограничены запасом: по введённому темпу продаётся больше, чем построено (ПСН: 10\u00a0888 м² при запасе 10\u00a0322 м²). Проверьте темп продаж или площадь в ТЭПах.",
+      "По плану продаж ПСН получается 10\u00a0888 м², а построено 10\u00a0322 м². Лишние 566 м² в расчёт не попадают. Уменьшите темп или проверьте площадь ПСН в ТЭПах.",
     );
     expect(by(1)?.impact.amount?.gt(0)).toBe(true);
     expect(by(1)?.impact.text).toMatch(/^выручка: завышена на ~/);

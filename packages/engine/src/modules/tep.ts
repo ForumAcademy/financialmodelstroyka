@@ -119,7 +119,7 @@ export function F_TEP_APART_AREA(ctx: FormulaContext): Decimal {
     ctx.message("warning", `Апартаменты (${fmt(area)} м²) исключены: по ГПЗУ проекта размещение объектов гостиничного назначения / апартаментов не подтверждено`, "GPZU.APART_ALLOWED");
     const codes = ctx.param<string[]>("LAND.VRI_CODES") ?? [];
     if (codes.includes("4.7")) {
-      ctx.message("info", "ВРИ участка включает код 4.7 «Гостиничное обслуживание» — обычно это означает, что ГПЗУ допускает апартаменты. Проверьте ГПЗУ", "GPZU.APART_ALLOWED");
+      ctx.message("info", "ВРИ участка включает код 4.7 «Гостиничное обслуживание» — как правило это означает, что ГПЗУ допускает апартаменты. Проверьте ГПЗУ", "GPZU.APART_ALLOWED");
     }
     return ZERO;
   }
@@ -184,8 +184,8 @@ export function F_TEP_STORAGE(ctx: FormulaContext): Storage {
 function normFor(norm: ParkingNorm, row: AptMixRow, k: number, mode: FormulaContext["mode"]): Decimal {
   const values = norm.values ?? [];
   if (norm.rule === "per_type") {
-    // Только режим совместимости: нормы по типам из исходного Excel (tests/cases/*_legacy.yaml).
-    if (mode !== "legacy") throw new CalcError("Норматив по типам квартир допускается только в режиме совместимости с исходником", "TEP.PARKING_NORM");
+    // Только расчёт «как в исходном Excel»: нормы по типам из исходного Excel (tests/cases/*_legacy.yaml).
+    if (mode !== "legacy") throw new CalcError("Норматив по типам квартир допускается только в расчёте «как в исходном Excel»", "TEP.PARKING_NORM");
     const v = values[k];
     if (typeof v !== "number") throw new CalcError(`Нет норматива для типа «${row.type_name}»`, "TEP.PARKING_NORM");
     return new Decimal(v);

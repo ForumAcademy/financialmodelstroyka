@@ -43,7 +43,7 @@ pnpm typecheck && pnpm lint
 - [ ] `validate_spec.py` — 0 ошибок; новых предупреждений `needs_verification` нет или они объяснены в описании PR.
 - [ ] Для каждой изменённой формулы: обновлены `expr`, `rationale`, `example`; тест на `example` проходит.
 - [ ] `render_docs.py` запущен, `docs/03–05` закоммичены.
-- [ ] Сверка с `tests/cases/derbenevskaya_legacy.yaml → reconciliation_targets` проходит в режиме совместимости.
+- [ ] Сверка с `tests/cases/derbenevskaya_legacy.yaml → reconciliation_targets` проходит в расчёте «как в исходном Excel».
 - [ ] Паспорт показателя в UI показывает цепочку до источников со ссылками.
 
 ## Порядок разработки

@@ -82,7 +82,7 @@ export interface DemoProject {
   changes?: Partial<Record<ParameterId, ValueChange>>;
   specVersion: string;
   updatedAt: string;
-  /** Расхождения внутри исходного Excel (legacyChecks): показываются в режиме совместимости вместе с предупреждениями расчёта. */
+  /** Расхождения внутри исходного Excel (legacyChecks): показываются в расчёте «как в исходном Excel» вместе с предупреждениями расчёта. */
   legacyWarnings?: CalcMessage[];
   /** Кейс исходного Excel (ячейки для вопросов к данным); только у проектов, созданных из исходника. */
   legacyCase?: LegacyCase;

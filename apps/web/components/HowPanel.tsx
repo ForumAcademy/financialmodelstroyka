@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Decimal from "decimal.js";
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { getCapexItem, getFormula, getParameter, getSource, spec, type CapexItemId, type FormulaId, type ParameterId, type SourceId } from "@fm/spec";
 import * as fmt from "@/lib/format";
@@ -8,7 +9,9 @@ import { compositeSummary, DataView } from "./DataView";
 import { ChangedMark, valueText } from "./Change";
 import { whence } from "@/lib/whence";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
-import { isParameterIdLike, stageOf } from "@/lib/model";
+import { amount, compatDiff, exampleFocus, howExample, inputFields, shortSource } from "@/lib/how-example";
+import { isParameterIdLike, modePair, stageOf, type ProjectModel } from "@/lib/model";
+import type { DemoProject } from "@/lib/types";
 import { useStore } from "@/lib/store";
 
 export type HowTarget =
@@ -84,69 +87,199 @@ function Actions({ formula, source }: { formula?: string | undefined; source?: s
   );
 }
 
+/** Значение в заголовке — только для одного числа; ряды и таблицы раскрывает блок «Пример». */
+function headlineValue(v: unknown, unit: string): string | null {
+  if (v instanceof Decimal || typeof v === "number") return amount(v, unit);
+  return null;
+}
+
+/** Значение поля ввода в «Что влияет»: число с единицей, таблица — числом строк. */
+function depValue(v: unknown, unit: string): string {
+  if (v === undefined || v === null) return "не задано";
+  if (Array.isArray(v) && !v.every((x) => typeof x === "number" || x instanceof Decimal)) return `${v.length} ${fmt.plural(v.length, ["строка", "строки", "строк"])}`;
+  if (typeof v === "number" || v instanceof Decimal) return amount(v, unit);
+  if (typeof v === "object") return "задано";
+  return fmt.value(v);
+}
+
+/** Сколько предупреждений видно сразу, остальные — под «Ещё N». */
+const WARN_SHOWN = 2;
+
+/** Ссылка на ячейку Excel («ТЭПы!C48») — такие сообщения живут на вкладке «Расхождения», не в панели показателя. */
+const CELL_REF = /[А-Яа-яA-Za-z0-9_]+!\$?[A-Z]{1,3}\$?\d+/;
+
+/** Показатель и все промежуточные показатели, из которых он считается. */
+function upstream(id: FormulaId): Set<string> {
+  const out = new Set<string>();
+  const walk = (f: FormulaId) => {
+    if (out.has(f)) return;
+    out.add(f);
+    for (const d of getFormula(f).depends_on) if (!isParameterIdLike(d)) walk(d as FormulaId);
+  };
+  walk(id);
+  return out;
+}
+
+function ParamDep({ id, m, project, open }: { id: ParameterId; m: ProjectModel | null; project: DemoProject | undefined; open: (t: HowTarget) => void }) {
+  const v = m?.result.parameters[id]?.value ?? project?.input.values[id];
+  return (
+    <li>
+      <button className="dep" onClick={() => open({ kind: "param", id })}>
+        <span>{getParameter(id).name}</span>
+        <span className="dep-value">{depValue(v, getParameter(id).unit)}</span>
+      </button>
+    </li>
+  );
+}
+
 function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "formula" }>; projectId: string | null; open: (t: HowTarget) => void }) {
   const { projects, model } = useStore();
   const project = projects.find((p) => p.id === projectId);
   const m = project ? model(project) : null;
   const f = getFormula(t.id);
-  const node = m?.result.formulas[t.id];
-  const errors = m?.result.messages.filter((x) => x.formulaId === t.id && x.severity === "error") ?? [];
+  const pair = project && m ? modePair(project, m) : null;
+  // Пример и предупреждения — всегда из расчёта сервиса, чтобы не противоречили друг другу
+  const sp = pair?.normalProject ?? project;
+  const sm = pair?.normal ?? m;
+  const node = sm?.result.formulas[t.id];
+  // Предупреждения: только действующие, по этому показателю и тому, без чего он не считается; ячейки Excel — на вкладке «Расхождения»
+  const scope = sm ? upstream(t.id) : new Set<string>();
+  const active = (sm?.result.messages ?? []).filter(
+    (x) => (x.formulaId === t.id || (!node && x.severity === "error" && x.formulaId && scope.has(x.formulaId))) && !x.key?.startsWith("LEGACY.") && !CELL_REF.test(x.text),
+  );
+  const example = sp && sm ? howExample(t.id, sp, sm) : null;
+  // сначала — предупреждения по продукту из примера
+  const focus = sp && sm ? exampleFocus(sp, sm) : null;
+  if (focus) active.sort((x, y) => Number(y.text.includes(focus)) - Number(x.text.includes(focus)));
+  const params = inputFields(t.id, sm);
+  const diff = pair && sp && sm ? compatDiff(t.id, pair.legacy, pair.normal, focus) : null;
+  const sources = f.source_ids.map(getSource).filter((s) => s.scope === "global");
+  const calc = f.depends_on.filter((d) => !isParameterIdLike(d)) as FormulaId[];
+  // Итог — только для скалярного показателя: у рядов по продуктам итог строки листа без названия продукта сбивает
+  const value = node ? headlineValue(node.value, f.unit) : null;
   return (
     <>
-      <h2>{t.label ?? f.name}</h2>
-      <div className="how-value">{t.value ?? (node ? `${fmt.value(node.value)} ${fmt.unit(f.unit)}` : "—")}</div>
-      {!node && m ? <p className="muted small">{errors.length ? `Не посчитано: ${errors.map((e) => e.text).join("; ")}` : `Расчёт — этап ${stageOf(t.id) ?? "?"}`}</p> : null}
-      <h3>Формула</h3>
-      <p>{f.name}</p>
-      <pre className="expr">{f.expr.trim()}</pre>
-      {f.note ? <p className="formula-note">{humanize(f.note)}</p> : null}
-      {f.terms && Object.keys(f.terms).length ? (
+      <h2>{f.plain?.title ?? t.label ?? f.name}</h2>
+      {value ? <div className="how-value">{value}</div> : null}
+      {!node && sm && !active.length ? <p className="muted small">Показатель начнёт считаться на этапе {stageOf(t.id) ?? "?"}.</p> : null}
+      <h3>Как считается</h3>
+      <p>{f.plain?.how ?? humanize(f.note ?? f.rationale)}</p>
+      {example ? (
         <>
-          <h3>Обозначения в формуле</h3>
-          <ul className="terms">
-            {Object.entries(f.terms).map(([k, v]) => (
-              <li key={k}>
-                <code>{k}</code> — {v}
-              </li>
-            ))}
-          </ul>
+          <h3>Пример</h3>
+          <p>{example}</p>
         </>
       ) : null}
-      <h3>Почему так</h3>
-      <p>{humanize(f.rationale)}</p>
-      {f.rejected.length ? (
+      {active.length ? (
         <>
-          <h3>Что отклонено</h3>
-          <ul>
-            {f.rejected.map((r) => (
-              <li key={r}>{humanize(r)}</li>
+          <h3>Предупреждения</h3>
+          <ul className="how-warn-now">
+            {active.slice(0, WARN_SHOWN).map((w) => (
+              <li key={w.text}>{w.text}</li>
             ))}
           </ul>
+          {active.length > WARN_SHOWN ? (
+            <details className="how-more">
+              <summary>Ещё {active.length - WARN_SHOWN}</summary>
+              <ul className="how-warn-now">
+                {active.slice(WARN_SHOWN).map((w) => (
+                  <li key={w.text}>{w.text}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
         </>
       ) : null}
-      <h3>Из чего складывается</h3>
-      <ul className="deps">
-        {f.depends_on.map((d) => {
-          const isParam = isParameterIdLike(d);
-          const name = isParam ? getParameter(d).name : getFormula(d as FormulaId).name;
-          const v = isParam ? m?.result.parameters[d]?.value : m?.result.formulas[d as FormulaId]?.value;
-          return (
-            <li key={d}>
-              <button className="dep" onClick={() => open(isParam ? { kind: "param", id: d } : { kind: "formula", id: d as FormulaId })}>
-                <span>{name}</span>
-                <span className="dep-value">{v !== undefined ? fmt.value(v) : isParam ? "не задано" : "—"}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <h3>Источники</h3>
-      <ul className="sources">
-        {f.source_ids.map((id) => (
-          <SpecSource key={id} id={id} />
-        ))}
-      </ul>
-      <Actions formula={f.id} source={f.source_ids[0]} />
+      <div className="how-folds">
+        {params.length ? (
+          <details className="how-fold">
+            <summary>Что влияет</summary>
+            <ul className="deps">
+              {params.map((d) => (
+                <ParamDep key={d} id={d} m={sm} project={sp} open={open} />
+              ))}
+            </ul>
+          </details>
+        ) : null}
+        {diff ? (
+          <details className="how-fold">
+            <summary>В исходном Excel</summary>
+            <p>{diff}</p>
+          </details>
+        ) : null}
+        {sources.length ? (
+          <details className="how-fold">
+            <summary>Источники</summary>
+            <ul className="sources">
+              {sources.map((s) => (
+                <li key={s.id}>
+                  {s.url ? (
+                    <a href={s.url} target="_blank" rel="noreferrer">
+                      {shortSource(s.title)}
+                    </a>
+                  ) : (
+                    shortSource(s.title)
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+        <details className="how-fold how-check">
+          <summary>Для проверки (формула)</summary>
+          <p className="muted small">
+            {f.name} · <code>{f.id}</code>
+          </p>
+          <pre className="expr">{f.expr.trim()}</pre>
+          {f.note ? <p className="formula-note">{humanize(f.note)}</p> : null}
+          {f.terms && Object.keys(f.terms).length ? (
+            <>
+              <h4>Обозначения в формуле</h4>
+              <ul className="terms">
+                {Object.entries(f.terms).map(([k, v]) => (
+                  <li key={k}>
+                    <code>{k}</code> — {v}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {calc.length ? (
+            <>
+              <h4>Промежуточные показатели</h4>
+              <ul className="deps">
+                {calc.map((d) => (
+                  <li key={d}>
+                    <button className="dep" onClick={() => open({ kind: "formula", id: d })}>
+                      <span>{getFormula(d).plain?.title ?? getFormula(d).name}</span>
+                      <span className="dep-value muted">→</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <h4>Почему так</h4>
+          <p>{humanize(f.rationale)}</p>
+          {f.rejected.length ? (
+            <>
+              <h4>Что отклонено</h4>
+              <ul>
+                {f.rejected.map((r) => (
+                  <li key={r}>{humanize(r)}</li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <h4>Коды входов</h4>
+          <p className="small">
+            {f.depends_on.map((d) => (
+              <code key={d}>{d} </code>
+            ))}
+          </p>
+          <Actions formula={f.id} source={f.source_ids[0]} />
+        </details>
+      </div>
     </>
   );
 }

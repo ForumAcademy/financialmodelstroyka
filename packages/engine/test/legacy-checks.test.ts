@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { legacyChecks } from "../src";
 import { loadCase } from "./support/cases";
 
-describe("Проверки режима совместимости: расхождения внутри исходника", () => {
+describe("Проверки расчёта «как в исходном Excel»: расхождения внутри исходника", () => {
   const c = loadCase("derbenevskaya_legacy");
   const m = legacyChecks(c);
   const text = (key: string) => m.find((x) => x.key === key)?.text ?? "";

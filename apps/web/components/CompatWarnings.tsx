@@ -16,12 +16,36 @@ const TAB_LABEL: Record<Tab, string> = { sales: "План продаж", budget:
 const AUTHOR_KEY = "fm.author";
 const STATUSES: IssueStatus[] = ["open", "work", "done"];
 
-/** Строка над вкладками в режиме совместимости: сколько расхождений не решено и где их список. */
+const MODE_HINT = {
+  normal: "Расчёт по исправленной методике: продажи не больше построенного, цена по рынку и готовности, налоги по НК РФ.",
+  legacy: "Повторяет исходный файл вместе с его ошибками. Нужен для сверки с Excel.",
+} as const;
+
+/** Переключатель «Расчёт сервиса | Как в исходном Excel» для проекта из исходного Excel и строка подсказки под ним. */
+export function ModeSwitch({ project }: { project: DemoProject }) {
+  const { dispatch } = useStore();
+  const mode = project.input.mode === "legacy" ? "legacy" : "normal";
+  return (
+    <div className="mode-switch">
+      <div className="seg">
+        <button className={mode === "normal" ? "on" : ""} onClick={() => dispatch({ type: "mode", id: project.id, mode: "normal" })}>
+          Расчёт сервиса
+        </button>
+        <button className={mode === "legacy" ? "on" : ""} onClick={() => dispatch({ type: "mode", id: project.id, mode: "legacy" })}>
+          Как в исходном Excel
+        </button>
+      </div>
+      <div className="small muted">{MODE_HINT[mode]}</div>
+    </div>
+  );
+}
+
+/** Строка над вкладками в расчёте «как в исходном Excel»: сколько расхождений не решено и где их список. */
 export function CompatBanner({ open, total, go }: { open: number; total: number; go: () => void }) {
   if (total === 0) return null;
   return (
     <div className="compat-warnings">
-      Режим совместимости с исходным Excel: расчёт повторяет файл один в один. Не решено {open} из {total} расхождений.{" "}
+      Расчёт как в исходном Excel повторяет файл один в один. Не решено {open} из {total} расхождений.{" "}
       <button className="linklike" onClick={go}>
         Открыть список
       </button>
@@ -222,7 +246,7 @@ type Filter = "all" | "open" | "work";
 
 /**
  * Вкладка «Расхождения с Excel» — рабочий список вопросов к авторам исходного файла (решение владельца продукта
- * 27.09.2026). Режим совместимости повторяет Excel один в один; здесь — места, где файл не сходится сам с собой,
+ * 27.09.2026). Расчёт «как в исходном Excel» повторяет Excel один в один; здесь — места, где файл не сходится сам с собой,
  * с влиянием, рекомендацией и статусом. Решённые — в «Архиве».
  */
 export function DiscrepanciesTab({ project, questions, go }: { project: DemoProject; questions: DataQuestion[]; go: (tab: Tab) => void }) {
@@ -230,7 +254,7 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   const [sort, setSort] = useState<"impact" | "no">("impact");
   const [filter, setFilter] = useState<Filter>("all");
   const [exporting, setExporting] = useState(false);
-  if (project.input.mode !== "legacy") return <p className="muted discrepancies">Расхождения с исходным Excel показываются для проектов в режиме совместимости.</p>;
+  if (!project.legacyCase) return <p className="muted discrepancies">Расхождения с исходным Excel есть только у проектов, загруженных из Excel.</p>;
   const all = issueItems(project, questions);
   const active = all.filter((i) => i.status !== "done");
   const archive = all.filter((i) => i.status === "done");
@@ -241,7 +265,7 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   return (
     <div className="discrepancies">
       <p className="small muted">
-        Ошибки и нестыковки, найденные в исходном Excel. Режим совместимости повторяет их как есть, в обычном режиме они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше.
+        Ошибки и нестыковки, найденные в исходном Excel. Расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше.
       </p>
       <div className="issues-toolbar">
         <div className="seg">

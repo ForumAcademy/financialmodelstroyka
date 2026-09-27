@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { getFormula, spec, type FormulaId } from "@fm/spec";
 import { compatDiff, exampleFocus, howExample, inputFields, shortSource, templateExample } from "../lib/how-example";
 import { computeProject, modePair } from "../lib/model";
+import { paceLine, salesRows, salesWarnings } from "../lib/sales-panel";
 import { loadSeed } from "../lib/seed";
 
-/** Пояснение — не больше трёх предложений. */
-const MAX_SENTENCES = 3;
+/** Пояснение — не больше четырёх предложений (три и одно про деньги, где оно нужно). */
+const MAX_SENTENCES = 4;
 
 describe("Панель «Как посчитано»: пример на цифрах проекта", () => {
   const [demo] = loadSeed().projects;
@@ -56,5 +57,25 @@ describe("Панель «Как посчитано»: пример на цифр
 
   it("короткое название источника", () => {
     expect(shortSource("Приказ Росреестра от 23.10.2020 № П/0393 (ред. от 01.01.2024) — требования к площади")).toBe("Приказ Росреестра П/0393");
+  });
+});
+
+describe("Панель «Продано в месяце»: таблица по продуктам и предупреждения в рублях", () => {
+  const [demo] = loadSeed().projects;
+  if (!demo) throw new Error("нет демо-проекта");
+  const pair = modePair(demo, computeProject(demo))!;
+
+  it("таблица из расчёта сервиса: ПСН построено 10 322 м², продано всё, распродано к марту 2033", () => {
+    const psn = salesRows(pair.normalProject, pair.normal)!.find((r) => r.key === "ПСН")!;
+    expect(psn.sold.toNumber()).toBeCloseTo(10322, 6);
+    expect(psn.soldOut).toBe("2033-03-31");
+    expect(paceLine(psn)).toMatch(/^ПСН: в среднем \d+ м² в месяц, срок продаж 48 мес\.$/);
+  });
+
+  it("предупреждения по убыванию суммы: сначала непроданные квартиры, ПСН без потери выручки — после", () => {
+    const w = salesWarnings(pair.normalProject, pair.normal, pair.legacy);
+    expect(w[0]!.text).toMatch(/^Квартиры Тип \d: [\d\s]+ м² не продано к концу расчёта — ≈ .+ не попало в выручку\. План продаж на январь 2026 — февраль 2026 приходится на месяцы, когда продавать ещё нельзя: старт продаж 31\.03\.2026\.$/);
+    expect(w.map((x) => x.text)).toContain("ПСН: по плану продаж 10 888 м², построено 10 322 м². В расчёт вошло 10 322 м², выручка не потеряна, но темп завышен на 566 м².");
+    for (let i = 1; i < w.length; i++) expect(w[i - 1]!.money.gte(w[i]!.money)).toBe(true);
   });
 });

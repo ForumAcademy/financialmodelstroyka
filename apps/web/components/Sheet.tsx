@@ -287,7 +287,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   const addRow = () => fill([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
   return (
     <div className="table-editor">
-      <table className={id === "TIME.MILESTONES" ? "fit" : ""}>
+      <table className={id === "TIME.MILESTONES" ? "fit" : ""} data-param={id}>
         <thead>
           <tr>
             {columns.map((c) => (
@@ -298,7 +298,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
         </thead>
         <tbody>
           {rows.map((row, r) => (
-            <tr key={r}>
+            <tr key={r} data-row={String(row.name ?? row.product ?? "")}>
               {columns.map((c) => {
                 const v = row[c.key];
                 const text = v === null || v === undefined ? "" : typeof v === "number" ? fmt.inputNumber(v) : String(v);

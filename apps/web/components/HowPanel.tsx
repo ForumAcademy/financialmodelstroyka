@@ -9,7 +9,8 @@ import { compositeSummary, DataView } from "./DataView";
 import { ChangedMark, valueText } from "./Change";
 import { whence } from "@/lib/whence";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
-import { amount, compatDiff, exampleFocus, howExample, inputFields, shortSource } from "@/lib/how-example";
+import { amount, compatDiff, exampleFocus, howExample, inputFields, monthName, shortSource } from "@/lib/how-example";
+import { cellQty, cellShare, paceLine, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
 import { isParameterIdLike, modePair, stageOf, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import { useStore } from "@/lib/store";
@@ -102,6 +103,74 @@ function depValue(v: unknown, unit: string): string {
   return fmt.value(v);
 }
 
+/** Строка-ссылка под «Как считается»: из чего складываются деньги показателя. */
+const RELATED: Partial<Record<FormulaId, { text: string; ids: FormulaId[] }>> = {
+  "F.SALES.SOLD_AREA": { text: "Выручка = продано × цена 1 м²", ids: ["F.SALES.PRICE", "F.SALES.REVENUE_TOTAL"] },
+};
+
+function WarnList({ items, projectId }: { items: { text: string; product?: string }[]; projectId: string | undefined }) {
+  return (
+    <ul className="how-warn-now">
+      {items.map((w) => (
+        <li key={w.text}>
+          {w.text}
+          {w.product && projectId ? (
+            <>
+              {" "}
+              <Link className="how-go" href={`/projects/${projectId}?tab=sales&row=${encodeURIComponent(w.product)}`}>
+                Открыть план продаж {w.product}
+              </Link>
+            </>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SalesTable({ rows }: { rows: SalesRow[] }) {
+  const total = salesTotal(rows);
+  return (
+    <div className="how-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Продукт</th>
+            <th>Построено</th>
+            <th>Продано</th>
+            <th>Не продано</th>
+            <th>Распродано к</th>
+            <th>Продано к вводу</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.key}>
+              <td>
+                {r.key}
+                {r.unit === "шт" ? ", шт" : ""}
+              </td>
+              <td>{cellQty(r.built)}</td>
+              <td>{cellQty(r.sold)}</td>
+              <td>{cellQty(r.unsold)}</td>
+              <td>{r.soldOut ? monthName(r.soldOut) : "—"}</td>
+              <td>{cellShare(r.byRnvShare)}</td>
+            </tr>
+          ))}
+          <tr className="total">
+            <td>Итого, м²</td>
+            <td>{cellQty(total.built)}</td>
+            <td>{cellQty(total.sold)}</td>
+            <td>{cellQty(total.unsold)}</td>
+            <td />
+            <td />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** Сколько предупреждений видно сразу, остальные — под «Ещё N». */
 const WARN_SHOWN = 2;
 
@@ -151,6 +220,15 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
   // сначала — предупреждения по продукту из примера
   const focus = sp && sm ? exampleFocus(sp, sm) : null;
   if (focus) active.sort((x, y) => Number(y.text.includes(focus)) - Number(x.text.includes(focus)));
+  // Продажи: предупреждения с суммой в рублях по убыванию влияния, с переходом к строке плана продаж
+  const sales = t.id === "F.SALES.SOLD_AREA" && sp && sm ? salesRows(sp, sm) : null;
+  const warns: { text: string; product?: string }[] = sales && sp && sm
+    ? [
+        ...salesWarnings(sp, sm, pair?.legacy ?? null).map((w) => ({ text: w.text, product: w.key })),
+        ...active.filter((x) => x.parameterId !== "SALES.PACE").map((x) => ({ text: x.text })),
+      ]
+    : active.map((x) => ({ text: x.text }));
+  const related = RELATED[t.id];
   const params = inputFields(t.id, sm);
   const diff = pair && sp && sm ? compatDiff(t.id, pair.legacy, pair.normal, focus) : null;
   const sources = f.source_ids.map(getSource).filter((s) => s.scope === "global");
@@ -161,31 +239,46 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
     <>
       <h2>{f.plain?.title ?? t.label ?? f.name}</h2>
       {value ? <div className="how-value">{value}</div> : null}
-      {!node && sm && !active.length ? <p className="muted small">Показатель начнёт считаться на этапе {stageOf(t.id) ?? "?"}.</p> : null}
+      {!node && sm && !warns.length ? <p className="muted small">Показатель начнёт считаться на этапе {stageOf(t.id) ?? "?"}.</p> : null}
       <h3>Как считается</h3>
       <p>{f.plain?.how ?? humanize(f.note ?? f.rationale)}</p>
-      {example ? (
+      {related ? (
+        <p className="how-related">
+          {related.text}:{" "}
+          {related.ids.map((id, i) => (
+            <span key={id}>
+              {i ? " · " : ""}
+              <button className="linklike" onClick={() => open({ kind: "formula", id })}>
+                {getFormula(id).plain?.title.split(",")[0] ?? getFormula(id).name}
+              </button>
+            </span>
+          ))}
+        </p>
+      ) : null}
+      {sales ? (
+        <>
+          <h3>По продуктам, м²</h3>
+          <SalesTable rows={sales} />
+          <ul className="how-pace">
+            {sales.map((r) => (
+              <li key={r.key}>{paceLine(r)}</li>
+            ))}
+          </ul>
+        </>
+      ) : example ? (
         <>
           <h3>Пример</h3>
           <p>{example}</p>
         </>
       ) : null}
-      {active.length ? (
+      {warns.length ? (
         <>
           <h3>Предупреждения</h3>
-          <ul className="how-warn-now">
-            {active.slice(0, WARN_SHOWN).map((w) => (
-              <li key={w.text}>{w.text}</li>
-            ))}
-          </ul>
-          {active.length > WARN_SHOWN ? (
+          <WarnList items={warns.slice(0, WARN_SHOWN)} projectId={project?.id} />
+          {warns.length > WARN_SHOWN ? (
             <details className="how-more">
-              <summary>Ещё {active.length - WARN_SHOWN}</summary>
-              <ul className="how-warn-now">
-                {active.slice(WARN_SHOWN).map((w) => (
-                  <li key={w.text}>{w.text}</li>
-                ))}
-              </ul>
+              <summary>Ещё {warns.length - WARN_SHOWN}</summary>
+              <WarnList items={warns.slice(WARN_SHOWN)} projectId={project?.id} />
             </details>
           ) : null}
         </>

@@ -40,6 +40,19 @@ function ProjectPage() {
     return () => setProject(null);
   }, [project, setProject]);
 
+  // Переход из панели «Как посчитано» к строке плана продаж: ?tab=sales&row=<продукт>
+  const row = search.get("row");
+  useEffect(() => {
+    if (!row) return;
+    const t = setTimeout(() => {
+      const el = document.querySelector(`table[data-param="SALES.PACE"] tr[data-row="${CSS.escape(row)}"]`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.classList.add("row-flash");
+    }, 100);
+    return () => clearTimeout(t);
+  }, [row]);
+
   if (!project) {
     return (
       <main className="page">

@@ -22,12 +22,21 @@ const HowCtx = createContext<Ctx>({ open: () => {}, setProject: () => {} });
 export const useHow = () => useContext(HowCtx);
 
 const LEVEL = ["", "закон / НПА", "статистика", "рынок", "документ компании / проекта", "экспертная оценка"];
+/** Уровень доверия источника: 1 — самый надёжный (закон), 5 — мнение специалиста. */
+const LEVEL_HINT = [
+  "",
+  "Уровень 1 из 5 — закон или нормативный акт, самый надёжный источник",
+  "Уровень 2 из 5 — официальная статистика или прогноз госоргана (Росстат, ЦБ, МЭР)",
+  "Уровень 3 из 5 — рыночные данные: цены сделок, объявления, отраслевые базы",
+  "Уровень 4 из 5 — документ компании или проекта: договор, ТЭП, ГПЗУ, фактические затраты",
+  "Уровень 5 из 5 — экспертная оценка: мнение специалиста, нужны автор, обоснование и диапазон",
+];
 
 function SpecSource({ id }: { id: SourceId }) {
   const s = getSource(id);
   return (
     <li>
-      <span className={`lvl lvl${s.level}`}>{s.level}</span>{" "}
+      <span className={`lvl lvl${s.level}`} title={LEVEL_HINT[s.level]}>{s.level}</span>{" "}
       {s.url ? (
         <a href={s.url} target="_blank" rel="noreferrer">
           {s.title}
@@ -36,7 +45,7 @@ function SpecSource({ id }: { id: SourceId }) {
         s.title
       )}
       <div className="muted small">
-        {LEVEL[s.level]}
+        уровень {s.level} из 5 — {LEVEL[s.level]}
         {s.accessed ? ` · проверено ${fmt.date(s.accessed)}` : ""}
         {s.verified === false ? " · не сверен" : ""}
         {s.scope === "project" ? " · документ указывается в проекте" : ""}

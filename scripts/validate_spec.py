@@ -87,6 +87,11 @@ for f in forms:
     for fld in ("rationale", "expr"):
         if not f.get(fld):
             errors.append(f"формула {f['id']}: нет {fld}")
+    if "note" in f and not (isinstance(f["note"], str) and f["note"].strip()):
+        errors.append(f"формула {f['id']}: note должно быть непустым текстом")
+    terms = f.get("terms")
+    if terms is not None and not (isinstance(terms, dict) and all(isinstance(k, str) and k.strip() and isinstance(v, str) and v.strip() for k, v in terms.items())):
+        errors.append(f"формула {f['id']}: terms — словарь «обозначение: расшифровка» с непустыми строками")
     if f.get("status") == "needs_verification":
         warns.append(f"формула {f['id']}: needs_verification")
 

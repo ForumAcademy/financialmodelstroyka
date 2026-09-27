@@ -196,6 +196,10 @@ export const formulaSchema = z
     unit: z.string().min(1),
     dims: z.array(z.string()),
     expr: z.string().min(1),
+    /** Пояснение словами: проверки, оговорки, ссылки на акты (expr — только формула). */
+    note: z.string().min(1).optional(),
+    /** Расшифровка промежуточных обозначений из expr: «need[t]» → что это. */
+    terms: z.record(z.string().min(1), z.string().min(1)).optional(),
     depends_on: idList,
     /** Подмножество depends_on, для которого берётся значение прошлого месяца X[t-1]; разрывает цикл графа. */
     lag_depends_on: idList.optional(),

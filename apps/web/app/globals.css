@@ -1,56 +1,279 @@
+/* Финмодель ЖК — нейтральная палитра, вид «как лист Excel» */
 :root {
-  --bg: #ffffff;
-  --fg: #1a1a1a;
-  --muted: #5c5c5c;
-  --border: #e2e2e2;
-  --accent: #1f4e8c;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #1f2530;
+  --muted: #687080;
+  --border: #dde1e6;
+  --grid: #eceef2;
+  --header: #2b3644;
+  --accent: #34597f;
+  --input: #eaf2fc;
+  --input-border: #b9cfe8;
+  --block: #f1f3f6;
+  --group-head: #edf2f8;
+  --need: #c98a0c;
+  --need-bg: #fff8e8;
+  --danger: #c2412d;
+  --warn: #9a6a12;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121417;
-    --fg: #ececec;
-    --muted: #a0a0a0;
-    --border: #2c3036;
-    --accent: #7fb0f0;
-  }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 14px; line-height: 1.45; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+h1 { font-size: 22px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+h3 { font-size: 12px; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.error, .danger { color: var(--danger); }
+.warn { color: var(--warn); }
+.footnote { font-size: 12px; color: var(--muted); margin-top: 14px; }
+.tag { display: inline-block; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; background: var(--block); color: var(--muted); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+
+/* Меню */
+.topbar { background: var(--header); }
+.topbar-inner { max-width: 1440px; margin: 0 auto; padding: 0 24px; height: 50px; display: flex; align-items: center; gap: 36px; }
+.brand { color: #fff; font-weight: 700; font-size: 17px; }
+.brand:hover { text-decoration: none; }
+.topbar nav { display: flex; gap: 4px; }
+.topbar nav a { color: #d7dee6; padding: 6px 14px; border-radius: 7px; font-weight: 500; }
+.topbar nav a.on, .topbar nav a:hover { background: rgba(255,255,255,.12); color: #fff; text-decoration: none; }
+
+/* Страница */
+.page { max-width: 1160px; margin: 0 auto; padding: 24px; }
+.page.wide { max-width: 1440px; }
+.page-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 16px; }
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.search { flex: 1 1 280px; }
+.btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 7px 14px; border-radius: 8px; font: inherit; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover:not(:disabled) { border-color: #c2c8d0; text-decoration: none; }
+.btn:disabled { opacity: .55; cursor: wait; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.icon { border: 0; background: none; cursor: pointer; font-size: 16px; color: var(--muted); padding: 2px 8px; border-radius: 6px; }
+.icon:hover { background: var(--block); }
+.link { border: 0; background: none; color: var(--accent); cursor: pointer; font: inherit; padding: 0; text-align: left; display: inline; }
+.link:hover { text-decoration: underline; }
+.seg { display: inline-flex; background: var(--block); border: 1px solid var(--border); border-radius: 8px; padding: 2px; margin-bottom: 12px; }
+.toolbar .seg, .calc-head .seg { margin-bottom: 0; }
+.seg button { border: 0; background: none; padding: 5px 12px; border-radius: 6px; cursor: pointer; font: inherit; color: var(--muted); }
+.seg button.on { background: var(--surface); color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.07); }
+input, select { font: inherit; border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; background: var(--surface); color: var(--text); }
+input:focus, select:focus { outline: 2px solid #d5e3f3; border-color: var(--accent); }
+
+/* Таблицы-листы */
+table.sheet { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); }
+table.sheet th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); background: #fafbfc; border-bottom: 1px solid var(--border); padding: 7px 9px; white-space: nowrap; }
+table.sheet td { border-bottom: 1px solid var(--grid); padding: 6px 9px; vertical-align: top; }
+table.sheet .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.sheet tr.block td { background: var(--group-head); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--accent); border-top: 14px solid var(--surface); border-bottom: 1px solid var(--border); padding-top: 8px; padding-bottom: 8px; }
+table.sheet tr.block td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+table.sheet tbody tr.block:first-child td { border-top: 0; }
+.block-count { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 9px; background: var(--surface); color: var(--muted); font-size: 11px; letter-spacing: 0; }
+.section-seg { flex-wrap: wrap; }
+/* Источники, требующие перепроверки (не сверены / устарели) */
+.issue-count { display: inline-block; min-width: 16px; margin-left: 4px; padding: 0 5px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; vertical-align: 1px; }
+.issue-legend { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 12px; border: 1px solid #f1c6bd; background: #fdf1ee; border-radius: 8px; font-size: 13px; color: #7a2e20; }
+.issue-legend .issue-count { margin-left: 0; }
+.issue-legend label { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
+table.sheet tr.needs-check td { background: #fdf3f1; }
+table.sheet tr.needs-check td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+/* справочные таблицы и составные значения */
+.ro-link { padding-left: 10px; font-weight: 500; }
+.how-table { margin: 6px 0 10px; }
+.how-table .hscroll { margin-top: 4px; }
+table.data-view { width: 100%; }
+table.data-view th, table.data-view td { font-size: 12px; padding: 5px 7px; white-space: normal; overflow-wrap: break-word; }
+.data-kv { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
+.data-kv > div { background: var(--group-head); border-radius: 8px; padding: 6px 12px; }
+.data-kv dt { font-size: 11px; color: var(--muted); }
+.data-kv dd { margin: 0; font-weight: 600; }
+
+/* отметка «проверено» у источника */
+.check-cell { min-width: 170px; }
+.btn.small-btn { padding: 3px 9px; font-size: 12px; border-radius: 6px; }
+.check-btn { margin-top: 5px; }
+.check-form { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.check-form input { padding: 4px 7px; font-size: 12px; }
+.check-actions { display: flex; align-items: center; gap: 10px; }
+.checked-by { margin-top: 4px; color: #2f6b36; }
+.checked-by .link { display: block; margin-top: 2px; }
+.used-in + .used-in { margin-top: 3px; }
+.issue-tag { display: inline-block; margin-top: 3px; padding: 0 6px; border-radius: 8px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 600; line-height: 16px; }
+.section-seg .block-count { background: var(--block); }
+/* чипы разделов: название и счётчики — по центру строки, одинаковые «таблетки» */
+.section-seg button { display: inline-flex; align-items: center; gap: 6px; }
+.section-seg .block-count, .section-seg .issue-count { margin: 0; min-width: 22px; height: 18px; line-height: 18px; padding: 0 6px; border-radius: 9px; font-size: 11px; text-align: center; box-sizing: border-box; vertical-align: middle; }
+.section-seg button.on .block-count { background: var(--group-head); }
+.block-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 12px; margin-top: 2px; }
+table.sheet tr.total td { border-top: 1px solid var(--border); background: #fafbfc; }
+table.sheet tr.total td { font-weight: 700; }
+table.sheet tr.grand td { border-top: 2px solid var(--text); }
+table.sheet tr.clickable { cursor: pointer; }
+table.sheet tr.clickable:hover td { background: #f5f8fc; }
+/* Проекты — карточки */
+.project-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.project-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(20,30,50,.04); transition: border-color .15s, box-shadow .15s; }
+.project-card:hover { border-color: var(--input-border); box-shadow: 0 4px 14px rgba(20,30,50,.08); }
+.pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pc-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.pc-name:hover { color: var(--accent); }
+.pc-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.pc-kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.pc-kpi > div { background: var(--group-head); border-radius: 8px; padding: 8px 10px; }
+.pc-kpi dt { font-size: 11px; color: var(--muted); }
+.pc-kpi dd { margin: 2px 0 0; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pc-foot { font-size: 12px; color: var(--muted); border-top: 1px solid var(--grid); padding-top: 8px; }
+.menu-cell { width: 40px; text-align: right; }
+.menu-wrap { position: relative; display: inline-block; }
+.menu { position: absolute; right: 0; top: 26px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.08); z-index: 10; min-width: 200px; padding: 4px; text-align: left; }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: 6px; font: inherit; cursor: pointer; }
+.menu button:hover { background: var(--block); }
+.menu-note { padding: 7px 10px; font-size: 13px; }
+.hscroll { overflow-x: auto; border-radius: 6px; }
+.sticky { position: sticky; left: 0; background: inherit; z-index: 1; min-width: 260px; }
+table.calc-table td.sticky { background: var(--surface); }
+table.calc-table tr.block td.sticky { background: var(--group-head); }
+
+/* Проект */
+.project-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; gap: 16px; }
+.meta { color: var(--muted); margin-top: 4px; }
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tabs button { border: 1px solid transparent; border-bottom: 0; background: none; padding: 9px 20px; font: inherit; color: var(--muted); cursor: pointer; border-radius: 8px 8px 0 0; white-space: nowrap; }
+.tabs button.on { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: 600; margin-bottom: -1px; }
+.sheet-page { background: var(--surface); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 10px 10px; padding: 18px; display: flex; flex-direction: column; gap: 22px; }
+
+/* Переключатель «Вводные | Расчёт»: на экране одно из двух */
+.view-switch { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.view-switch .seg { margin-bottom: 0; }
+.view-switch .seg button { padding: 7px 22px; font-size: 14px; }
+.sheet-page[data-view="inputs"] > :not(.inputs):not(.view-switch) { display: none; }
+.sheet-page[data-view="calc"] > .inputs { display: none; }
+
+/* Вводные: каждая группа — отдельная карточка с заголовком, поля — строками с разделителями */
+.part-title { display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 0 0 12px; }
+.part-title::before { content: ""; width: 4px; height: 18px; border-radius: 2px; background: var(--accent); }
+.inputs { background: #f3f6fa; border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.input-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.input-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(20,30,50,.04); }
+.input-group.wide { grid-column: 1 / -1; }
+/* в широком блоке обычные поля — в две колонки той же ширины, что и в соседних блоках */
+.input-group.wide .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 0; }
+.input-group.wide .field.wide { grid-column: 1 / -1; }
+.input-group h3 { margin: 0; padding: 9px 14px; background: var(--group-head); border-bottom: 1px solid var(--border); color: var(--accent); font-size: 12px; font-weight: 700; }
+.group-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--muted); background: #fffdf5; border-bottom: 1px solid var(--grid); }
+.fields { display: flex; flex-direction: column; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) 230px; align-items: center; gap: 12px; min-height: 40px; padding: 5px 14px; border-bottom: 1px solid var(--grid); }
+.field:last-child { border-bottom: 0; }
+.field:nth-child(even) { background: #fbfcfd; }
+.field.wide { grid-template-columns: 1fr; padding: 10px 14px; }
+.field-label { border: 0; background: none; text-align: left; font: inherit; color: var(--text); cursor: pointer; padding: 0; }
+.field-label:hover { color: var(--accent); text-decoration: underline; }
+.field-control { display: flex; align-items: center; gap: 6px; }
+.field-control input, .field-control select { width: 100%; background: var(--input); border-color: var(--input-border); }
+.field-control .unit { color: var(--muted); font-size: 12px; flex: 0 0 62px; line-height: 1.2; overflow-wrap: anywhere; }
+.field-control > input, .field-control > select, .field-control > .ro { flex: 1 1 auto; min-width: 0; }
+.field-label { overflow-wrap: anywhere; }
+.field-control .ro { color: var(--text); font-weight: 500; padding-left: 10px; }
+.field.readonly .field-control .ro { color: var(--muted); }
+/* Обязательное незаполненное поле: жёлтая метка «Заполните» + подсказка (не ошибка, а напоминание) */
+.need { border-color: var(--need) !important; background: var(--need-bg) !important; }
+.field.is-need { background: var(--need-bg) !important; }
+.need-badge { display: inline-block; margin-left: 8px; padding: 0 7px; border-radius: 10px; background: var(--need); color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; vertical-align: 1px; white-space: nowrap; }
+.need-legend { margin: 0 0 12px; padding: 8px 12px; border: 1px solid #f0d9a0; background: var(--need-bg); border-radius: 8px; font-size: 13px; color: #5c4a1a; }
+.need-legend .need-badge { margin-left: 0; }
+.input-group, .fields, .field, .field-control { min-width: 0; }
+.field.wide .field-control { display: block; }
+.legacy-view dl { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 6px; }
+.legacy-view dl > div { background: var(--group-head); border-radius: 8px; padding: 6px 12px; }
+.legacy-view dt { font-size: 11px; color: var(--muted); }
+.legacy-view dd { margin: 0; font-weight: 600; }
+.table-editor { overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
+.table-editor table { border-collapse: collapse; }
+.table-editor th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 3px 6px; white-space: nowrap; }
+.table-editor td { padding: 2px 4px; }
+.table-editor input, .table-editor select { background: var(--input); border-color: var(--input-border); width: 130px; padding: 4px 6px; }
+.table-editor input[type="date"] { width: 138px; }
+.table-editor td.col-phase input { width: 64px; }
+/* Вехи: таблица ровно по ширине блока, без горизонтальной прокрутки */
+.table-editor table.fit { width: 100%; min-width: 1000px; table-layout: fixed; }
+.table-editor table.fit input::-webkit-calendar-picker-indicator { margin: 0; padding: 0; width: 11px; }
+.table-editor table.fit th { white-space: normal; line-height: 1.2; vertical-align: bottom; padding: 3px 3px; }
+.table-editor table.fit td { padding: 2px 2px; }
+.table-editor table.fit input { width: 100%; min-width: 0; font-size: 12.5px; padding: 4px 3px; }
+.table-editor table.fit th:first-child { width: 58px; }
+.table-editor table.fit th.col-del { width: 28px; }
+.table-editor td.col-type_name input, .table-editor td.col-product input { width: 190px; }
+
+/* Расчёт */
+.calc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.calc-head .part-title { margin: 0; }
+.stage-note { font-size: 12px; color: var(--muted); background: var(--block); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; }
+.charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.chart { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.chart h3 { margin-top: 0; }
+.chart-empty { height: 140px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; background: repeating-linear-gradient(45deg, #fafbfc, #fafbfc 8px, #f3f5f8 8px, #f3f5f8 16px); border-radius: 6px; }
+
+/* Панель «Как посчитано» */
+.how { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); background: var(--surface); border-left: 1px solid var(--border); box-shadow: -10px 0 30px rgba(0,0,0,.08); z-index: 50; display: flex; flex-direction: column; }
+.how-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 600; }
+.how-body { padding: 16px; overflow-y: auto; }
+.how-body h2 { margin-bottom: 4px; }
+.how-value { font-size: 22px; font-weight: 700; margin: 6px 0 8px; }
+.expr { background: var(--block); border-radius: 6px; padding: 10px; white-space: pre-wrap; font-size: 12px; margin: 0; }
+.deps { list-style: none; padding: 0; margin: 0; border: 1px solid var(--grid); border-radius: 6px; }
+.dep { display: flex; justify-content: space-between; gap: 10px; width: 100%; border: 0; border-bottom: 1px solid var(--grid); background: none; padding: 7px 10px; font: inherit; text-align: left; cursor: pointer; }
+.deps li:last-child .dep { border-bottom: 0; }
+.dep:hover { background: #f5f8fc; }
+.dep-value { font-weight: 600; white-space: nowrap; }
+.sources { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.how-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+.lvl { display: inline-block; min-width: 18px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: 700; padding: 0 4px; color: #fff; }
+.lvl1 { background: #2f5d8a; } .lvl2 { background: #3f7fa8; } .lvl3 { background: #5c8f6e; } .lvl4 { background: #8a7a4a; } .lvl5 { background: #b0603f; }
+
+/* Источники и формулы */
+.inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: #fbfcfe; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+.inline-form input { flex: 1 1 180px; }
+/* Формулы: таблица Показатель | Формула | Что в формуле */
+.formulas-table td { vertical-align: top; }
+.formulas-table th:nth-child(1) { width: 24%; }
+.formulas-table th:nth-child(2) { width: 38%; }
+.formulas-table .expr { white-space: pre-wrap; }
+.formulas-table .expr { margin: 0; font-size: 12px; max-width: 560px; overflow-x: auto; }
+.formulas-table tr.open td { background: #f5f8fc; }
+.formulas-table tr.details-row td { background: #fbfcfe; border-bottom: 2px solid var(--border); }
+.formula-note { margin: 0 0 8px; font-size: 13px; line-height: 1.45; }
+.terms-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 8px 0 2px; }
+.terms-title:first-child { margin-top: 0; }
+.terms { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.terms li { padding: 3px 0; border-bottom: 1px dashed var(--grid); overflow-wrap: anywhere; }
+.terms li:last-child { border-bottom: 0; }
+.terms code { font-size: 11px; color: var(--muted); }
+.term-kind { display: inline-block; font-size: 10px; padding: 0 6px; border-radius: 8px; background: var(--input); color: var(--accent); margin-left: 4px; }
+.term-kind.calc { background: #eef6ee; color: #3d7a3d; }
+.tabs .block-count { background: var(--block); }
+.formula { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; }
+.formula summary { cursor: pointer; padding: 9px 12px; display: flex; justify-content: space-between; gap: 12px; }
+.formula[open] summary { border-bottom: 1px solid var(--grid); }
+.f-name { font-weight: 600; }
+.f-body { padding: 4px 14px 12px; }
+
+@media (max-width: 1000px) {
+  .input-groups, .input-group.wide .fields { grid-template-columns: 1fr; }
 }
 
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
-}
-
-.page {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 32px 16px 64px;
-}
-
-h1 {
-  color: var(--accent);
-  margin-bottom: 8px;
-}
-
-.lead {
-  color: var(--muted);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
-  text-align: left;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
+@media (max-width: 900px) {
+  .topbar-inner { gap: 12px; padding: 0 12px; }
+  .brand { font-size: 15px; white-space: nowrap; }
+  .topbar nav { overflow-x: auto; }
+  .topbar nav a { padding: 6px 7px; font-size: 13px; }
+  .page { padding: 16px; }
+  .field { grid-template-columns: minmax(0, 1fr) 170px; }
+  .field-control .unit { flex-basis: 44px; }
+  .input-groups { grid-template-columns: 1fr; }
+  .charts { grid-template-columns: 1fr; }
+  .project-head { flex-direction: column; align-items: flex-start; }
 }

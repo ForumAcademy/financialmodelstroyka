@@ -620,14 +620,14 @@ formulas:
       ЕСЛИ base[i] = фикс:          item_total[i] = rate[i]
       ЕСЛИ base[i] = фикс_в_месяц:  item_total[i] = rate[i] × Σ_t day_share[i,t]
       ИНАЧЕ:                        item_total[i] = rate[i] × base_qty[i]
-    note: "База задаётся в capex_items.base: параметр или формула. Статьи «фикс в месяц» (SITE_SECURITY, DEVELOPER_OVERHEAD): ставка в месяц × число месяцев между вехами schedule_from и schedule_to; неполные первый и последний месяцы — пропорционально дням (решение владельца продукта 27.09.2026). Индексация — в F.CAPEX.INDEX, помесячно."
+    note: "База задаётся в capex_items.base: параметр или формула. Статьи «фикс в месяц» (SITE_SECURITY, DEVELOPER_OVERHEAD): ставка в месяц × число месяцев между вехами schedule_from и schedule_to; неполные первый и последний месяцы — пропорционально дням (решение владельца продукта 27.09.2026). Индексация — в F.CAPEX.INDEX, помесячно. Ставка — из строки статьи в CAPEX.ITEMS (rate), иначе из параметра rate_param; статья без ставки — ошибка «заполните ставку». База «формула» (LAND_TAX_OR_RENT, LAND_VRI): item_total = итог формулы статьи. Статьи, база или график которых — выручка (F.SALES.*), считаются с этапа 4 и до тех пор в итог не входят (предупреждение)."
     terms:
       "item_total[i]": "результат: сумма статьи i в ценах даты расценки, руб"
       "i": "статья бюджета"
       "rate[i]": "ставка статьи (параметр rate_param)"
       "base_qty[i]": "объём базы статьи (м², шт, руб и т. п.)"
       "day_share[i,t]": "доля дней месяца t внутри интервала [schedule_from; schedule_to): 1 — полный месяц, дни / дней в месяце — первый и последний"
-    depends_on: [CAPEX.ITEMS, TIME.MILESTONES, F.TIME.DATE, F.TIME.DAYS]
+    depends_on: [CAPEX.ITEMS, TIME.MILESTONES, LAND.PURCHASE_PRICE, LAND.LEGAL_COSTS, LAND.AGENT_FEE_RATE, LAND.CITY_CASH_COMPENSATION, LAND.CITY_OBJECTS_COST, CAPEX.CONTINGENCY_RATE, OPEX.DEV_FEE_RATE, OPEX.MARKETING_RATE, OPEX.BROKERAGE_RATE, LAND.AREA, TEP.GFA_ABOVE, TEP.GFA_BELOW, TEP.MOP_AREA, F.TEP.GFA_ABOVE, F.TEP.GFA_BELOW, F.TEP.GFA_TOTAL, F.TEP.SALEABLE_AREA, F.TEP.LANDSCAPE_AREA, F.CAPEX.SMR_TOTAL, F.SALES.REVENUE_TOTAL, F.LAND.TAX_OR_RENT, F.LAND.VRI_FEE]
     rationale: "Сумма всегда выводится из ставки и объёма — любую цифру можно объяснить"
     rejected:
       - "Вбитая сумма + обратный расчёт расценки D = F/E (исходник Бюджет!D17:D49) — расценка не проверяема"
@@ -679,18 +679,18 @@ formulas:
       follow_sales:           w[t] = sales_value[t] / Σ sales_value
       manual:                 w[t] = ряд пользователя
       режим совместимости:    w[m] = w_q[q] / 3  для каждого из трёх месяцев m квартала q
-    note: "Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1."
+    note: "Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. follow_smr: smr_cash — платежи статей групп СМР, сети, благоустройство, соцобъекты по их собственным графикам (сумма × вес, без индекса и НДС; статьи с follow_smr не входят — иначе цикл). schedule_rule = formula (LAND_TAX_OR_RENT): w[t] = land_pay[t] / Σ land_pay. Статья с нулевой суммой графика не требует. Ручной ряд (manual) — столбец schedule_manual: первый месяц, шаг (месяц или квартал) и доли. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1."
     terms:
       "w[t]": "результат: доля суммы статьи, приходящаяся на месяц t"
       "N": "число месяцев распределения"
       "from, to": "начало и конец распределения: самая ранняя веха schedule_from и самая поздняя веха schedule_to среди всех очередей"
       "t_from": "первый месяц распределения"
       "C(x)": "S-кривая: накопленная доля к моменту x"
-      "smr_cash[t]": "платежи по СМР в месяце t"
+      "smr_cash[t]": "платежи по СМР в месяце t: Σ сумма статьи × вес по статьям групп СМР, сети, благоустройство, соцобъекты с графиком не follow_smr"
       "sales_value[t]": "стоимость договоров, заключённых в месяце t (F.SALES.CONTRACT_VALUE)"
       "day_share[t]": "доля дней месяца t внутри интервала [from; to) — для статей «фикс в месяц»"
       "w_q[q]": "доля квартала q из ручного ряда исходника (tests/cases → capex_legacy), режим совместимости"
-    depends_on: [CAPEX.ITEMS, TIME.MILESTONES, F.TIME.DATE]
+    depends_on: [CAPEX.ITEMS, TIME.MILESTONES, F.TIME.DATE, F.CAPEX.ITEM_TOTAL, F.LAND.TAX_OR_RENT, F.SALES.CONTRACT_VALUE, CAPEX.SCHEDULE_SUM_TOLERANCE]
     rationale: "График привязан к вехам: сдвиг РНС автоматически сдвигает затраты. S-кривая C(x) = 3x²−2x³ — симметричная кривая освоения с пиком в середине стройки"
     rejected:
       - "Ручные проценты по кварталам (исходник CF1 строки «Проставить темп,%») — не двигаются вместе с датами, суммы рядов ≠ 100% не контролируются"
@@ -720,7 +720,7 @@ formulas:
       "vat_included[i]": "ставка статьи уже включает НДС (да/нет)"
       "vat_rate[i]": "ставка НДС статьи (capex_items.yaml): TAX.VAT_RATE или 0 / 0,05 / 0,07 / 0,22; первое подходящее правило vat_rules заменяет её"
       "vat_taxable_share[i]": "облагаемая НДС доля суммы статьи; по умолчанию 1 (для DEVELOPER_OVERHEAD — OPEX.OVERHEAD_VAT_SHARE)"
-    depends_on: [F.CAPEX.ITEM_TOTAL, F.CAPEX.SCHEDULE_WEIGHT, F.CAPEX.INDEX, TAX.VAT_RATE, TAX.VAT_RATE_OPTIONS, LAND.TENURE, LAND.LESSOR_TYPE, OPEX.OVERHEAD_VAT_SHARE]
+    depends_on: [F.CAPEX.ITEM_TOTAL, F.CAPEX.SCHEDULE_WEIGHT, F.CAPEX.INDEX, CAPEX.ITEMS, TAX.VAT_RATE, TAX.VAT_RATE_OPTIONS, LAND.TENURE, LAND.LESSOR_TYPE, OPEX.OVERHEAD_VAT_SHARE]
     rationale: "Денежный поток — с НДС (так платят подрядчикам); вычитаемая часть НДС возвращается в модуле TAX"
     rejected:
       - "Смешение сумм с НДС и без НДС в исходнике (не указано)"
@@ -734,11 +734,13 @@ formulas:
     name: "Итого СМР (без НДС, в ценах расценок)"
     unit: руб
     dims: []
-    expr: "smr_total = Σ_{i ∈ СМР, сети, благоустройство, соцобъекты} item_total[i]"
+    expr: "smr_total = Σ_{i ∈ СМР, сети, благоустройство, соцобъекты} rate[i] × base_qty[i]"
+    note: "Слагаемые — те же, что F.CAPEX.ITEM_TOTAL для статей этих групп (ставка × база). Считается напрямую от ставок и баз, а не от F.CAPEX.ITEM_TOTAL: резерв, техзаказчик и надзоры — доля от СМР, поэтому ITEM_TOTAL зависит от SMR_TOTAL, и обратная ссылка дала бы цикл. База статьи этих групп не может быть F.CAPEX.SMR_TOTAL."
     terms:
       "smr_total": "результат: итого СМР без НДС в ценах расценок, руб"
-      "item_total[i]": "сумма статьи (F.CAPEX.ITEM_TOTAL), руб"
-    depends_on: [F.CAPEX.ITEM_TOTAL]
+      "rate[i]": "ставка статьи (CAPEX.ITEMS или параметр rate_param)"
+      "base_qty[i]": "объём базы статьи (м², шт; для «фикс» — 1)"
+    depends_on: [CAPEX.ITEMS, LAND.AREA, TEP.GFA_ABOVE, TEP.GFA_BELOW, TEP.MOP_AREA, F.TEP.GFA_ABOVE, F.TEP.GFA_BELOW, F.TEP.GFA_TOTAL, F.TEP.SALEABLE_AREA, F.TEP.LANDSCAPE_AREA]
     rationale: "База для процентных статей (техзаказчик, стройконтроль, резерв)"
     rejected: ["База техзаказчика — выручка (исходник Бюджет!E43)"]
     source_ids: [S_MINSTROY_297]

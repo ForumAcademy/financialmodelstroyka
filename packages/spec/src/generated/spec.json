@@ -1,5 +1,5 @@
 {
-  "specVersion": "05c746bc6ec4",
+  "specVersion": "194d9f6422e0",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -2809,17 +2809,23 @@
         },
         {
           "key": "rate",
-          "unit": "руб/ед. базы или доля"
+          "unit": "руб/ед. базы или доля",
+          "note": "если не задана — значение параметра rate_param статьи (capex_items.yaml)"
         },
         {
           "key": "price_date",
           "unit": "дата",
-          "note": "дата уровня цен ставки — для индексации"
+          "note": "дата уровня цен ставки — для индексации; обязательна, если статья индексируется"
         },
         {
           "key": "vat_included",
           "unit": "bool",
           "note": "ставка с НДС или без"
+        },
+        {
+          "key": "vat_rate",
+          "unit": "доля",
+          "note": "ставка НДС по договору (TAX.VAT_RATE_OPTIONS: 0,05 / 0,07 — подрядчик на УСН); если не задана — по capex_items.yaml"
         },
         {
           "key": "schedule_rule",
@@ -2840,6 +2846,11 @@
         {
           "key": "schedule_to",
           "unit": "веха"
+        },
+        {
+          "key": "schedule_manual",
+          "unit": "ряд",
+          "note": "ручной график (schedule_rule = manual): from — дата первого периода, step — month | quarter, weights — доли периодов; доля квартала делится поровну на три месяца"
         },
         {
           "key": "source_ids",
@@ -2888,6 +2899,26 @@
           "value": "=(D32+D33+D34)*10%",
           "verdict": "fix",
           "note": "10% от суммы расценок, затем F42 = E42 + D42 (площадь + ставка) → 0,2 млн вместо ~7,5 млрд по замыслу автора"
+        }
+      ]
+    },
+    {
+      "id": "CAPEX.SCHEDULE_SUM_TOLERANCE",
+      "name": "Допуск проверки «сумма весов графика = 1»",
+      "unit": "доля",
+      "kind": "scalar",
+      "scope": "template",
+      "default": 1e-9,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Проверка SCHEDULE_SUM (F.CHECK.ALL): |Σ_t w[i,t] − 1| < 1e-9 — допуск на погрешность округления долей; больше — график статьи выходит за горизонт или ручной ряд не равен 100%",
+      "status": "verified",
+      "legacy": [
+        {
+          "cell": null,
+          "verdict": "new",
+          "note": "в исходнике суммы ручных рядов не контролировались (резерв CF1!62 — 124,6%)"
         }
       ]
     },
@@ -9970,7 +10001,7 @@
         "i"
       ],
       "expr": "ЕСЛИ base[i] = фикс:          item_total[i] = rate[i]\nЕСЛИ base[i] = фикс_в_месяц:  item_total[i] = rate[i] × Σ_t day_share[i,t]\nИНАЧЕ:                        item_total[i] = rate[i] × base_qty[i]\n",
-      "note": "База задаётся в capex_items.base: параметр или формула. Статьи «фикс в месяц» (SITE_SECURITY, DEVELOPER_OVERHEAD): ставка в месяц × число месяцев между вехами schedule_from и schedule_to; неполные первый и последний месяцы — пропорционально дням (решение владельца продукта 27.09.2026). Индексация — в F.CAPEX.INDEX, помесячно.",
+      "note": "База задаётся в capex_items.base: параметр или формула. Статьи «фикс в месяц» (SITE_SECURITY, DEVELOPER_OVERHEAD): ставка в месяц × число месяцев между вехами schedule_from и schedule_to; неполные первый и последний месяцы — пропорционально дням (решение владельца продукта 27.09.2026). Индексация — в F.CAPEX.INDEX, помесячно. Ставка — из строки статьи в CAPEX.ITEMS (rate), иначе из параметра rate_param; статья без ставки — ошибка «заполните ставку». База «формула» (LAND_TAX_OR_RENT, LAND_VRI): item_total = итог формулы статьи. Статьи, база или график которых — выручка (F.SALES.*), считаются с этапа 4 и до тех пор в итог не входят (предупреждение).",
       "terms": {
         "item_total[i]": "результат: сумма статьи i в ценах даты расценки, руб",
         "i": "статья бюджета",
@@ -9981,8 +10012,28 @@
       "depends_on": [
         "CAPEX.ITEMS",
         "TIME.MILESTONES",
-        "F.TIME.DATE",
-        "F.TIME.DAYS"
+        "LAND.PURCHASE_PRICE",
+        "LAND.LEGAL_COSTS",
+        "LAND.AGENT_FEE_RATE",
+        "LAND.CITY_CASH_COMPENSATION",
+        "LAND.CITY_OBJECTS_COST",
+        "CAPEX.CONTINGENCY_RATE",
+        "OPEX.DEV_FEE_RATE",
+        "OPEX.MARKETING_RATE",
+        "OPEX.BROKERAGE_RATE",
+        "LAND.AREA",
+        "TEP.GFA_ABOVE",
+        "TEP.GFA_BELOW",
+        "TEP.MOP_AREA",
+        "F.TEP.GFA_ABOVE",
+        "F.TEP.GFA_BELOW",
+        "F.TEP.GFA_TOTAL",
+        "F.TEP.SALEABLE_AREA",
+        "F.TEP.LANDSCAPE_AREA",
+        "F.CAPEX.SMR_TOTAL",
+        "F.SALES.REVENUE_TOTAL",
+        "F.LAND.TAX_OR_RENT",
+        "F.LAND.VRI_FEE"
       ],
       "rationale": "Сумма всегда выводится из ставки и объёма — любую цифру можно объяснить",
       "rejected": [
@@ -10050,14 +10101,14 @@
         "t"
       ],
       "expr": "from = MIN_p schedule_from[p];   to = MAX_p schedule_to[p]\nuniform:                w[t] = 1 / N,  from <= t < to\nuniform (фикс_в_месяц): w[t] = day_share[t] / Σ day_share\ns_curve:                x_t = (t − t_from + 1) / N;   C(x) = 3x² − 2x³;   w[t] = C(x_t) − C(x_{t−1})\nat_milestone:           w[t] = 1 в месяце вехи from\nfollow_smr:             w[t] = smr_cash[t] / Σ smr_cash\nfollow_sales:           w[t] = sales_value[t] / Σ sales_value\nmanual:                 w[t] = ряд пользователя\nрежим совместимости:    w[m] = w_q[q] / 3  для каждого из трёх месяцев m квартала q\n",
-      "note": "Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1.",
+      "note": "Очереди (решение владельца продукта 27.09.2026, вариант А): один график на статью — от самой ранней вехи schedule_from до самой поздней вехи schedule_to среди всех очередей; для at_milestone — самая ранняя дата вехи. Способ распределения задаётся у статьи бюджета. follow_smr: smr_cash — платежи статей групп СМР, сети, благоустройство, соцобъекты по их собственным графикам (сумма × вес, без индекса и НДС; статьи с follow_smr не входят — иначе цикл). schedule_rule = formula (LAND_TAX_OR_RENT): w[t] = land_pay[t] / Σ land_pay. Статья с нулевой суммой графика не требует. Ручной ряд (manual) — столбец schedule_manual: первый месяц, шаг (месяц или квартал) и доли. В режиме совместимости ручные квартальные ряды исходника переводятся в месяцы: доля квартала делится поровну на три месяца. Проверка: Σ_t w = 1.",
       "terms": {
         "w[t]": "результат: доля суммы статьи, приходящаяся на месяц t",
         "N": "число месяцев распределения",
         "from, to": "начало и конец распределения: самая ранняя веха schedule_from и самая поздняя веха schedule_to среди всех очередей",
         "t_from": "первый месяц распределения",
         "C(x)": "S-кривая: накопленная доля к моменту x",
-        "smr_cash[t]": "платежи по СМР в месяце t",
+        "smr_cash[t]": "платежи по СМР в месяце t: Σ сумма статьи × вес по статьям групп СМР, сети, благоустройство, соцобъекты с графиком не follow_smr",
         "sales_value[t]": "стоимость договоров, заключённых в месяце t (F.SALES.CONTRACT_VALUE)",
         "day_share[t]": "доля дней месяца t внутри интервала [from; to) — для статей «фикс в месяц»",
         "w_q[q]": "доля квартала q из ручного ряда исходника (tests/cases → capex_legacy), режим совместимости"
@@ -10065,7 +10116,11 @@
       "depends_on": [
         "CAPEX.ITEMS",
         "TIME.MILESTONES",
-        "F.TIME.DATE"
+        "F.TIME.DATE",
+        "F.CAPEX.ITEM_TOTAL",
+        "F.LAND.TAX_OR_RENT",
+        "F.SALES.CONTRACT_VALUE",
+        "CAPEX.SCHEDULE_SUM_TOLERANCE"
       ],
       "rationale": "График привязан к вехам: сдвиг РНС автоматически сдвигает затраты. S-кривая C(x) = 3x²−2x³ — симметричная кривая освоения с пиком в середине стройки",
       "rejected": [
@@ -10120,6 +10175,7 @@
         "F.CAPEX.ITEM_TOTAL",
         "F.CAPEX.SCHEDULE_WEIGHT",
         "F.CAPEX.INDEX",
+        "CAPEX.ITEMS",
         "TAX.VAT_RATE",
         "TAX.VAT_RATE_OPTIONS",
         "LAND.TENURE",
@@ -10148,13 +10204,24 @@
       "name": "Итого СМР (без НДС, в ценах расценок)",
       "unit": "руб",
       "dims": [],
-      "expr": "smr_total = Σ_{i ∈ СМР, сети, благоустройство, соцобъекты} item_total[i]",
+      "expr": "smr_total = Σ_{i ∈ СМР, сети, благоустройство, соцобъекты} rate[i] × base_qty[i]",
+      "note": "Слагаемые — те же, что F.CAPEX.ITEM_TOTAL для статей этих групп (ставка × база). Считается напрямую от ставок и баз, а не от F.CAPEX.ITEM_TOTAL: резерв, техзаказчик и надзоры — доля от СМР, поэтому ITEM_TOTAL зависит от SMR_TOTAL, и обратная ссылка дала бы цикл. База статьи этих групп не может быть F.CAPEX.SMR_TOTAL.",
       "terms": {
         "smr_total": "результат: итого СМР без НДС в ценах расценок, руб",
-        "item_total[i]": "сумма статьи (F.CAPEX.ITEM_TOTAL), руб"
+        "rate[i]": "ставка статьи (CAPEX.ITEMS или параметр rate_param)",
+        "base_qty[i]": "объём базы статьи (м², шт; для «фикс» — 1)"
       },
       "depends_on": [
-        "F.CAPEX.ITEM_TOTAL"
+        "CAPEX.ITEMS",
+        "LAND.AREA",
+        "TEP.GFA_ABOVE",
+        "TEP.GFA_BELOW",
+        "TEP.MOP_AREA",
+        "F.TEP.GFA_ABOVE",
+        "F.TEP.GFA_BELOW",
+        "F.TEP.GFA_TOTAL",
+        "F.TEP.SALEABLE_AREA",
+        "F.TEP.LANDSCAPE_AREA"
       ],
       "rationale": "База для процентных статей (техзаказчик, стройконтроль, резерв)",
       "rejected": [

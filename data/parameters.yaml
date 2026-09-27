@@ -1034,12 +1034,14 @@ parameters:
       - {key: item_id, unit: текст}
       - {key: group, unit: enum, options: [правообладание, ПИР, СМР, сети, благоустройство, соцобъекты, управление, коммерческие]}
       - {key: base, unit: enum, options: [LAND.AREA, TEP.GFA_ABOVE, TEP.GFA_BELOW, TEP.MOP_AREA, F.TEP.GFA_TOTAL, F.TEP.SALEABLE_AREA, F.TEP.LANDSCAPE_AREA, F.CAPEX.SMR_TOTAL, F.SALES.REVENUE_TOTAL, LAND.PURCHASE_PRICE, фикс, фикс_в_месяц, формула]}
-      - {key: rate, unit: "руб/ед. базы или доля"}
-      - {key: price_date, unit: дата, note: "дата уровня цен ставки — для индексации"}
+      - {key: rate, unit: "руб/ед. базы или доля", note: "если не задана — значение параметра rate_param статьи (capex_items.yaml)"}
+      - {key: price_date, unit: дата, note: "дата уровня цен ставки — для индексации; обязательна, если статья индексируется"}
       - {key: vat_included, unit: bool, note: "ставка с НДС или без"}
+      - {key: vat_rate, unit: доля, note: "ставка НДС по договору (TAX.VAT_RATE_OPTIONS: 0,05 / 0,07 — подрядчик на УСН); если не задана — по capex_items.yaml"}
       - {key: schedule_rule, unit: enum, options: [uniform, s_curve, at_milestone, follow_smr, follow_sales, manual]}
       - {key: schedule_from, unit: веха}
       - {key: schedule_to, unit: веха}
+      - {key: schedule_manual, unit: ряд, note: "ручной график (schedule_rule = manual): from — дата первого периода, step — month | quarter, weights — доли периодов; доля квартала делится поровну на три месяца"}
       - {key: source_ids, unit: список}
       - {key: basis, unit: текст}
     scope: project
@@ -1061,6 +1063,17 @@ parameters:
     status: needs_verification
     legacy:
       - {cell: "Бюджет!D42", value: "=(D32+D33+D34)*10%", verdict: fix, note: "10% от суммы расценок, затем F42 = E42 + D42 (площадь + ставка) → 0,2 млн вместо ~7,5 млрд по замыслу автора"}
+
+  - id: CAPEX.SCHEDULE_SUM_TOLERANCE
+    name: "Допуск проверки «сумма весов графика = 1»"
+    unit: доля
+    kind: scalar
+    scope: template
+    default: 1.0e-9
+    source_ids: [S_EXPERT]
+    basis: "Проверка SCHEDULE_SUM (F.CHECK.ALL): |Σ_t w[i,t] − 1| < 1e-9 — допуск на погрешность округления долей; больше — график статьи выходит за горизонт или ручной ряд не равен 100%"
+    status: verified
+    legacy: [{cell: null, verdict: new, note: "в исходнике суммы ручных рядов не контролировались (резерв CF1!62 — 124,6%)"}]
 
   - id: CAPEX.NCS_BENCHMARK_ENABLED
     name: "Сверять СМР с НЦС"

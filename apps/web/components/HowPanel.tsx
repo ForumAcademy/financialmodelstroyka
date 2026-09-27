@@ -10,7 +10,7 @@ import { ChangedMark, valueText } from "./Change";
 import { whence } from "@/lib/whence";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { amount, compatDiff, exampleFocus, howExample, inputFields, monthName, shortSource } from "@/lib/how-example";
-import { cellQty, cellShare, paceLine, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
+import { cellMln, cellPrice, cellQty, cellShare, hasUnsold, parkingWarning, pricesFromExcel, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
 import { isParameterIdLike, modePair, stageOf, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import { useStore } from "@/lib/store";
@@ -108,7 +108,15 @@ const RELATED: Partial<Record<FormulaId, { text: string; ids: FormulaId[] }>> = 
   "F.SALES.SOLD_AREA": { text: "Выручка = продано × цена 1 м²", ids: ["F.SALES.PRICE", "F.SALES.REVENUE_TOTAL"] },
 };
 
-function WarnList({ items, projectId }: { items: { text: string; product?: string }[]; projectId: string | undefined }) {
+interface Warn {
+  text: string;
+  /** Строка плана продаж, к которой ведёт кнопка. */
+  product?: string;
+  /** Поле ввода, которое открывает кнопка. */
+  param?: ParameterId;
+}
+
+function WarnList({ items, projectId, open }: { items: Warn[]; projectId: string | undefined; open: (t: HowTarget) => void }) {
   return (
     <ul className="how-warn-now">
       {items.map((w) => (
@@ -122,14 +130,24 @@ function WarnList({ items, projectId }: { items: { text: string; product?: strin
               </Link>
             </>
           ) : null}
+          {w.param ? (
+            <>
+              {" "}
+              <button className="linklike how-go" onClick={() => open({ kind: "param", id: w.param! })}>
+                Открыть поле «{getParameter(w.param).name}»
+              </button>
+            </>
+          ) : null}
         </li>
       ))}
     </ul>
   );
 }
 
-function SalesTable({ rows }: { rows: SalesRow[] }) {
+function SalesTable({ rows, excelPrices }: { rows: SalesRow[]; excelPrices: boolean }) {
   const total = salesTotal(rows);
+  const unsold = hasUnsold(rows);
+  const rnvTip = (r: SalesRow) => `Очередь ${String(r.phase ?? "—")}, ввод ${r.rnvDate ? fmt.date(r.rnvDate) : "не задан"}`;
   return (
     <div className="how-table">
       <table>
@@ -137,36 +155,46 @@ function SalesTable({ rows }: { rows: SalesRow[] }) {
           <tr>
             <th>Продукт</th>
             <th>Построено</th>
-            <th>Продано</th>
-            <th>Не продано</th>
+            {unsold ? <th>Не продано</th> : null}
+            <th>Продано к вводу своей очереди, %</th>
+            <th>Темп в месяц</th>
+            <th>Срок продаж, мес</th>
             <th>Распродано к</th>
-            <th>Продано к вводу</th>
+            <th>Выручка, млн руб{excelPrices ? "*" : ""}</th>
+            <th>Средняя цена, руб/м² (м/м — руб/шт){excelPrices ? "*" : ""}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.key}>
-              <td>
-                {r.key}
-                {r.unit === "шт" ? ", шт" : ""}
-              </td>
-              <td>{cellQty(r.built)}</td>
-              <td>{cellQty(r.sold)}</td>
-              <td>{cellQty(r.unsold)}</td>
+              <td>{r.key}</td>
+              <td>{cellQty(r.built, r.unit)}</td>
+              {unsold ? <td>{cellQty(r.unsold, r.unit)}</td> : null}
+              <td title={rnvTip(r)}>{cellShare(r.byRnvShare)}</td>
+              <td>{cellQty(r.avgPerMonth, r.unit)}</td>
+              <td>{r.months || "—"}</td>
               <td>{r.soldOut ? monthName(r.soldOut) : "—"}</td>
-              <td>{cellShare(r.byRnvShare)}</td>
+              <td>{cellMln(r.revenue)}</td>
+              <td>{cellPrice(r.avgPrice)}</td>
             </tr>
           ))}
           <tr className="total">
-            <td>Итого, м²</td>
-            <td>{cellQty(total.built)}</td>
-            <td>{cellQty(total.sold)}</td>
-            <td>{cellQty(total.unsold)}</td>
+            <td>Итого без машино-мест</td>
+            <td>{cellQty(total.built, "м²")}</td>
+            {unsold ? <td>{cellQty(total.unsold, "м²")}</td> : null}
+            <td>{cellShare(total.byRnvShare)}</td>
             <td />
             <td />
+            <td />
+            <td>{cellMln(total.revenue)}</td>
+            <td>{cellPrice(total.avgPrice)}</td>
           </tr>
         </tbody>
       </table>
+      <p className="small muted">
+        Выручка в «Итого» — по всем продуктам, включая машино-места. Наведите на долю к вводу, чтобы увидеть очередь и дату её ввода.
+        {excelPrices ? " * Цены исходного Excel: в расчёте сервиса цена не считается, пока не заполнен «Рыночный рост цен, годовой»." : ""}
+      </p>
     </div>
   );
 }
@@ -221,10 +249,12 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
   const focus = sp && sm ? exampleFocus(sp, sm) : null;
   if (focus) active.sort((x, y) => Number(y.text.includes(focus)) - Number(x.text.includes(focus)));
   // Продажи: предупреждения с суммой в рублях по убыванию влияния, с переходом к строке плана продаж
-  const sales = t.id === "F.SALES.SOLD_AREA" && sp && sm ? salesRows(sp, sm) : null;
-  const warns: { text: string; product?: string }[] = sales && sp && sm
+  const sales = t.id === "F.SALES.SOLD_AREA" && sp && sm ? salesRows(sp, sm, pair?.legacy ?? null) : null;
+  const parking = sales && sm ? parkingWarning(sm, pair?.legacy ?? null) : null;
+  const warns: Warn[] = sales && sp && sm
     ? [
         ...salesWarnings(sp, sm, pair?.legacy ?? null).map((w) => ({ text: w.text, product: w.key })),
+        ...(parking ? [{ text: parking, param: "TEP.PARKING_COUNT_OVERRIDE" as ParameterId }] : []),
         ...active.filter((x) => x.parameterId !== "SALES.PACE").map((x) => ({ text: x.text })),
       ]
     : active.map((x) => ({ text: x.text }));
@@ -257,13 +287,8 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
       ) : null}
       {sales ? (
         <>
-          <h3>По продуктам, м²</h3>
-          <SalesTable rows={sales} />
-          <ul className="how-pace">
-            {sales.map((r) => (
-              <li key={r.key}>{paceLine(r)}</li>
-            ))}
-          </ul>
+          <h3>По продуктам</h3>
+          <SalesTable rows={sales} excelPrices={sm ? pricesFromExcel(sm) : false} />
         </>
       ) : example ? (
         <>
@@ -274,11 +299,11 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
       {warns.length ? (
         <>
           <h3>Предупреждения</h3>
-          <WarnList items={warns.slice(0, WARN_SHOWN)} projectId={project?.id} />
+          <WarnList items={warns.slice(0, WARN_SHOWN)} projectId={project?.id} open={open} />
           {warns.length > WARN_SHOWN ? (
             <details className="how-more">
               <summary>Ещё {warns.length - WARN_SHOWN}</summary>
-              <WarnList items={warns.slice(WARN_SHOWN)} projectId={project?.id} />
+              <WarnList items={warns.slice(WARN_SHOWN)} projectId={project?.id} open={open} />
             </details>
           ) : null}
         </>

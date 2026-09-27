@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getFormula, spec, type FormulaId } from "@fm/spec";
 import { compatDiff, exampleFocus, howExample, inputFields, shortSource, templateExample } from "../lib/how-example";
 import { computeProject, modePair } from "../lib/model";
-import { paceLine, salesRows, salesWarnings } from "../lib/sales-panel";
+import { paceLine, parkingWarning, salesRows, salesTotal, salesWarnings } from "../lib/sales-panel";
 import { loadSeed } from "../lib/seed";
 
 /** Пояснение — не больше четырёх предложений (три и одно про деньги, где оно нужно). */
@@ -76,5 +76,18 @@ describe("Панель «Продано в месяце»: таблица по �
     for (const r of salesRows(pair.normalProject, pair.normal)!) expect(r.unsold?.lt(1), r.key).toBe(true);
     const w = salesWarnings(pair.normalProject, pair.normal, pair.legacy);
     expect(w.map((x) => x.text)).toEqual(["ПСН: по плану продаж 10\u00a0888 м², построено 10\u00a0322 м². В расчёт вошло 10\u00a0322 м², выручка не потеряна, но темп завышен на 566 м²."]);
+  });
+
+  it("выручка по продуктам = продано расчёта сервиса × цена месяца; итого — по всем продуктам", () => {
+    const rows = salesRows(pair.normalProject, pair.normal, pair.legacy)!;
+    const psn = rows.find((r) => r.key === "ПСН")!;
+    expect(psn.avgPrice!.toNumber()).toBeGreaterThan(0);
+    expect(psn.revenue!.div(psn.sold).toNumber()).toBeCloseTo(psn.avgPrice!.toNumber(), 6);
+    const total = salesTotal(rows);
+    expect(total.revenue!.toNumber()).toBeCloseTo(rows.reduce((s, r) => s + (r.revenue?.toNumber() ?? 0), 0), 2);
+  });
+
+  it("машино-мест меньше норматива — предупреждение", () => {
+    expect(parkingWarning(pair.normal, pair.legacy)).toBe("Машино-мест 862, а по нормативу нужно 2\u00a0785. Проверьте количество в ТЭПах — от него зависят затраты на паркинг и выручка.");
   });
 });

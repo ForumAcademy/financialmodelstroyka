@@ -359,7 +359,8 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .how-table th { font-weight: 600; color: var(--muted); white-space: normal; vertical-align: bottom; }
 .how-table th:first-child, .how-table td:first-child { text-align: left; white-space: normal; }
 .how-table tr.total td { font-weight: 700; }
-.how-pace { font-size: 12px; margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+.how:has(.how-table) { width: min(760px, 100vw); }
+.how-table p { margin: 4px 0 0; }
 .how-folds { margin-top: 14px; border-top: 1px solid var(--grid); }
 .how-fold { border-bottom: 1px solid var(--grid); padding: 7px 0; }
 .how-fold > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }

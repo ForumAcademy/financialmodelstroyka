@@ -15,6 +15,7 @@ type Row = Record<string, unknown>;
 
 const ZERO = new Decimal(0);
 const HUNDRED = 100;
+const MLN = 1e6;
 /** Остаток меньше целого м² (шт) — округление ручного плана: площадь продана вся. */
 const WHOLE = 1;
 
@@ -29,6 +30,11 @@ export interface SalesRow {
   firstMonth: string | null;
   months: number;
   avgPerMonth: Decimal | null;
+  /** Очередь продукта и её дата ввода — для подсказки к «Продано к вводу своей очереди». */
+  phase: unknown;
+  rnvDate: string | null;
+  revenue: Decimal | null;
+  avgPrice: Decimal | null;
 }
 
 export interface SalesWarning {
@@ -51,8 +57,10 @@ function milestoneOf(project: DemoProject, phase: unknown): Row | undefined {
 }
 
 /** Строки таблицы по продуктам из расчёта сервиса. */
-export function salesRows(project: DemoProject, m: ProjectModel): SalesRow[] | null {
+export function salesRows(project: DemoProject, m: ProjectModel, legacy: ProjectModel | null = null): SalesRow[] | null {
   const sold = m.result.formulas["F.SALES.SOLD_AREA"]?.value as Series | undefined;
+  // выручка = продано расчёта сервиса × цена месяца; пока цена в расчёте сервиса не считается — цена исходного Excel (см. pricesFromExcel)
+  const price = (m.result.formulas["F.SALES.PRICE"]?.value ?? legacy?.result.formulas["F.SALES.PRICE"]?.value) as Series | undefined;
   const dates = (m.result.formulas["F.TIME.DATE"]?.value as string[] | undefined) ?? [];
   if (!sold) return null;
   return productRows(project).map((row) => {
@@ -69,6 +77,7 @@ export function salesRows(project: DemoProject, m: ProjectModel): SalesRow[] | n
     const rnv = milestoneOf(project, row.phase)?.rnv_date;
     const beforeRnv = typeof rnv === "string" ? sum(s.filter((_, t) => (dates[t] ?? "") <= rnv)) : null;
     const months = first !== undefined && last !== undefined ? last - first + 1 : 0;
+    const revenue = price?.[key] ? s.reduce((a, x, t) => a.add(x.mul(price[key]![t] ?? ZERO)), ZERO) : null;
     return {
       key,
       unit,
@@ -80,19 +89,40 @@ export function salesRows(project: DemoProject, m: ProjectModel): SalesRow[] | n
       firstMonth: first !== undefined ? (dates[first] ?? null) : null,
       months,
       avgPerMonth: months ? total.div(months) : null,
+      phase: row.phase,
+      rnvDate: typeof rnv === "string" ? rnv : null,
+      revenue,
+      avgPrice: revenue && !total.isZero() ? revenue.div(total) : null,
     };
   });
 }
 
-/** Итого по м²: машино-места и кладовые в штуках в итог не входят. */
-export function salesTotal(rows: SalesRow[]): { built: Decimal; sold: Decimal; unsold: Decimal } {
+/** Цены в таблице — из исходного Excel: в расчёте сервиса цена ещё не считается. */
+export const pricesFromExcel = (m: ProjectModel) => !m.result.formulas["F.SALES.PRICE"];
+
+/**
+ * Итого: площади и доля к вводу — по м² (машино-места и кладовые в штуках не входят; доля — средневзвешенно
+ * по площади), выручка — по всем продуктам.
+ */
+export function salesTotal(rows: SalesRow[]): { built: Decimal; sold: Decimal; unsold: Decimal; byRnvShare: Decimal | null; revenue: Decimal | null; avgPrice: Decimal | null } {
   const area = rows.filter((r) => r.unit === "м²");
+  const built = area.reduce((s, r) => s.add(r.built ?? ZERO), ZERO);
+  const sold = area.reduce((s, r) => s.add(r.sold), ZERO);
+  const weighted = area.filter((r) => r.byRnvShare && r.built);
+  const areaRevenue = area.reduce((s, r) => s.add(r.revenue ?? ZERO), ZERO);
   return {
-    built: area.reduce((s, r) => s.add(r.built ?? ZERO), ZERO),
-    sold: area.reduce((s, r) => s.add(r.sold), ZERO),
+    built,
+    sold,
     unsold: area.reduce((s, r) => s.add(r.unsold ?? ZERO), ZERO),
+    byRnvShare: weighted.length ? weighted.reduce((s, r) => s.add(r.byRnvShare!.mul(r.built!)), ZERO).div(weighted.reduce((s, r) => s.add(r.built!), ZERO)) : null,
+    revenue: rows.some((r) => r.revenue) ? rows.reduce((s, r) => s.add(r.revenue ?? ZERO), ZERO) : null,
+    avgPrice: sold.isZero() || areaRevenue.isZero() ? null : areaRevenue.div(sold),
   };
 }
+
+export const cellMln = (d: Decimal | null) => (d === null ? "—" : fmt.num(d.div(MLN), 0));
+export const cellPrice = (d: Decimal | null) => (d === null ? "—" : fmt.num(d, 0));
+export const hasUnsold = (rows: SalesRow[]) => rows.some((r) => r.unsold && r.unsold.gte(WHOLE));
 
 export const cellQty = (d: Decimal | null, unit?: string) => (d === null ? "—" : unit ? `${qty(d)} ${unit}` : qty(d));
 export const cellShare = (d: Decimal | null) => (d === null ? "—" : `${fmt.num(d.mul(HUNDRED), 0)}%`);
@@ -141,4 +171,13 @@ export function salesWarnings(project: DemoProject, m: ProjectModel, legacy: Pro
     }
   }
   return out.sort((a, b) => b.money.cmp(a.money));
+}
+
+/** Машино-мест меньше норматива: от количества зависят затраты на паркинг и выручка. */
+export function parkingWarning(m: ProjectModel, legacy: ProjectModel | null): string | null {
+  const pick = (id: "F.TEP.PARKING_COUNT" | "F.TEP.PARKING_REQUIRED") => (m.result.formulas[id]?.value ?? legacy?.result.formulas[id]?.value) as Decimal | number | undefined;
+  const count = pick("F.TEP.PARKING_COUNT");
+  const required = pick("F.TEP.PARKING_REQUIRED");
+  if (count === undefined || required === undefined || !new Decimal(count).lt(required)) return null;
+  return `Машино-мест ${fmt.num(new Decimal(count), 0)}, а по нормативу нужно ${fmt.num(new Decimal(required), 0)}. Проверьте количество в ТЭПах — от него зависят затраты на паркинг и выручка.`;
 }

@@ -68,6 +68,17 @@ export const parameterSchema = z
     source_ids: idList.min(1, "нужен хотя бы один источник"),
     basis: z.string().min(1, "нужно обоснование (basis)"),
     how_to_fill: z.string().optional(),
+    /**
+     * «Откуда» значение справочника простыми словами: текст и необязательная ссылка (решение владельца продукта
+     * 27.09.2026). Задаётся, когда у значения нет документа-первоисточника; иначе «Откуда» — источники из source_ids.
+     */
+    from: z
+      .object({
+        text: z.string().min(1),
+        url: z.string().regex(/^https?:\/\//, "URL должен начинаться с http(s)://").nullable(),
+      })
+      .strict()
+      .optional(),
     status: z.enum(PARAMETER_STATUSES),
     legacy: z.array(legacyCellSchema).min(1, "нужна связь с исходником или 'new'"),
   })

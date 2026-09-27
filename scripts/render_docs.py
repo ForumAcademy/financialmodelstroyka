@@ -69,7 +69,9 @@ out = [HEADER, "# Реестр параметров\n",
 for p in params:
     d = p.get("default")
     d = "—" if d is None else (esc(d) if not isinstance(d, (list, dict)) else "таблица")
-    out.append(f"| `{p['id']}` | {esc(p['name'])} | {p['unit']} | {p['scope']} | {d} | {links(p['source_ids'])} | {p['status']} | {esc(p['basis'])} |\n")
+    frm = p.get("from")
+    frm = (f"<br>Откуда: [{esc(frm['text'])}]({frm['url']})" if frm.get("url") else f"<br>Откуда: {esc(frm['text'])} *(нет ссылки)*") if frm else ""
+    out.append(f"| `{p['id']}` | {esc(p['name'])} | {p['unit']} | {p['scope']} | {d} | {links(p['source_ids'])}{frm} | {p['status']} | {esc(p['basis'])} |\n")
 out.append("\n## Статьи бюджета (capex_items.yaml)\n\n| Статья | Группа | База | График | НДС | Индекс | Источники | Обоснование | Исходник |\n|---|---|---|---|---|---|---|---|---|\n")
 INDEX_LABEL = {"investment": "дефлятор инвестиций", "cpi": "ИПЦ", "none": "не индексируется"}
 def vat_text(c):

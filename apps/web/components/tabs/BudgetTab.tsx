@@ -20,14 +20,35 @@ export const BUDGET_GROUPS: [string, string][] = [
   ["коммерческие", "Коммерческие"],
 ];
 
+type Series = Partial<Record<string, Decimal[]>>;
+
+/** Платежи статей группы бюджета по месяцам (Σ F.CAPEX.ITEM_CASH по статьям группы); null — ядро не посчитало. */
+export function groupCash(model: ProjectModel, group: string): number[] | null {
+  const cash = val<Series>(model, "F.CAPEX.ITEM_CASH");
+  const dates = val<string[]>(model, "F.TIME.DATE");
+  if (!cash || !dates) return null;
+  const rows = spec.capexItems.filter((c) => c.group === group).map((c) => cash[c.item_id]).filter((x): x is Decimal[] => Boolean(x));
+  return dates.map((_, t) => rows.reduce((a, r) => a.add(r[t] ?? 0), new Decimal(0)).toNumber());
+}
+
+/** Строка статьи в CAPEX.ITEMS проекта (поправки к справочнику). */
+type ItemRow = { item_id: string; base?: string; rate?: number | null };
+
 export function BudgetTab({ project, model }: { project: DemoProject; model: ProjectModel }) {
   const { open } = useHow();
+  const rows = new Map(((project.input.values["CAPEX.ITEMS"] as ItemRow[] | undefined) ?? []).filter((r) => typeof r === "object").map((r) => [r.item_id, r]));
+  const totals = val<Partial<Record<string, Decimal>>>(model, "F.CAPEX.ITEM_TOTAL") ?? {};
+  const cash = val<Series>(model, "F.CAPEX.ITEM_CASH") ?? {};
+  const grand = val<Decimal>(model, "F.CAPEX.TOTAL");
+  const cashSum = (id: string) => cash[id]?.reduce((a, b) => a.add(b), new Decimal(0));
+  const pct = (x: Decimal | undefined) => (x && grand && !grand.isZero() ? fmt.share(x.div(grand).toNumber()) : "—");
+  const money = (x: Decimal | undefined) => (x ? fmt.num(x, 0) : "—");
   const groups: InputGroup[] = BUDGET_GROUPS.map(([key, title]) => {
     const params = [...new Set(spec.capexItems.filter((c) => c.group === key && c.rate_param).map((c) => c.rate_param as ParameterId))];
     if (key === "правообладание") params.push("TAX.LAND_RATE", "LAND.CADASTRAL_VALUE_AFTER_VRI");
     return { title, params };
   }).filter((g) => g.params.length > 0);
-  groups.push({ title: "Индексация затрат", params: ["CAPEX.COST_INDEX"] });
+  groups.push({ title: "Индексация затрат", params: ["CAPEX.COST_INDEX", "CAPEX.OPEX_INDEX"] });
 
   const volume = (base: string): string => {
     if (isParameterId(base)) {
@@ -43,16 +64,12 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
     return base === "фикс" || base === "фикс_в_месяц" ? "1" : "—";
   };
   const baseName = (base: string) => (isParameterId(base) ? getParameter(base).name : isFormulaId(base) ? getFormula(base).name : base === "формула" ? "по формуле" : base);
-  const rate = (id?: ParameterId) => {
+  const rate = (itemId: string, id?: ParameterId) => {
+    const own = rows.get(itemId)?.rate;
+    if (own !== undefined && own !== null) return fmt.num(own, 6);
     if (!id) return "—";
     const v = project.input.values[id] ?? model.result.parameters[id]?.value ?? getParameter(id).default;
     return v === null || v === undefined ? "—" : `${fmt.value(v)} ${fmt.unit(getParameter(id).unit)}`;
-  };
-  const sumOf = (formula?: string): Decimal | null => {
-    if (!formula || !isFormulaId(formula)) return null;
-    const v = val<Decimal[] | Decimal>(model, formula);
-    if (!v) return null;
-    return Array.isArray(v) ? v.reduce((a, b) => a.add(b), new Decimal(0)) : v;
   };
 
   return (
@@ -62,7 +79,10 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
         <div className="calc-head">
           <h2 className="part-title">Расчёт</h2>
         </div>
-        <p className="stage-note">Расчёт — этап 3: суммы по статьям появятся, когда ядро будет считать бюджет (ставка × база × индекс). Сейчас считается земельный налог.</p>
+        <p className="stage-note">
+          Сумма — ставка × база в ценах даты расценки. «В CF» — платежи по графику статьи с индексом цен и НДС. Маркетинг и брокеридж считаются от выручки — появятся на этапе 4.
+          {project.input.mode === "legacy" ? " Режим совместимости: суммы статей, ручные графики и земельные платежи — из исходного Excel, без индексации цен." : ""}
+        </p>
         <div className="hscroll">
         <table className="sheet calc-table">
           <thead>
@@ -72,6 +92,7 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
               <th>База</th>
               <th className="num">Объём</th>
               <th className="num">Сумма, руб.</th>
+              <th className="num">В CF, руб.</th>
               <th className="num">% от итога</th>
             </tr>
           </thead>
@@ -81,32 +102,43 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
               if (!items.length) return null;
               return [
                 <tr key={key} className="block">
-                  <td colSpan={6}>{title}</td>
+                  <td colSpan={7}>{title}</td>
                 </tr>,
                 ...items.map((c) => {
-                  const s = sumOf(c.formula);
+                  const base = rows.get(c.item_id)?.base ?? c.base;
+                  const inCf = cashSum(c.item_id);
                   return (
                     <tr key={c.item_id} className="clickable" onClick={() => open({ kind: "capex", id: c.item_id })}>
                       <td>{c.name}</td>
-                      <td>{rate(c.rate_param)}</td>
-                      <td className="small">{baseName(c.base)}</td>
-                      <td className="num">{volume(c.base)}</td>
-                      <td className="num">{s ? fmt.num(s, 0) : "—"}</td>
-                      <td className="num">—</td>
+                      <td>{rate(c.item_id, c.rate_param)}</td>
+                      <td className="small">{baseName(base)}</td>
+                      <td className="num">{volume(base)}</td>
+                      <td className="num">{money(totals[c.item_id])}</td>
+                      <td className="num">{money(inCf)}</td>
+                      <td className="num">{pct(inCf)}</td>
                     </tr>
                   );
                 }),
-                <tr key={`${key}-total`} className="total">
-                  <td colSpan={4}>Итого {title.toLowerCase()}</td>
-                  <td className="num">—</td>
-                  <td className="num">—</td>
-                </tr>,
+                (() => {
+                  const sum = (xs: (Decimal | undefined)[]) => (xs.some(Boolean) ? xs.reduce<Decimal>((a, b) => a.add(b ?? 0), new Decimal(0)) : undefined);
+                  const t = sum(items.map((c) => totals[c.item_id]));
+                  const f = sum(items.map((c) => cashSum(c.item_id)));
+                  return (
+                    <tr key={`${key}-total`} className="total">
+                      <td colSpan={4}>Итого {title.toLowerCase()}</td>
+                      <td className="num">{money(t)}</td>
+                      <td className="num">{money(f)}</td>
+                      <td className="num">{pct(f)}</td>
+                    </tr>
+                  );
+                })(),
               ];
             })}
             <tr className="total grand clickable" onClick={() => open({ kind: "formula", id: "F.CAPEX.TOTAL", label: "ИТОГО расходы" })}>
               <td colSpan={4}>ИТОГО расходы</td>
-              <td className="num">—</td>
-              <td className="num">—</td>
+              <td className="num">{money(Object.values(totals).reduce<Decimal>((a, b) => a.add(b ?? 0), new Decimal(0)))}</td>
+              <td className="num">{money(grand)}</td>
+              <td className="num">{grand ? "100%" : "—"}</td>
             </tr>
           </tbody>
         </table>

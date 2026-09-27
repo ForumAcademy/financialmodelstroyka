@@ -15,14 +15,23 @@ describe("модель проекта в интерфейсе", () => {
     expect((m.result.formulas["F.TEP.GFA_SPLIT"]?.value as { res: Decimal }).res.toNumber()).toBe(210458);
   });
 
+  it("бюджет считается ядром: «Компенсация городу» и УДС в денежном потоке", () => {
+    const cash = m.result.formulas["F.CAPEX.ITEM_CASH"]?.value as Record<string, Decimal[]>;
+    const sum = (xs: Decimal[] | undefined) => (xs ?? []).reduce((a, b) => a.add(b), new Decimal(0)).toNumber();
+    expect(sum(cash.CITY_CASH_COMPENSATION)).toBe(1260033986.66);
+    expect(sum(cash.ROADS_UDS)).toBeCloseTo(535620851, 4);
+    expect((m.result.formulas["F.CAPEX.TOTAL"]?.value as Decimal).gt(0)).toBe(true);
+  });
+
   it("незаполненные обязательные параметры подсвечиваются", () => {
     expect(m.missing.has("TAX.LAND_RATE")).toBe(true);
     expect(m.missing.has("LAND.AREA")).toBe(false);
   });
 
-  it("горизонт (предварительно) — до последней вехи + лаг раскрытия эскроу", () => {
-    // старт 31.12.2025, последняя веха 31.03.2032 → 75 мес. + 1 + лаг 1
-    expect(provisionalHorizon(demo)).toBe(77);
+  it("горизонт (предварительно) — до последней вехи + лаг раскрытия эскроу, но не короче ручных графиков бюджета", () => {
+    // старт 31.12.2025, последняя веха 31.03.2032 → 75 мес. + 1 + лаг 1 = 77;
+    // аренда/налог ЗУ исходника (CF1!F24:AH24) — по 1 кв 2033 → март 2033 = 87 мес. + 1
+    expect(provisionalHorizon(demo)).toBe(88);
   });
 
   it("перенос РНВ меняет месяц раскрытия эскроу, посчитанный ядром", () => {

@@ -43,8 +43,8 @@ function NewSourceForm({ projectId, onDone }: { projectId: string; onDone: () =>
   return (
     <div className="inline-form">
       <select value={f.level} onChange={(e) => setF({ ...f, level: Number(e.target.value) as 4 | 5 })}>
-        <option value={4}>4 — документ проекта (ГПЗУ, ППТ, ТЭП, договор, term sheet)</option>
-        <option value={5}>5 — экспертная оценка</option>
+        <option value={4}>Документ проекта (ГПЗУ, ППТ, ТЭП, договор, term sheet)</option>
+        <option value={5}>Экспертная оценка специалиста</option>
       </select>
       <input placeholder="Название документа" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
       <input placeholder="Ссылка на документ (облако, СЭД)" value={f.url} onChange={(e) => setF({ ...f, url: e.target.value })} />
@@ -184,7 +184,6 @@ function SourcesPage() {
         <thead>
           <tr>
             <th>Название</th>
-            <th>Уровень</th>
             <th>Ссылка</th>
             <th>Для чего</th>
             <th>Проверено</th>
@@ -216,15 +215,12 @@ function SourcesPage() {
                 ) : null}
               </td>
               <td>
-                <span className={`lvl lvl${r.level}`}>{r.level}</span>
-              </td>
-              <td>
                 {r.url ? (
                   <a href={r.url} target="_blank" rel="noreferrer">
                     открыть
                   </a>
                 ) : (
-                  "—"
+                  <span className="nolink-badge">нет ссылки</span>
                 )}
               </td>
               <td className="small">{r.usedFor}</td>

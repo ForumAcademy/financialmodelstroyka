@@ -5,6 +5,9 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { getCapexItem, getFormula, getParameter, getSource, spec, type CapexItemId, type FormulaId, type ParameterId, type SourceId } from "@fm/spec";
 import * as fmt from "@/lib/format";
 import { compositeSummary, DataView } from "./DataView";
+import { ChangedMark, valueText } from "./Change";
+import { whence } from "@/lib/whence";
+import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { isParameterIdLike, stageOf } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -20,13 +23,10 @@ interface Ctx {
 const HowCtx = createContext<Ctx>({ open: () => {}, setProject: () => {} });
 export const useHow = () => useContext(HowCtx);
 
-const LEVEL = ["", "закон / НПА", "статистика", "рынок", "документ компании / проекта", "экспертная оценка"];
-
 function SpecSource({ id }: { id: SourceId }) {
   const s = getSource(id);
   return (
     <li>
-      <span className={`lvl lvl${s.level}`}>{s.level}</span>{" "}
       {s.url ? (
         <a href={s.url} target="_blank" rel="noreferrer">
           {s.title}
@@ -34,11 +34,10 @@ function SpecSource({ id }: { id: SourceId }) {
       ) : (
         s.title
       )}
+      {s.url ? null : <span className="nolink-badge">нет ссылки</span>}
       <div className="muted small">
-        {LEVEL[s.level]}
-        {s.accessed ? ` · проверено ${fmt.date(s.accessed)}` : ""}
+        {s.accessed ? `проверено ${fmt.date(s.accessed)}` : ""}
         {s.verified === false ? " · не сверен" : ""}
-        {s.scope === "project" ? " · документ указывается в проекте" : ""}
       </div>
     </li>
   );
@@ -100,7 +99,7 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
       <h3>Формула</h3>
       <p>{f.name}</p>
       <pre className="expr">{f.expr.trim()}</pre>
-      {f.note ? <p className="formula-note">{f.note}</p> : null}
+      {f.note ? <p className="formula-note">{humanize(f.note)}</p> : null}
       {f.terms && Object.keys(f.terms).length ? (
         <>
           <h3>Обозначения в формуле</h3>
@@ -114,13 +113,13 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
         </>
       ) : null}
       <h3>Почему так</h3>
-      <p>{f.rationale}</p>
+      <p>{humanize(f.rationale)}</p>
       {f.rejected.length ? (
         <>
           <h3>Что отклонено</h3>
           <ul>
             {f.rejected.map((r) => (
-              <li key={r}>{r}</li>
+              <li key={r}>{humanize(r)}</li>
             ))}
           </ul>
         </>
@@ -162,6 +161,10 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
   const origin = traced?.origin ?? (own !== undefined && own !== null ? "project" : "template");
   const linked = project ? project.sources.find((s) => s.id === project.paramSources[id]) : undefined;
   const usedBy = spec.formulas.filter((f) => (f.depends_on as string[]).includes(id));
+  const change = project?.changes?.[id];
+  const w = whence(id, project);
+  // Типы проектных источников (документы проекта, экспертная оценка) — не документы, в список не выводятся.
+  const refDocs = p.source_ids.filter((sid) => getSource(sid).scope === "global");
   return (
     <>
       <h2>{p.name}</h2>
@@ -175,26 +178,68 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
           {fmt.value(v ?? null)} {v !== null && v !== undefined ? fmt.unit(p.unit) : ""}
         </div>
       )}
-      <p className="muted small">{origin === "project" ? "Вводное значение проекта" : origin === "region" ? "Из справочника регионов" : "Значение справочника"}</p>
+      {project ? <ChangedMark project={project} id={id} /> : null}
+      <p className="muted small">
+        {change
+          ? "Изменено в проекте — справочник не менялся"
+          : origin === "project"
+          ? "Введено в проекте"
+          : origin === "region"
+            ? "Из справочника регионов — подставляется по региону проекта"
+            : p.scope === "template"
+              ? "Значение справочника — одинаково для всех проектов; в проекте его можно изменить, указав, почему"
+              : "Значение по умолчанию из справочника — можно заменить в проекте"}
+      </p>
       {project && model(project).missing.has(id) ? (
         <p className="need-legend">
-          <span className="need-badge">Заполните</span> Обязательное значение не введено — без него не считаются формулы из раздела «Используется в формулах» ниже.
+          <span className="need-badge">Заполните</span> Обязательное значение не введено — без него не считаются формулы из раздела «Где используется в расчёте» ниже.
         </p>
       ) : null}
-      <h3>Что это</h3>
-      <p>{p.basis}</p>
+      <h3>Откуда</h3>
+      <p className="whence">
+        {humanize(w.text)}
+        {w.url ? (
+          <>
+            {" "}
+            ·{" "}
+            <a href={w.url} target="_blank" rel="noreferrer">
+              открыть документ
+            </a>
+          </>
+        ) : (
+          <span className="nolink-badge" title="У значения есть только текст, ссылки на документ нет">
+            нет ссылки
+          </span>
+        )}
+      </p>
+      {change ? (
+        <ul className="small change-log">
+          <li>Было: {valueText(id, change.before)}</li>
+          <li>Стало: {valueText(id, change.after)}</li>
+          <li>Кто: {change.author}</li>
+          <li>
+            Когда: {fmt.date(change.at.slice(0, 10))}, {change.at.slice(11, 16)}
+          </li>
+          <li>Почему: {change.why}</li>
+        </ul>
+      ) : null}
+      {p.from?.text === p.basis ? null : (
+        <>
+          <h3>Что это</h3>
+          <p>{humanize(p.basis)}</p>
+        </>
+      )}
       {p.how_to_fill ? (
         <>
           <h3>Где взять значение</h3>
-          <p>{p.how_to_fill}</p>
+          <p>{humanize(p.how_to_fill)}</p>
         </>
       ) : null}
-      {project && p.scope !== "template" ? (
+      {project && (p.scope !== "template" || change) ? (
         <>
-          <h3>Источник значения в проекте</h3>
+          <h3>Документ в проекте</h3>
           {linked ? (
             <p>
-              <span className={`lvl lvl${linked.level}`}>{linked.level}</span>{" "}
               {linked.url ? (
                 <a href={linked.url} target="_blank" rel="noreferrer">
                   {linked.title}
@@ -205,17 +250,20 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
               <span className="muted small">
                 {" "}
                 · {linked.author}, {fmt.date(linked.date)}
-                {linked.level === 5 ? ` · диапазон ${linked.min}–${linked.max}` : ""}
+                {linked.min && linked.max ? ` · диапазон ${linked.min}–${linked.max}` : ""}
               </span>
             </p>
           ) : (
-            <p className="warn small">Источник не указан</p>
+            <p className="warn small">
+              Документ не указан. Выберите ниже документ, из которого взято значение (договор, ТЭП, ГПЗУ, расчёт), или добавьте его в источники проекта.
+              Пока документа нет, значение считается непроверенным.
+            </p>
           )}
           <select value={linked?.id ?? ""} onChange={(e) => dispatch({ type: "linkSource", id: project.id, param: id, sourceId: e.target.value || null })}>
             <option value="">— выбрать источник проекта —</option>
             {project.sources.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.level} · {s.title}
+                {s.title}
               </option>
             ))}
           </select>
@@ -224,15 +272,19 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
           </p>
         </>
       ) : null}
-      <h3>Источники справочника</h3>
-      <ul className="sources">
-        {p.source_ids.map((sid) => (
-          <SpecSource key={sid} id={sid} />
-        ))}
-      </ul>
+      {refDocs.length ? (
+        <>
+          <h3>Документы справочника</h3>
+          <ul className="sources">
+            {refDocs.map((sid) => (
+              <SpecSource key={sid} id={sid} />
+            ))}
+          </ul>
+        </>
+      ) : null}
       {usedBy.length ? (
         <>
-          <h3>Используется в формулах</h3>
+          <h3>Где используется в расчёте</h3>
           <ul className="small">
             {usedBy.map((f) => (
               <li key={f.id}>
@@ -256,17 +308,34 @@ function CapexView({ id, open }: { id: CapexItemId; open: (t: HowTarget) => void
       <p className="muted small">Статья бюджета · группа «{c.group}»</p>
       <h3>Как считается</h3>
       <p>
-        Сумма = ставка × база × индекс. База: <strong>{c.base}</strong>
-        {c.rate_param ? (
+        {c.base === "фикс" || c.base === "фикс_в_месяц" || c.base === "формула" ? (
+          <>Основа суммы: {baseName(c.base)}. </>
+        ) : (
           <>
-            , ставка: <button className="link" onClick={() => open({ kind: "param", id: c.rate_param! })}>{getParameter(c.rate_param).name}</button>
+            Сумма = {c.rate_param ? "ставка" : "стоимость"} × «{baseName(c.base)}»
+            {c.rate_param ? (
+              <>
+                {" "}(ставка:{" "}
+                <button className="link" onClick={() => open({ kind: "param", id: c.rate_param! })}>
+                  {getParameter(c.rate_param).name}
+                </button>
+                )
+              </>
+            ) : null}
+            .{" "}
           </>
-        ) : null}
-        . График расходования: {c.schedule_rule}
-        {c.schedule_from ? ` (${c.schedule_from}${c.schedule_to ? ` → ${c.schedule_to}` : ""})` : ""}.
+        )}
+        Цена статьи {indexName(c.index_type)}.
+      </p>
+      <p>
+        Когда платится: {scheduleName(c.schedule_rule)}
+        {c.schedule_from
+          ? `, ${c.schedule_to ? `с даты «${milestoneName(c.schedule_from)}» до даты «${milestoneName(c.schedule_to)}»` : `в дату «${milestoneName(c.schedule_from)}»`}`
+          : ""}
+        .
       </p>
       <h3>Почему так</h3>
-      <p>{c.basis}</p>
+      <p>{humanize(c.basis)}</p>
       <h3>Формула</h3>
       <button className="dep" onClick={() => open({ kind: "formula", id: formula })}>
         <span>{getFormula(formula).name}</span>
@@ -278,7 +347,7 @@ function CapexView({ id, open }: { id: CapexItemId; open: (t: HowTarget) => void
           <SpecSource key={sid} id={sid} />
         ))}
       </ul>
-      {c.legacy.issue ? <p className="small muted">В исходном Excel: {c.legacy.issue}</p> : null}
+      {c.legacy.issue ? <p className="small muted">В исходном Excel: {humanize(c.legacy.issue)}</p> : null}
       <Actions formula={formula} source={c.source_ids[0]} />
     </>
   );

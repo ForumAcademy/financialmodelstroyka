@@ -11,6 +11,18 @@ export function num(value: unknown, digits = 2): string {
   return String(value);
 }
 
+/**
+ * Число для поля ввода: разряды через пробел, дробная часть — через запятую, без округления
+ * (5834907660 → «5 834 907 660», 0.015 → «0,015»). Обратно читается parseInput.
+ */
+export function inputNumber(value: number): string {
+  const raw = String(value);
+  if (/e/i.test(raw)) return raw.replace(".", ",");
+  const [int = "", frac] = raw.split(".");
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return frac === undefined ? grouped : `${grouped},${frac}`;
+}
+
 export function share(value: number): string {
   return `${RU.format(value * PERCENT)}%`;
 }

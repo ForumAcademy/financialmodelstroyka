@@ -15,6 +15,21 @@ export interface ProjectSource {
   max?: string;
 }
 
+/** Изменение значения в проекте (решение владельца продукта 27.09.2026): комментарий «почему» обязателен. */
+export interface ValueChange {
+  /** Значение до первого изменения. */
+  before: unknown;
+  /** Было ли до изменения своё значение проекта; нет — значение шло из справочника или по умолчанию. */
+  hadOwn: boolean;
+  after: unknown;
+  why: string;
+  /** Необязательная ссылка на документ. */
+  url?: string;
+  author: string;
+  /** Дата и время изменения, ISO. */
+  at: string;
+}
+
 export interface DemoProject {
   id: string;
   name: string;
@@ -24,6 +39,8 @@ export interface DemoProject {
   sources: ProjectSource[];
   /** Какой источник проекта подтверждает значение параметра. */
   paramSources: Partial<Record<ParameterId, string>>;
+  /** Изменённые в проекте значения: что было, что стало, кто, когда и почему. Справочник не меняется. */
+  changes?: Partial<Record<ParameterId, ValueChange>>;
   specVersion: string;
   updatedAt: string;
   /** Примечание к данным (например, допущения при переносе вех исходника). */

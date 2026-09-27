@@ -39,6 +39,12 @@ for f in forms:
     out.append(f"\n### `{f['id']}` — {f['name']}\n")
     out.append(f"**Единица:** {f['unit']} · **Размерность:** {', '.join(f.get('dims') or []) or 'скаляр'} · **Статус:** {f['status']}\n")
     out.append("```\n" + str(f["expr"]).strip() + "\n```\n")
+    if f.get("note"):
+        out.append(f"\n**Пояснение:** {f['note']}\n")
+    if f.get("terms"):
+        out.append("\n**Обозначения:**\n")
+        for k, v in f["terms"].items():
+            out.append(f"- `{k}` — {v}\n")
     if f.get("depends_on"):
         out.append("**Зависит от:** " + ", ".join(f"`{x}`" for x in f["depends_on"]) + "\n")
     if f.get("lag_depends_on"):

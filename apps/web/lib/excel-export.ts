@@ -67,13 +67,14 @@ export async function exportProject(project: DemoProject): Promise<void> {
     { header: "Значение", key: "value", width: 18 },
     { header: "Ед.", key: "unit", width: 8 },
     { header: "ID формулы", key: "id", width: 26 },
-    { header: "Формула словами", key: "expr", width: 90 },
+    { header: "Формула", key: "expr", width: 70 },
+    { header: "Пояснение", key: "note", width: 70 },
   ];
   head(tep);
   for (const f of spec.formulas.filter((x) => x.module === "TEP")) {
     const node = m.result.formulas[f.id];
     const v = node?.value;
-    tep.addRow({ name: f.name, value: v instanceof Decimal ? v.toNumber() : node ? fmt.value(v) : "—", unit: fmt.unit(f.unit), id: f.id, expr: f.expr.trim() });
+    tep.addRow({ name: f.name, value: v instanceof Decimal ? v.toNumber() : node ? fmt.value(v) : "—", unit: fmt.unit(f.unit), id: f.id, expr: f.expr.trim(), note: f.note ?? "" });
   }
 
   const src = wb.addWorksheet("Источники", { views: [{ state: "frozen", ySplit: 1 }] });

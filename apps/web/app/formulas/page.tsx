@@ -111,7 +111,7 @@ function FormulasPage() {
   const match = (f: SpecFormula) => {
     if (!q) return true;
     const terms = (f.depends_on as string[]).map((id) => (isParameterId(id) ? getParameter(id).name : isFormulaId(id) ? getFormula(id).name : id)).join(" ");
-    return `${f.id} ${f.name} ${f.expr} ${terms}`.toLowerCase().includes(q.toLowerCase());
+    return `${f.id} ${f.name} ${f.expr} ${f.note ?? ""} ${Object.values(f.terms ?? {}).join(" ")} ${terms}`.toLowerCase().includes(q.toLowerCase());
   };
   const inSection = (title: string) => spec.formulas.filter((f) => SECTIONS.find((s) => s.title === title)!.modules.includes(f.module) && match(f));
   const list = inSection(section);
@@ -133,7 +133,7 @@ function FormulasPage() {
       </nav>
       <div className="sheet-page">
         <p className="small muted" style={{ margin: 0 }}>
-          Нажмите на строку, чтобы увидеть обоснование, отклонённые варианты, источники и где используется формула. «Вводное» — значение, которое вводится в проекте или берётся из справочника; «расчёт» — результат другой формулы.
+          Нажмите на строку, чтобы увидеть обоснование, отклонённые варианты, источники и где используется формула. В колонке «Формула» — только математика; пояснения, обозначения и значения из модели — в расшифровке. «Вводное» — значение, которое вводится в проекте или берётся из справочника; «расчёт» — результат другой формулы.
         </p>
         <div className="hscroll">
           <table className="sheet formulas-table">
@@ -141,7 +141,7 @@ function FormulasPage() {
               <tr>
                 <th>Показатель</th>
                 <th>Формула</th>
-                <th>Что в формуле</th>
+                <th>Что в формуле (расшифровка)</th>
               </tr>
             </thead>
             <tbody>
@@ -157,6 +157,20 @@ function FormulasPage() {
                       <pre className="expr">{f.expr.trim()}</pre>
                     </td>
                     <td>
+                      {f.note ? <p className="formula-note">{f.note}</p> : null}
+                      {f.terms && Object.keys(f.terms).length ? (
+                        <>
+                          <div className="terms-title">Обозначения</div>
+                          <ul className="terms">
+                            {Object.entries(f.terms).map(([k, v]) => (
+                              <li key={k}>
+                                <code>{k}</code> — {v}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
+                      <div className="terms-title">Значения из модели</div>
                       <ul className="terms">
                         {(f.depends_on as string[]).length === 0 ? <li className="muted">—</li> : null}
                         {(f.depends_on as string[]).map((id) => (

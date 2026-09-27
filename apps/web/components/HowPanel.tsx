@@ -99,6 +99,19 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
       <h3>Формула</h3>
       <p>{f.name}</p>
       <pre className="expr">{f.expr.trim()}</pre>
+      {f.note ? <p className="formula-note">{f.note}</p> : null}
+      {f.terms && Object.keys(f.terms).length ? (
+        <>
+          <h3>Обозначения в формуле</h3>
+          <ul className="terms">
+            {Object.entries(f.terms).map(([k, v]) => (
+              <li key={k}>
+                <code>{k}</code> — {v}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       <h3>Почему так</h3>
       <p>{f.rationale}</p>
       {f.rejected.length ? (

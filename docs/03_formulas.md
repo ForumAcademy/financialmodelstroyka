@@ -10,6 +10,9 @@
 ```
 date[t] = EOMONTH(GEN.MODEL_START_DATE, t)
 ```
+
+**Обозначения:**
+- `date[t]` — последний день месяца t
 **Зависит от:** `GEN.MODEL_START_DATE`
 
 **Почему так:** Единая месячная шкала для всех модулей; отчёты агрегируют месяцы в кварталы/годы
@@ -24,8 +27,14 @@ date[t] = EOMONTH(GEN.MODEL_START_DATE, t)
 ### `F.TIME.DAYS` — Дней в месяце t
 **Единица:** дни · **Размерность:** t · **Статус:** verified
 ```
-days[t] = date[t] - date[t-1]  (для t=0: DAY(date[0]))
+days[t] = date[t] − date[t−1]
+days[0] = DAY(date[0])
 ```
+
+**Обозначения:**
+- `days[t]` — число дней в месяце t
+- `date[t]` — последний день месяца t (F.TIME.DATE)
+- `DAY(x)` — номер дня в дате x
 **Зависит от:** `F.TIME.DATE`
 
 **Почему так:** Проценты по кредиту начисляются по фактическим дням (факт/365), как в кредитных договорах
@@ -39,6 +48,12 @@ days[t] = date[t] - date[t-1]  (для t=0: DAY(date[0]))
 ```
 flag_constr[p,t] = 1{ construction_start[p] <= date[t] < construction_end[p] }
 ```
+
+**Обозначения:**
+- `flag_constr[p,t]` — 1 — месяц t входит в период строительства очереди p, иначе 0
+- `construction_start[p]` — дата начала СМР очереди p (TIME.MILESTONES)
+- `construction_end[p]` — дата окончания СМР очереди p (TIME.MILESTONES)
+- `date[t]` — последний день месяца t (F.TIME.DATE)
 **Зависит от:** `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** Сравнение настоящих дат; определяет выборку ПФ и распределение СМР
@@ -55,6 +70,12 @@ flag_constr[p,t] = 1{ construction_start[p] <= date[t] < construction_end[p] }
 ```
 flag_ddu[p,t] = 1{ sales_start[p] <= date[t] < rnv_date[p] }
 ```
+
+**Обозначения:**
+- `flag_ddu[p,t]` — 1 — в месяце t очередь p продаётся по ДДУ (эскроу), иначе 0
+- `sales_start[p]` — дата старта продаж очереди p (TIME.MILESTONES)
+- `rnv_date[p]` — дата РНВ очереди p (TIME.MILESTONES)
+- `date[t]` — последний день месяца t (F.TIME.DATE)
 **Зависит от:** `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** До РНВ продажи возможны только по ДДУ с эскроу (ст.15.4 214-ФЗ); старт — не раньше РНС (ст.51 ГрК) и публикации проектной декларации
@@ -71,6 +92,11 @@ flag_ddu[p,t] = 1{ sales_start[p] <= date[t] < rnv_date[p] }
 ```
 flag_dkp[p,t] = 1{ date[t] >= rnv_date[p] }
 ```
+
+**Обозначения:**
+- `flag_dkp[p,t]` — 1 — в месяце t очередь p продаётся по ДКП (после РНВ), иначе 0
+- `rnv_date[p]` — дата РНВ очереди p (TIME.MILESTONES)
+- `date[t]` — последний день месяца t (F.TIME.DATE)
 **Зависит от:** `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** После РНВ нераспроданные помещения продаются по ДКП, деньги поступают застройщику напрямую
@@ -84,6 +110,11 @@ flag_dkp[p,t] = 1{ date[t] >= rnv_date[p] }
 ```
 flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M }
 ```
+
+**Обозначения:**
+- `flag_release[p,t]` — 1 — в месяце t раскрывается эскроу очереди p, иначе 0
+- `month_index(x)` — номер месяца модели, в который попадает дата x
+- `rnv_date[p]` — дата РНВ очереди p (TIME.MILESTONES)
 **Зависит от:** `TIME.MILESTONES`, `TIME.ESCROW_RELEASE_LAG_M`, `F.TIME.DATE`
 
 **Почему так:** ч.6 ст.15.5 214-ФЗ — перечисление не позднее 10 рабочих дней после РНВ; раскрытие по каждой очереди отдельно
@@ -100,11 +131,17 @@ flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M
 ### `F.TEP.GFA_ABOVE` — ГНС наземной части в модели
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»:      gfa_above = TEP.GFA_ABOVE
-стадия «оценка участка»: gfa_above = GPZU.MAX_GFA_ABOVE, если суммарная поэтажная площадь указана в ГПЗУ/ПЗЗ;
-                         иначе gfa_above = TEP.FOOTPRINT_AREA × TEP.AVG_FLOORS
-соответствие пределам ГПЗУ проверяет F.CHECK.GPZU_LIMITS (на стадии оценки — автоматически)
+ЕСЛИ GEN.PROJECT_STAGE = «концепция»:
+  gfa_above = TEP.GFA_ABOVE
+ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:
+  ЕСЛИ GPZU.MAX_GFA_ABOVE задана:  gfa_above = GPZU.MAX_GFA_ABOVE
+  ИНАЧЕ:                           gfa_above = TEP.FOOTPRINT_AREA × TEP.AVG_FLOORS
 ```
+
+**Пояснение:** На стадии «концепция» берётся ГНС из ТЭП архитектора. На стадии «оценка участка» — предельная суммарная поэтажная площадь из ГПЗУ/ПЗЗ, а если она там не указана — пятно застройки × средняя этажность. Соответствие пределам ГПЗУ проверяет F.CHECK.GPZU_LIMITS (на стадии оценки — автоматически).
+
+**Обозначения:**
+- `gfa_above` — результат: ГНС наземной части в модели, м²
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.GFA_ABOVE`, `GPZU.MAX_GFA_ABOVE`, `TEP.FOOTPRINT_AREA`, `TEP.AVG_FLOORS`
 
 **Почему так:** До концепции объём застройки ограничен предельными параметрами разрешённого строительства (ст.38 ГрК РФ): суммарная поэтажная площадь из ГПЗУ/ПЗЗ — прямой предел; если её нет — пятно застройки × средняя этажность, где пятно не больше участка × максимальный процент застройки. После концепции — ТЭП архитектора, который сверяется с пределами ГПЗУ
@@ -121,15 +158,22 @@ flag_release[p,t] = 1{ t == month_index(rnv_date[p]) + TIME.ESCROW_RELEASE_LAG_M
 ### `F.TEP.GFA_SPLIT` — ГНС жилой, апартаментной и нежилой части в модели
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»: res_gfa = TEP.RES_GFA;  apart_gfa = TEP.APART_GFA;  nonres_gfa = TEP.NONRES_GFA
-стадия «оценка участка»:
-  если ГПЗУ/ППТ задают разделение (TEP.RES_GFA, TEP.NONRES_GFA, при апартаментах — TEP.APART_GFA) — они же;
-  иначе res_gfa    = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE
-        apart_gfa  = F.TEP.GFA_ABOVE × TEP.APART_GFA_SHARE
-        nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE − TEP.APART_GFA_SHARE)
-  ошибка, если TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE > 1
-apart_gfa > 0 допускается, только если ГПЗУ допускает апартаменты — GPZU.APART_ALLOWED (F.CHECK.ALL → APART_ALLOWED)
+ЕСЛИ GEN.PROJECT_STAGE = «концепция» ИЛИ разделение задано в ГПЗУ/ППТ:
+  res_gfa    = TEP.RES_GFA
+  apart_gfa  = TEP.APART_GFA
+  nonres_gfa = TEP.NONRES_GFA
+ИНАЧЕ (стадия «оценка участка»):
+  res_gfa    = F.TEP.GFA_ABOVE × TEP.RES_GFA_SHARE
+  apart_gfa  = F.TEP.GFA_ABOVE × TEP.APART_GFA_SHARE
+  nonres_gfa = F.TEP.GFA_ABOVE × (1 − TEP.RES_GFA_SHARE − TEP.APART_GFA_SHARE)
 ```
+
+**Пояснение:** На стадии «оценка участка» площади берутся из ГПЗУ/ППТ, если документ задаёт разделение (жилая, нежилая, при апартаментах — апартаментная часть); иначе считаются долями от ГНС наземной части. Ошибка, если TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE > 1. Апартаменты (apart_gfa > 0) допускаются, только если ГПЗУ допускает объекты гостиничного назначения — GPZU.APART_ALLOWED (проверка F.CHECK.ALL → APART_ALLOWED).
+
+**Обозначения:**
+- `res_gfa` — результат: ГНС жилой части, м²
+- `apart_gfa` — результат: ГНС апартаментной части, м²
+- `nonres_gfa` — результат: ГНС нежилой части (коммерция, встроенные соцобъекты), м²
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.RES_GFA`, `TEP.APART_GFA`, `TEP.NONRES_GFA`, `F.TEP.GFA_ABOVE`, `TEP.RES_GFA_SHARE`, `TEP.APART_GFA_SHARE`
 
 **Почему так:** Жилая, апартаментная и нежилая части имеют разные коэффициенты продаваемой площади, разные продукты, цены и НДС. Разделение берётся из документа, а при его отсутствии — долями, чтобы части в сумме давали ГНС наземную
@@ -145,9 +189,13 @@ apart_gfa > 0 допускается, только если ГПЗУ допус�
 ### `F.TEP.APT_AREA` — Площадь квартир в модели (для продажи, по ДДУ)
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»:      apt_area_total = TEP.APT_AREA
-стадия «оценка участка»: apt_area_total = res_gfa × TEP.APT_EFFICIENCY   (res_gfa — из F.TEP.GFA_SPLIT)
+ЕСЛИ GEN.PROJECT_STAGE = «концепция»:       apt_area_total = TEP.APT_AREA
+ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:  apt_area_total = res_gfa × TEP.APT_EFFICIENCY
 ```
+
+**Обозначения:**
+- `apt_area_total` — результат: площадь квартир для продажи, м²
+- `res_gfa` — ГНС жилой части (F.TEP.GFA_SPLIT), м²
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.APT_AREA`, `F.TEP.GFA_SPLIT`, `TEP.APT_EFFICIENCY`
 
 **Почему так:** Площадь квартиры для продажи — площадь по ДДУ: общая площадь жилого помещения (ч.5 ст.15 ЖК РФ) плюс лоджии × 0,5, балконы × 0,3, террасы × 0,3, веранды × 1,0 (Приказ Минстроя № 854/пр); обмер — Приказ Росреестра № П/0393, приложение 2. До концепции площадь квартир получают из ГНС жилой части через коэффициент, подтверждённый фактом компании (уровень 4) или экспертом (уровень 5)
@@ -164,9 +212,13 @@ apart_gfa > 0 допускается, только если ГПЗУ допус�
 ### `F.TEP.COMM_AREA` — Площадь ПСН в модели
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»:      comm_area = TEP.COMM_AREA
-стадия «оценка участка»: comm_area = nonres_gfa × TEP.COMM_EFFICIENCY   (nonres_gfa — из F.TEP.GFA_SPLIT)
+ЕСЛИ GEN.PROJECT_STAGE = «концепция»:       comm_area = TEP.COMM_AREA
+ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:  comm_area = nonres_gfa × TEP.COMM_EFFICIENCY
 ```
+
+**Обозначения:**
+- `comm_area` — результат: площадь коммерческих помещений (ПСН), м²
+- `nonres_gfa` — ГНС нежилой части (F.TEP.GFA_SPLIT), м²
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.COMM_AREA`, `F.TEP.GFA_SPLIT`, `TEP.COMM_EFFICIENCY`
 
 **Почему так:** Та же логика, что для квартир, со своим коэффициентом: у нежилой части иная доля продаваемой площади. Обмер — Приказ Росреестра № П/0393, приложение 2
@@ -182,11 +234,16 @@ apart_gfa > 0 допускается, только если ГПЗУ допус�
 ### `F.TEP.APART_AREA` — Площадь апартаментов в модели
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»:      apart_area = TEP.APART_AREA
-стадия «оценка участка»: apart_area = apart_gfa × TEP.APART_EFFICIENCY   (apart_gfa — из F.TEP.GFA_SPLIT)
-apart_area = 0, если GPZU.APART_ALLOWED = false (ГПЗУ не допускает объекты гостиничного назначения / апартаменты)
-подсказка в интерфейсе: обычно это ВРИ 4.7 «Гостиничное обслуживание» (LAND.VRI_CODES, П/0412)
+ЕСЛИ GPZU.APART_ALLOWED = нет:               apart_area = 0
+ИНАЧЕ ЕСЛИ GEN.PROJECT_STAGE = «концепция»:       apart_area = TEP.APART_AREA
+ИНАЧЕ ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:  apart_area = apart_gfa × TEP.APART_EFFICIENCY
 ```
+
+**Пояснение:** Апартаменты возможны, только если ГПЗУ допускает объекты гостиничного назначения. Подсказка в интерфейсе: обычно это ВРИ 4.7 «Гостиничное обслуживание» (LAND.VRI_CODES, П/0412).
+
+**Обозначения:**
+- `apart_area` — результат: площадь апартаментов для продажи, м²
+- `apart_gfa` — ГНС апартаментной части (F.TEP.GFA_SPLIT), м²
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.APART_AREA`, `F.TEP.GFA_SPLIT`, `TEP.APART_EFFICIENCY`, `GPZU.APART_ALLOWED`, `LAND.VRI_CODES`
 
 **Почему так:** Апартаменты — нежилые помещения гостиничного назначения. Разрешение подтверждается ГПЗУ проекта (уровень 4, вложение): слово «апартаменты» в классификаторе ВРИ (П/0412) не используется, связь апартаментов с кодом 4.7 «Гостиничное обслуживание» — практика, поэтому код 4.7 — только подсказка, а решающий документ — ГПЗУ. Площадь — по той же логике, что квартиры, со своим коэффициентом; обмер — П/0393
@@ -201,11 +258,21 @@ apart_area = 0, если GPZU.APART_ALLOWED = false (ГПЗУ не допуск�
 ### `F.TEP.STORAGE` — Кладовые: количество и площадь в модели
 **Единица:** шт · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»:      storage_count = TEP.STORAGE_COUNT;  storage_area = TEP.STORAGE_AREA
-стадия «оценка участка»: storage_count = FLOOR( Σ_k F.TEP.APT_COUNT[k] × TEP.STORAGE_PER_APT );
-                         storage_area  = storage_count × TEP.STORAGE_AVG_AREA
-площадь кладовых входит в подземную часть (F.TEP.GFA_BELOW), сверх неё не добавляется
+ЕСЛИ GEN.PROJECT_STAGE = «концепция»:
+  storage_count = TEP.STORAGE_COUNT
+  storage_area  = TEP.STORAGE_AREA
+ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:
+  storage_count = FLOOR( Σ_k F.TEP.APT_COUNT[k] × TEP.STORAGE_PER_APT )
+  storage_area  = storage_count × TEP.STORAGE_AVG_AREA
 ```
+
+**Пояснение:** Площадь кладовых входит в подземную часть (F.TEP.GFA_BELOW) и сверх неё не добавляется.
+
+**Обозначения:**
+- `storage_count` — результат: количество кладовых, шт
+- `storage_area` — результат: площадь кладовых, м²
+- `k` — тип квартир из квартирографии
+- `FLOOR(x)` — округление вниз до целого
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.STORAGE_COUNT`, `TEP.STORAGE_AREA`, `F.TEP.APT_COUNT`, `TEP.STORAGE_PER_APT`, `TEP.STORAGE_AVG_AREA`
 
 **Почему так:** Кладовые продаются поштучно и размещаются в подземной части. До концепции количество определяется обеспеченностью на квартиру по концепциям компании (уровень 4), округление вниз — нельзя продать больше, чем построено
@@ -221,10 +288,17 @@ apart_area = 0, если GPZU.APART_ALLOWED = false (ГПЗУ не допуск�
 ### `F.TEP.APT_COUNT` — Количество квартир по типу
 **Единица:** шт · **Размерность:** k · **Статус:** verified
 ```
-стадия «концепция»:      count[k] = TEP.APT_MIX.count[k]
-стадия «оценка участка»: count[k] = FLOOR( TEP.APT_MIX.area_share[k] × apt_area_total / TEP.APT_MIX.avg_area[k] )
-                         ошибка, если |Σ_k area_share[k] − 1| > 1e-9
+ЕСЛИ GEN.PROJECT_STAGE = «концепция»:       count[k] = TEP.APT_MIX.count[k]
+ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:  count[k] = FLOOR( TEP.APT_MIX.area_share[k] × apt_area_total / TEP.APT_MIX.avg_area[k] )
 ```
+
+**Пояснение:** На стадии «оценка участка» ошибка, если доли площади по типам в сумме не равны 1: |Σ_k area_share[k] − 1| > 1e-9.
+
+**Обозначения:**
+- `count[k]` — результат: количество квартир типа k, шт
+- `k` — тип квартир из квартирографии
+- `apt_area_total` — площадь квартир для продажи (F.TEP.APT_AREA), м²
+- `FLOOR(x)` — округление вниз до целого
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.APT_MIX`, `F.TEP.APT_AREA`
 
 **Почему так:** Квартира — целое число. На стадии оценки квартирография задаётся долями площади и средней площадью типа, количество вычисляется; округление вниз гарантирует, что продаётся не больше площади, чем есть
@@ -245,6 +319,10 @@ apart_area = 0, если GPZU.APART_ALLOWED = false (ГПЗУ не допуск�
 ```
 apt_area[k] = F.TEP.APT_COUNT[k] × TEP.APT_MIX.avg_area[k]
 ```
+
+**Обозначения:**
+- `apt_area[k]` — результат: площадь квартир типа k, м²
+- `k` — тип квартир из квартирографии
 **Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`
 
 **Почему так:** Количество и средняя площадь — первичные данные квартирографии; средняя площадь — по ДДУ, как F.TEP.APT_AREA
@@ -260,6 +338,10 @@ apt_area[k] = F.TEP.APT_COUNT[k] × TEP.APT_MIX.avg_area[k]
 ```
 apt_share[k] = F.TEP.APT_COUNT[k] / Σ_k F.TEP.APT_COUNT[k]
 ```
+
+**Обозначения:**
+- `apt_share[k]` — результат: доля квартир типа k в общем количестве
+- `k` — тип квартир из квартирографии
 **Зависит от:** `F.TEP.APT_COUNT`
 
 **Почему так:** Доля вычисляется — нельзя получить противоречие между долей и количеством
@@ -274,8 +356,17 @@ apt_share[k] = F.TEP.APT_COUNT[k] / Σ_k F.TEP.APT_COUNT[k]
 ### `F.TEP.APT_AREA_CHECK` — Сверка площади квартир: квартирография vs ТЭП
 **Единица:** доля · **Размерность:** скаляр · **Статус:** verified
 ```
-apt_diff_m2 = Σ_k apt_area[k] − apt_area_total;  apt_check = apt_diff_m2 / apt_area_total;  предупреждение «расхождение {apt_diff_m2} м² ({apt_check})», если |apt_check| > TEP.APT_AREA_TOLERANCE
+apt_diff_m2 = Σ_k apt_area[k] − apt_area_total
+apt_check   = apt_diff_m2 / apt_area_total
 ```
+
+**Пояснение:** Предупреждение «расхождение {apt_diff_m2} м² ({apt_check})», если |apt_check| > TEP.APT_AREA_TOLERANCE.
+
+**Обозначения:**
+- `apt_diff_m2` — результат: расхождение квартирографии и ТЭП, м²
+- `apt_check` — результат: расхождение в долях от площади по ТЭП
+- `apt_area[k]` — площадь квартир типа k (F.TEP.APT_TYPE_AREA), м²
+- `apt_area_total` — площадь квартир по ТЭП (F.TEP.APT_AREA), м²
 **Зависит от:** `F.TEP.APT_TYPE_AREA`, `F.TEP.APT_AREA`, `TEP.APT_AREA_TOLERANCE`
 
 **Почему так:** На стадии концепции площадь квартир есть дважды — итог ТЭП и сумма квартирографии; на стадии оценки сумма меньше итога из-за округления количества вниз. Расхождение больше порога должно быть видно с разницей в м² и %
@@ -290,8 +381,17 @@ apt_diff_m2 = Σ_k apt_area[k] − apt_area_total;  apt_check = apt_diff_m2 / ap
 ### `F.TEP.PARKING_REQUIRED` — Требуемое количество машино-мест по нормативу региона
 **Единица:** шт · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart ), norm() — из TEP.PARKING_NORM региона (Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017); parking_apart — по TEP.PARKING_NORM_APART (НГП для объектов гостиничного назначения, единица — по акту региона) от F.TEP.APART_AREA. Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type), в обычном режиме запрещено
+parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area[k]) + parking_apart )
 ```
+
+**Пояснение:** Нормативы машино-мест для квартир — из акта региона: Москва — ПП № 2118-ПП от 05.08.2026, СПб — ПП № 257 от 11.04.2017. Для апартаментов — норматив градостроительного проектирования для объектов гостиничного назначения (единица — по акту региона). Режим совместимости с исходником: нормы по типам квартир из tests/cases/*_legacy.yaml (TEP.PARKING_NORM, rule = per_type); в обычном режиме запрещено.
+
+**Обозначения:**
+- `parking_required` — результат: требуемое количество машино-мест, шт
+- `norm(a)` — норматив машино-мест на квартиру средней площадью a — из TEP.PARKING_NORM региона
+- `parking_apart` — машино-места для апартаментов по TEP.PARKING_NORM_APART от площади апартаментов F.TEP.APART_AREA
+- `k` — тип квартир из квартирографии
+- `CEILING(x)` — округление вверх до целого
 **Зависит от:** `F.TEP.APT_COUNT`, `TEP.APT_MIX`, `TEP.PARKING_NORM`, `TEP.PARKING_NORM_APART`, `F.TEP.APART_AREA`
 
 **Почему так:** Нормативы обеспеченности — обязательное требование РНГП; число мест определяет подземную часть и выручку
@@ -309,9 +409,14 @@ parking_required = CEILING( Σ_k F.TEP.APT_COUNT[k] × norm(TEP.APT_MIX.avg_area
 **Единица:** шт · **Размерность:** скаляр · **Статус:** verified
 ```
 parking_calc = MAX( F.TEP.PARKING_REQUIRED, TEP.PARKING_GPZU_COUNT ?? 0 )
-parking = TEP.PARKING_COUNT_OVERRIDE ?? parking_calc      (override — только с вложенным документом)
-предупреждение «ниже норматива, основание — документ», если override < F.TEP.PARKING_REQUIRED
+parking      = TEP.PARKING_COUNT_OVERRIDE ?? parking_calc
 ```
+
+**Пояснение:** Знак «??» означает: берётся левое значение, если оно заполнено, иначе правое. Ручное значение (TEP.PARKING_COUNT_OVERRIDE) — только с вложенным документом. Предупреждение «ниже норматива, основание — документ», если ручное значение меньше F.TEP.PARKING_REQUIRED.
+
+**Обозначения:**
+- `parking_calc` — расчётное количество машино-мест: большее из норматива и ГПЗУ/ППТ, шт
+- `parking` — результат: количество машино-мест в модели, шт
 **Зависит от:** `F.TEP.PARKING_REQUIRED`, `TEP.PARKING_GPZU_COUNT`, `TEP.PARKING_COUNT_OVERRIDE`
 
 **Почему так:** Число мест — норматив региона или больше, если так требуют ГПЗУ/ППТ. Отклонение, в том числе меньше норматива, допустимо только по документу (ГПЗУ, ППТ, СТУ, решение органа)
@@ -329,6 +434,9 @@ parking = TEP.PARKING_COUNT_OVERRIDE ?? parking_calc      (override — толь
 ```
 parking_space_min = TEP.PARKING_SPACE_MIN_LENGTH × TEP.PARKING_SPACE_MIN_WIDTH
 ```
+
+**Обозначения:**
+- `parking_space_min` — результат: минимальная площадь машино-места, м²
 **Зависит от:** `TEP.PARKING_SPACE_MIN_LENGTH`, `TEP.PARKING_SPACE_MIN_WIDTH`
 
 **Почему так:** Нижняя граница площади на одно машино-место: само место не меньше 5,3 × 2,5 м (Приказ Росреестра № П/0316); с проездами площадь не может быть меньше. Максимальный размер с 28.10.2021 не ограничен — верхней границы нет
@@ -343,8 +451,14 @@ parking_space_min = TEP.PARKING_SPACE_MIN_LENGTH × TEP.PARKING_SPACE_MIN_WIDTH
 ### `F.TEP.GFA_BELOW_EST` — Оценка подземной площади по числу машино-мест и кладовым
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE + storage_area (F.TEP.STORAGE);  ошибка, если TEP.PARKING_AREA_PER_SPACE < F.TEP.PARKING_SPACE_MIN_AREA
+gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE + storage_area
 ```
+
+**Пояснение:** Ошибка, если TEP.PARKING_AREA_PER_SPACE < F.TEP.PARKING_SPACE_MIN_AREA.
+
+**Обозначения:**
+- `gfa_below_est` — результат: оценка подземной площади, м²
+- `storage_area` — площадь кладовых (F.TEP.STORAGE), м²
 **Зависит от:** `F.TEP.PARKING_COUNT`, `TEP.PARKING_AREA_PER_SPACE`, `F.TEP.PARKING_SPACE_MIN_AREA`, `F.TEP.STORAGE`
 
 **Почему так:** Только стадия «Оценка участка»: подземной концепции ещё нет. Площадь на место с проездами — факт компании (уровень 4) или эксперт (уровень 5) с обоснованием и диапазоном; меньше минимальной площади самого места быть не может. Кладовые размещаются в подземной части и входят в её площадь
@@ -358,9 +472,12 @@ gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE + storage_area
 ### `F.TEP.GFA_BELOW` — Площадь подземной части в модели
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-стадия «концепция»:      gfa_below = TEP.GFA_BELOW
-стадия «оценка участка»: gfa_below = F.TEP.GFA_BELOW_EST
+ЕСЛИ GEN.PROJECT_STAGE = «концепция»:       gfa_below = TEP.GFA_BELOW
+ЕСЛИ GEN.PROJECT_STAGE = «оценка участка»:  gfa_below = F.TEP.GFA_BELOW_EST
 ```
+
+**Обозначения:**
+- `gfa_below` — результат: площадь подземной части в модели, м²
 **Зависит от:** `GEN.PROJECT_STAGE`, `TEP.GFA_BELOW`, `F.TEP.GFA_BELOW_EST`
 
 **Почему так:** На стадии концепции подземная часть (паркинг, техпомещения) — из ТЭП архитектора; до неё — оценка через число машино-мест
@@ -377,6 +494,9 @@ gfa_below_est = F.TEP.PARKING_COUNT × TEP.PARKING_AREA_PER_SPACE + storage_area
 ```
 gfa_total = F.TEP.GFA_ABOVE + F.TEP.GFA_BELOW
 ```
+
+**Обозначения:**
+- `gfa_total` — результат: ГНС общая (наземная + подземная), м²
 **Зависит от:** `F.TEP.GFA_ABOVE`, `F.TEP.GFA_BELOW`
 
 **Почему так:** Разделение на наземную и подземную части — у них разная стоимость СМР и разный охват НЦС
@@ -391,8 +511,17 @@ gfa_total = F.TEP.GFA_ABOVE + F.TEP.GFA_BELOW
 ### `F.TEP.SALEABLE_AREA` — Продаваемая площадь (м²)
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-saleable = Σ_k apt_area[k] + apart_area (F.TEP.APART_AREA) + comm_area + storage_area (F.TEP.STORAGE);  машино-места — отдельно, в штуках (F.TEP.PARKING_COUNT), в м² не суммируются;  МОП, техпомещения и проезды паркинга не входят
+saleable = Σ_k apt_area[k] + apart_area + comm_area + storage_area
 ```
+
+**Пояснение:** Машино-места считаются отдельно, в штуках (F.TEP.PARKING_COUNT), и в м² не суммируются. МОП, техпомещения и проезды паркинга в продаваемую площадь не входят.
+
+**Обозначения:**
+- `saleable` — результат: продаваемая площадь, м²
+- `apt_area[k]` — площадь квартир типа k (F.TEP.APT_TYPE_AREA), м²
+- `apart_area` — площадь апартаментов (F.TEP.APART_AREA), м²
+- `comm_area` — площадь ПСН (F.TEP.COMM_AREA), м²
+- `storage_area` — площадь кладовых (F.TEP.STORAGE), м²
 **Зависит от:** `F.TEP.APT_TYPE_AREA`, `F.TEP.APART_AREA`, `F.TEP.COMM_AREA`, `F.TEP.STORAGE`
 
 **Почему так:** Единое определение для всех проектов: продаваемая площадь = квартиры + апартаменты + ПСН + кладовые, каждая — по правилам обмера Росреестра (П/0393, приложение 2), квартиры — по ДДУ. Итоговым числом не вводится (параметра нет): сумма всегда раскладывается по продуктам и сходится с планом продаж
@@ -409,8 +538,17 @@ saleable = Σ_k apt_area[k] + apart_area (F.TEP.APART_AREA) + comm_area + storag
 ### `F.TEP.LANDSCAPE_AREA` — Площадь благоустройства и её состав
 **Единица:** м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-landscape = LAND.AREA × TEP.LANDSCAPE_SHARE; roads = landscape × TEP.ROAD_SHARE; green = landscape × TEP.GREEN_SHARE; ground_parking = landscape - roads - green
+landscape      = LAND.AREA × TEP.LANDSCAPE_SHARE
+roads          = landscape × TEP.ROAD_SHARE
+green          = landscape × TEP.GREEN_SHARE
+ground_parking = landscape − roads − green
 ```
+
+**Обозначения:**
+- `landscape` — результат: площадь благоустройства, м²
+- `roads` — внутриквартальные проезды, м²
+- `green` — озеленение, м²
+- `ground_parking` — наземная парковка и прочее благоустройство, м²
 **Зависит от:** `LAND.AREA`, `TEP.LANDSCAPE_SHARE`, `TEP.ROAD_SHARE`, `TEP.GREEN_SHARE`
 
 **Почему так:** База для статьи «Благоустройство»; проверка минимального озеленения по НГП
@@ -424,8 +562,21 @@ landscape = LAND.AREA × TEP.LANDSCAPE_SHARE; roads = landscape × TEP.ROAD_SHAR
 ### `F.LAND.TAX_COEF` — Повышающий коэффициент земельного налога
 **Единица:** коэф · **Размерность:** t · **Статус:** needs_verification
 ```
-coef[t] = IF(NOT TAX.LAND_COEF_APPLY) 1 ELSE IF(years_since(land_acquired, date[t]) <= TIME.RNS_TO_RNV_TAX_YEARS) TAX.LAND_COEF_UP_TO_3Y ELSE TAX.LAND_COEF_OVER_3Y; действует до госрегистрации прав на объект (≈ handover_end последней очереди)
+ЕСЛИ TAX.LAND_COEF_APPLY = нет:
+  coef[t] = 1
+ИНАЧЕ ЕСЛИ years_since(land_acquired, date[t]) <= TIME.RNS_TO_RNV_TAX_YEARS:
+  coef[t] = TAX.LAND_COEF_UP_TO_3Y
+ИНАЧЕ:
+  coef[t] = TAX.LAND_COEF_OVER_3Y
 ```
+
+**Пояснение:** Повышающий коэффициент действует до государственной регистрации прав на построенный объект (≈ окончание передачи ключей последней очереди).
+
+**Обозначения:**
+- `coef[t]` — результат: коэффициент к земельному налогу в месяце t
+- `years_since(a, b)` — число лет от даты a до даты b
+- `land_acquired` — дата приобретения участка (TIME.MILESTONES)
+- `date[t]` — последний день месяца t (F.TIME.DATE)
 **Зависит от:** `TAX.LAND_COEF_APPLY`, `TAX.LAND_COEF_UP_TO_3Y`, `TAX.LAND_COEF_OVER_3Y`, `TIME.MILESTONES`, `TIME.RNS_TO_RNV_TAX_YEARS`, `F.TIME.DATE`
 
 **Почему так:** п.15 ст.396 НК РФ; для участков > 300 млн руб. — позиция ФНС (письмо 25.08.2026)
@@ -438,8 +589,23 @@ coef[t] = IF(NOT TAX.LAND_COEF_APPLY) 1 ELSE IF(years_since(land_acquired, date[
 ### `F.LAND.TAX_OR_RENT` — Земельный налог или аренда, помесячно
 **Единица:** руб · **Размерность:** t · **Статус:** needs_verification
 ```
-IF LAND.TENURE = собственность: land_pay[t] = cad_value[year(t)] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{land_acquired <= date[t] <= handover_end_last} IF LAND.TENURE = аренда: land_pay[t] = LAND.RENT_ANNUAL × index[year(t)] / 12 × 1{lease period} cad_value = LAND.CADASTRAL_VALUE_AFTER_VRI после смены ВРИ, иначе LAND.CADASTRAL_VALUE
+ЕСЛИ LAND.TENURE = собственность:
+  land_pay[t] = cad_value[year(t)] × TAX.LAND_RATE × F.LAND.TAX_COEF[t] / 12 × 1{ land_acquired <= date[t] <= handover_end_last }
+ЕСЛИ LAND.TENURE = аренда:
+  land_pay[t] = LAND.RENT_ANNUAL × index[year(t)] / 12 × 1{ lease_period }
+
+ЕСЛИ ВРИ изменён:  cad_value = LAND.CADASTRAL_VALUE_AFTER_VRI
+ИНАЧЕ:             cad_value = LAND.CADASTRAL_VALUE
 ```
+
+**Обозначения:**
+- `land_pay[t]` — результат: земельный налог или арендная плата за месяц t, руб
+- `cad_value[y]` — кадастровая стоимость участка, действующая в году y, руб
+- `land_acquired` — дата приобретения участка (TIME.MILESTONES)
+- `handover_end_last` — окончание передачи ключей последней очереди (TIME.MILESTONES)
+- `index[y]` — индекс арендной платы года y
+- `lease_period` — месяц t входит в период аренды
+- `1{условие}` — 1, если условие выполнено, иначе 0
 **Зависит от:** `LAND.TENURE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `TAX.LAND_RATE`, `F.LAND.TAX_COEF`, `LAND.RENT_ANNUAL`, `TIME.MILESTONES`, `F.TIME.DATE`
 
 **Почему так:** Налог — от кадастровой стоимости (ст.390–391 НК РФ) по ставке муниципалитета; платёж только за период владения. Одна строка вместо двух в исходнике — нет двойного счёта
@@ -457,8 +623,17 @@ IF LAND.TENURE = собственность: land_pay[t] = cad_value[year(t)] ×
 ### `F.LAND.VRI_FEE` — Плата за изменение ВРИ
 **Единица:** руб · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-vri_fee = region.vri_fee.exists ? region_formula(LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, ...) : 0;  Москва: от прироста кадастровой стоимости (КС2 − КС1) × коэффициент территории по приложению к ПП 593-ПП
+ЕСЛИ в регионе есть плата за изменение ВРИ (region.vri_fee.exists):
+  vri_fee = region_formula(LAND.CADASTRAL_VALUE, LAND.CADASTRAL_VALUE_AFTER_VRI, …)
+ИНАЧЕ:
+  vri_fee = 0
 ```
+
+**Пояснение:** Москва: плата считается от прироста кадастровой стоимости (КС2 − КС1) × коэффициент территории по приложению к ПП 593-ПП.
+
+**Обозначения:**
+- `vri_fee` — результат: плата за изменение вида разрешённого использования, руб
+- `region_formula` — порядок расчёта платы, установленный актом региона
 **Зависит от:** `GEN.REGION_CODE`, `LAND.CADASTRAL_VALUE`, `LAND.CADASTRAL_VALUE_AFTER_VRI`, `LAND.VRI_FEE`
 
 **Почему так:** Плата — региональная; привязка к приросту кадастровой стоимости делает её воспроизводимой
@@ -475,8 +650,16 @@ vri_fee = region.vri_fee.exists ? region_formula(LAND.CADASTRAL_VALUE, LAND.CADA
 ### `F.CAPEX.ITEM_TOTAL` — Сумма статьи в ценах даты расценки
 **Единица:** руб · **Размерность:** i · **Статус:** verified
 ```
-item_total[i] = rate[i] × base_qty[i];  base_qty — значение параметра/формулы, указанной в capex_items.base (для «фикс» = 1)
+item_total[i] = rate[i] × base_qty[i]
 ```
+
+**Пояснение:** База статьи задаётся в capex_items.base: значение параметра или формулы; для статей «фикс» база равна 1.
+
+**Обозначения:**
+- `item_total[i]` — результат: сумма статьи i в ценах даты расценки, руб
+- `i` — статья бюджета
+- `rate[i]` — ставка статьи (параметр rate_param)
+- `base_qty[i]` — объём базы статьи (м², шт, руб и т. п.)
 **Зависит от:** `CAPEX.ITEMS`
 
 **Почему так:** Сумма всегда выводится из ставки и объёма — любую цифру можно объяснить
@@ -491,8 +674,14 @@ item_total[i] = rate[i] × base_qty[i];  base_qty — значение пара�
 ### `F.CAPEX.INDEX` — Индекс пересчёта из цен даты расценки в цены месяца t
 **Единица:** коэф · **Размерность:** i, t · **Статус:** verified
 ```
-index[i,t] = Π по годам y от price_date[i] до date[t] (1 + CAPEX.COST_INDEX[y]) ^ (доля года y в интервале)
+index[i,t] = Π_y (1 + CAPEX.COST_INDEX[y]) ^ share[y]
 ```
+
+**Обозначения:**
+- `index[i,t]` — результат: множитель пересчёта статьи i в цены месяца t
+- `y` — годы интервала от даты расценки статьи price_date[i] до date[t]
+- `share[y]` — доля года y, попавшая в этот интервал
+- `Π_y` — произведение по годам y
 **Зависит от:** `CAPEX.COST_INDEX`, `CAPEX.ITEMS`
 
 **Почему так:** Стройка длится 3–6 лет; без индексации затраты занижены. Индексы — прогноз МЭР / Минстроя
@@ -505,8 +694,24 @@ index[i,t] = Π по годам y от price_date[i] до date[t] (1 + CAPEX.COS
 ### `F.CAPEX.SCHEDULE_WEIGHT` — Вес месяца в графике статьи
 **Единица:** доля · **Размерность:** i, t · **Статус:** verified
 ```
-uniform: w = 1/N в месяцах [from, to);  s_curve: x_t = (t - t_from + 1)/N, C(x) = 3x² − 2x³, w = C(x_t) − C(x_{t-1});  at_milestone: w = 1 в месяце вехи;  follow_smr: w = smr_cash[t] / Σ smr_cash;  follow_sales: w = sales_value[t] / Σ sales_value;  manual: ряд пользователя. Проверка Σ_t w = 1
+uniform:       w[t] = 1 / N,  from <= t < to
+s_curve:       x_t = (t − t_from + 1) / N;   C(x) = 3x² − 2x³;   w[t] = C(x_t) − C(x_{t−1})
+at_milestone:  w[t] = 1 в месяце вехи
+follow_smr:    w[t] = smr_cash[t] / Σ smr_cash
+follow_sales:  w[t] = sales_value[t] / Σ sales_value
+manual:        w[t] = ряд пользователя
 ```
+
+**Пояснение:** Способ распределения (uniform, s_curve и т. д.) задаётся у статьи бюджета. Проверка: сумма весов по месяцам Σ_t w = 1.
+
+**Обозначения:**
+- `w[t]` — результат: доля суммы статьи, приходящаяся на месяц t
+- `N` — число месяцев распределения
+- `from, to` — первый месяц распределения и месяц после последнего
+- `t_from` — первый месяц распределения
+- `C(x)` — S-кривая: накопленная доля к моменту x
+- `smr_cash[t]` — платежи по СМР в месяце t
+- `sales_value[t]` — стоимость договоров, заключённых в месяце t (F.SALES.CONTRACT_VALUE)
 **Зависит от:** `CAPEX.ITEMS`, `TIME.MILESTONES`
 
 **Почему так:** График привязан к вехам: сдвиг РНС автоматически сдвигает затраты. S-кривая C(x) = 3x²−2x³ — симметричная кривая освоения с пиком в середине стройки
@@ -523,8 +728,19 @@ uniform: w = 1/N в месяцах [from, to);  s_curve: x_t = (t - t_from + 1)/
 ### `F.CAPEX.ITEM_CASH` — Платёж по статье в месяце t (с НДС)
 **Единица:** руб · **Размерность:** i, t · **Статус:** verified
 ```
-item_cash[i,t] = item_total[i] × w[i,t] × index[i,t] × (vat_included[i] ? 1 : 1 + TAX.VAT_RATE × vat_applicable[i])
+item_cash[i,t] = item_total[i] × w[i,t] × index[i,t] × vat_k[i]
+ЕСЛИ vat_included[i]:  vat_k[i] = 1
+ИНАЧЕ:                 vat_k[i] = 1 + TAX.VAT_RATE × vat_applicable[i]
 ```
+
+**Обозначения:**
+- `item_cash[i,t]` — результат: платёж по статье i в месяце t с НДС, руб
+- `item_total[i]` — сумма статьи (F.CAPEX.ITEM_TOTAL), руб
+- `w[i,t]` — вес месяца в графике статьи (F.CAPEX.SCHEDULE_WEIGHT)
+- `index[i,t]` — индекс пересчёта цен (F.CAPEX.INDEX)
+- `vat_k[i]` — множитель НДС статьи
+- `vat_included[i]` — ставка статьи уже включает НДС (да/нет)
+- `vat_applicable[i]` — статья облагается НДС: 1 или 0
 **Зависит от:** `F.CAPEX.ITEM_TOTAL`, `F.CAPEX.SCHEDULE_WEIGHT`, `F.CAPEX.INDEX`, `TAX.VAT_RATE`
 
 **Почему так:** Денежный поток — с НДС (так платят подрядчикам); вычитаемая часть НДС возвращается в модуле TAX
@@ -539,8 +755,12 @@ item_cash[i,t] = item_total[i] × w[i,t] × index[i,t] × (vat_included[i] ? 1 :
 ### `F.CAPEX.SMR_TOTAL` — Итого СМР (без НДС, в ценах расценок)
 **Единица:** руб · **Размерность:** скаляр · **Статус:** verified
 ```
-smr_total = Σ item_total[i] для group ∈ {СМР, сети, благоустройство, соцобъекты}
+smr_total = Σ_{i ∈ СМР, сети, благоустройство, соцобъекты} item_total[i]
 ```
+
+**Обозначения:**
+- `smr_total` — результат: итого СМР без НДС в ценах расценок, руб
+- `item_total[i]` — сумма статьи (F.CAPEX.ITEM_TOTAL), руб
 **Зависит от:** `F.CAPEX.ITEM_TOTAL`
 
 **Почему так:** База для процентных статей (техзаказчик, стройконтроль, резерв)
@@ -555,8 +775,21 @@ smr_total = Σ item_total[i] для group ∈ {СМР, сети, благоус�
 ### `F.CAPEX.NCS_BENCH` — Контроль СМР надземной части по НЦС
 **Единица:** руб · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-ncs_bench = NCS_per_m2(класс, этажность) × F.TEP.GFA_ABOVE × region.ncs_k_per × К_рег × К_с × Ипр;  deviation = item_total[SMR_ABOVE] / ncs_bench − 1; |deviation| > CAPEX.NCS_BENCH_TOLERANCE → требуется обоснование
+ncs_bench = NCS_per_m2(класс, этажность) × F.TEP.GFA_ABOVE × region.ncs_k_per × К_рег × К_с × Ипр
+deviation = item_total[SMR_ABOVE] / ncs_bench − 1
 ```
+
+**Пояснение:** Если |deviation| > CAPEX.NCS_BENCH_TOLERANCE, для ставки СМР надземной части требуется обоснование.
+
+**Обозначения:**
+- `ncs_bench` — результат: контрольная стоимость СМР надземной части по НЦС, руб
+- `deviation` — результат: отклонение бюджета от НЦС, доля
+- `NCS_per_m2` — показатель НЦС на 1 м² по классу и этажности
+- `region.ncs_k_per` — коэффициент перехода к ценам региона (regions.yaml)
+- `К_рег` — коэффициент регионально-климатических условий
+- `К_с` — коэффициент сейсмичности
+- `Ипр` — прогнозный индекс-дефлятор
+- `item_total[SMR_ABOVE]` — сумма статьи «СМР надземной части» (F.CAPEX.ITEM_TOTAL), руб
 **Зависит от:** `F.TEP.GFA_ABOVE`, `GEN.REGION_CODE`, `CAPEX.NCS_BENCH_TOLERANCE`
 
 **Почему так:** Формула пересчёта НЦС по п.40 техчасти: С = [(НЦС×М×Кпер×Кпер/зон×Крег×Кс)+Зр]×Ипр+НДС. В НЦС уже учтены ПИР, стройконтроль, резерв — при сравнении их нужно добавить к расценке компании
@@ -566,8 +799,14 @@ ncs_bench = NCS_per_m2(класс, этажность) × F.TEP.GFA_ABOVE × reg
 ### `F.CAPEX.TOTAL` — Итого бюджет
 **Единица:** руб · **Размерность:** скаляр · **Статус:** verified
 ```
-capex_total = Σ_i Σ_t item_cash[i,t];  проверка: = Σ бюджет по группам (CHECK.BUDGET_EQ_CF)
+capex_total = Σ_i Σ_t item_cash[i,t]
 ```
+
+**Пояснение:** Проверка: итог равен сумме бюджета по группам (CHECK.BUDGET_EQ_CF).
+
+**Обозначения:**
+- `capex_total` — результат: итого бюджет с НДС, руб
+- `item_cash[i,t]` — платёж по статье i в месяце t (F.CAPEX.ITEM_CASH), руб
 **Зависит от:** `F.CAPEX.ITEM_CASH`
 
 **Почему так:** Итог бюджета и итог денежного потока — одно число
@@ -584,8 +823,18 @@ capex_total = Σ_i Σ_t item_cash[i,t];  проверка: = Σ бюджет п�
 ### `F.SALES.SOLD_AREA` — Продано в месяце, м² (шт для м/м)
 **Единица:** м2 · **Размерность:** k, p, t · **Статус:** verified
 ```
-sold[k,t] = MIN( pace[k,t], remaining[k,t-1] ) × 1{ flag_ddu[p,t] OR flag_dkp[p,t] };  remaining[k,t] = stock[k] − Σ_{τ<=t} sold[k,τ]
+sold[k,t]      = MIN( pace[k,t], remaining[k,t−1] ) × 1{ flag_ddu[p,t] ИЛИ flag_dkp[p,t] }
+remaining[k,t] = stock[k] − Σ_{τ<=t} sold[k,τ]
 ```
+
+**Обозначения:**
+- `sold[k,t]` — результат: продано продукта k в месяце t, м² (для машино-мест — шт)
+- `k` — продукт (тип квартир, ПСН, машино-места и т. д.)
+- `p` — очередь, к которой относится продукт k
+- `pace[k,t]` — темп продаж (SALES.PACE)
+- `remaining[k,t]` — непроданный остаток на конец месяца
+- `stock[k]` — запас продукта к продаже (SALES.PRODUCTS)
+- `flag_ddu, flag_dkp` — флаги продаж по ДДУ и по ДКП (F.TIME.FLAG_PRESALE, F.TIME.FLAG_POST_RNV)
 **Зависит от:** `SALES.PACE`, `SALES.PRODUCTS`, `F.TIME.FLAG_PRESALE`, `F.TIME.FLAG_POST_RNV`
 
 **Почему так:** Нельзя продать больше, чем построено; продажи — только в разрешённый период
@@ -600,8 +849,18 @@ sold[k,t] = MIN( pace[k,t], remaining[k,t-1] ) × 1{ flag_ddu[p,t] OR flag_dkp[p
 ### `F.SALES.PRICE` — Цена 1 м² в месяце t
 **Единица:** руб/м2 · **Размерность:** k, t · **Статус:** verified
 ```
-price[k,t] = start_price[k] × Π_{τ<=t} (1 + g_month[τ]) × stage_factor(progress[p,t]);  g_month = (1 + SALES.PRICE_MARKET_GROWTH[year])^(1/12) − 1;  stage_factor — произведение надбавок SALES.PRICE_STAGE_UPLIFT пройденных стадий; progress = накопленные СМР / СМР итого по очереди
+price[k,t]     = start_price[k] × Π_{τ<=t} (1 + g_month[τ]) × stage_factor(progress[p,t])
+g_month        = (1 + SALES.PRICE_MARKET_GROWTH[year])^(1/12) − 1
+progress[p,t]  = Σ_{τ<=t} smr_cash[p,τ] / Σ smr_cash[p]
 ```
+
+**Обозначения:**
+- `price[k,t]` — результат: цена 1 м² продукта k в месяце t, руб
+- `start_price[k]` — стартовая цена продукта (SALES.PRODUCTS)
+- `g_month` — месячный рост цены из годового
+- `stage_factor(x)` — произведение надбавок SALES.PRICE_STAGE_UPLIFT за пройденные стадии строительства
+- `progress[p,t]` — строительная готовность очереди p: накопленные СМР / СМР итого
+- `smr_cash[p,t]` — платежи по СМР очереди p в месяце t
 **Зависит от:** `SALES.PRODUCTS`, `SALES.PRICE_MARKET_GROWTH`, `SALES.PRICE_STAGE_UPLIFT`, `F.CAPEX.ITEM_CASH`
 
 **Значение за прошлый месяц (t−1):** `F.CAPEX.ITEM_CASH`
@@ -620,6 +879,11 @@ price[k,t] = start_price[k] × Π_{τ<=t} (1 + g_month[τ]) × stage_factor(prog
 ```
 value[k,t] = sold[k,t] × price[k,t]
 ```
+
+**Обозначения:**
+- `value[k,t]` — результат: стоимость договоров по продукту k, заключённых в месяце t, руб
+- `sold[k,t]` — продано в месяце (F.SALES.SOLD_AREA)
+- `price[k,t]` — цена 1 м² (F.SALES.PRICE), руб
 **Зависит от:** `F.SALES.SOLD_AREA`, `F.SALES.PRICE`
 
 **Почему так:** Выручка по подписанным договорам (с НДС, если продукт облагается)
@@ -631,8 +895,17 @@ value[k,t] = sold[k,t] × price[k,t]
 ### `F.SALES.CASH_IN` — Поступления от покупателей по графику оплат
 **Единица:** руб · **Размерность:** k, p, t · **Статус:** verified
 ```
-cash_in[t] = Σ_{τ<=t} value[τ] × ( (mortgage_share + full_share) × 1{t=τ} + installment_share × ( down × 1{t=τ} + (1−down)/n × 1{τ < t <= τ+n} ) ), n = installment_months
+cash_in[t] = Σ_{τ<=t} value[τ] × ( (mortgage_share + full_share) × 1{t = τ} + installment_share × ( down × 1{t = τ} + (1 − down) / n × 1{τ < t <= τ + n} ) )
 ```
+
+**Пояснение:** Ипотека и 100% оплата поступают в месяце договора; по рассрочке в месяце договора — первый взнос, остаток — равными долями n месяцев.
+
+**Обозначения:**
+- `cash_in[t]` — результат: поступления от покупателей в месяце t, руб
+- `value[τ]` — стоимость договоров месяца τ (F.SALES.CONTRACT_VALUE), руб
+- `mortgage_share, full_share, installment_share` — доли ипотеки, 100% оплаты и рассрочки (SALES.PAYMENT_MIX)
+- `down` — первый взнос по рассрочке, доля (SALES.PAYMENT_MIX)
+- `n` — срок рассрочки, мес (SALES.PAYMENT_MIX: installment_months)
 **Зависит от:** `F.SALES.CONTRACT_VALUE`, `SALES.PAYMENT_MIX`
 
 **Почему так:** Ипотека и 100% оплата поступают в месяц сделки; рассрочка — первоначальный взнос + равные платежи. Проверка: сумма долей = 1
@@ -649,6 +922,11 @@ cash_in[t] = Σ_{τ<=t} value[τ] × ( (mortgage_share + full_share) × 1{t=τ} 
 ```
 wavg_price[k] = Σ_t value[k,t] / Σ_t sold[k,t]
 ```
+
+**Обозначения:**
+- `wavg_price[k]` — результат: средневзвешенная цена продукта k, руб/м²
+- `value[k,t]` — стоимость договоров (F.SALES.CONTRACT_VALUE)
+- `sold[k,t]` — продано (F.SALES.SOLD_AREA)
 **Зависит от:** `F.SALES.CONTRACT_VALUE`, `F.SALES.SOLD_AREA`
 
 **Почему так:** Средняя цена должна учитывать объёмы продаж в каждом периоде
@@ -663,8 +941,12 @@ wavg_price[k] = Σ_t value[k,t] / Σ_t sold[k,t]
 ### `F.SALES.END_PRICE` — Цена в конце продаж
 **Единица:** руб/м2 · **Размерность:** k · **Статус:** verified
 ```
-end_price[k] = price[k, t_last_sale[k]], t_last_sale — последний месяц с sold > 0
+end_price[k] = price[k, t_last_sale[k]]
 ```
+
+**Обозначения:**
+- `end_price[k]` — результат: цена продукта k в последнем месяце продаж, руб/м²
+- `t_last_sale[k]` — последний месяц, в котором sold > 0
 **Зависит от:** `F.SALES.PRICE`, `F.SALES.SOLD_AREA`
 
 **Почему так:** Фактический последний месяц продаж
@@ -679,8 +961,15 @@ end_price[k] = price[k, t_last_sale[k]], t_last_sale — последний ме
 ### `F.SALES.REVENUE_TOTAL` — Выручка итого (с НДС) и без НДС
 **Единица:** руб · **Размерность:** скаляр · **Статус:** verified
 ```
-revenue_gross = Σ_{k,t} value[k,t];  revenue_net = revenue_gross − Σ output_vat
+revenue_gross = Σ_{k,t} value[k,t]
+revenue_net   = revenue_gross − Σ output_vat
 ```
+
+**Обозначения:**
+- `revenue_gross` — результат: выручка с НДС, руб
+- `revenue_net` — результат: выручка без НДС, руб
+- `value[k,t]` — стоимость договоров (F.SALES.CONTRACT_VALUE)
+- `output_vat` — НДС с реализации (F.TAX.OUTPUT_VAT)
 **Зависит от:** `F.SALES.CONTRACT_VALUE`, `F.TAX.OUTPUT_VAT`
 
 **Почему так:** Итог плана продаж = итог выручки в CF (CHECK.REVENUE_EQ_CF)
@@ -697,8 +986,12 @@ revenue_gross = Σ_{k,t} value[k,t];  revenue_net = revenue_gross − Σ output_
 ### `F.ESC.DEPOSIT` — Пополнение эскроу
 **Единица:** руб · **Размерность:** p, t · **Статус:** verified
 ```
-deposit[p,t] = Σ_k cash_in[k,p,t] по договорам ДДУ (заключённым при flag_ddu)
+deposit[p,t] = Σ_k cash_in_ddu[k,p,t]
 ```
+
+**Обозначения:**
+- `deposit[p,t]` — результат: поступления на эскроу очереди p в месяце t, руб
+- `cash_in_ddu[k,p,t]` — поступления по договорам ДДУ — заключённым в месяцы с flag_ddu = 1 (F.SALES.CASH_IN)
 **Зависит от:** `F.SALES.CASH_IN`, `F.TIME.FLAG_PRESALE`
 
 **Почему так:** Все платежи по ДДУ, включая рассрочку, поступают на эскроу (ст.15.4 214-ФЗ)
@@ -710,8 +1003,18 @@ deposit[p,t] = Σ_k cash_in[k,p,t] по договорам ДДУ (заключ�
 ### `F.ESC.BALANCE` — Остаток на эскроу на конец месяца
 **Единица:** руб · **Размерность:** p, t · **Статус:** verified
 ```
-esc_bal[p,t] = esc_bal[p,t-1] + deposit[p,t] − release[p,t];  release[p,t] = flag_release[p,t] × (esc_bal[p,t-1] + deposit[p,t]) + 1{t > t_release[p]} × deposit[p,t]
+esc_bal[p,t] = esc_bal[p,t−1] + deposit[p,t] − release[p,t]
+release[p,t] = flag_release[p,t] × (esc_bal[p,t−1] + deposit[p,t]) + 1{ t > t_release[p] } × deposit[p,t]
 ```
+
+**Пояснение:** В месяц раскрытия застройщику передаётся весь остаток; поступления после раскрытия передаются в том же месяце.
+
+**Обозначения:**
+- `esc_bal[p,t]` — результат: остаток на эскроу очереди p на конец месяца, руб
+- `deposit[p,t]` — пополнение эскроу (F.ESC.DEPOSIT)
+- `release[p,t]` — раскрытие — передача средств застройщику, руб
+- `flag_release[p,t]` — флаг месяца раскрытия (F.TIME.FLAG_ESCROW_RELEASE)
+- `t_release[p]` — месяц раскрытия эскроу очереди p
 **Зависит от:** `F.ESC.DEPOSIT`, `F.TIME.FLAG_ESCROW_RELEASE`
 
 **Почему так:** Раскрытие по очереди; платежи рассрочки после раскрытия проходят «транзитом» и раскрываются в том же месяце
@@ -726,8 +1029,16 @@ esc_bal[p,t] = esc_bal[p,t-1] + deposit[p,t] − release[p,t];  release[p,t] = f
 ### `F.ESC.COVERAGE` — Покрытие долга остатками эскроу
 **Единица:** доля · **Размерность:** t · **Статус:** verified
 ```
-coverage[t] = Σ_p esc_bal_avg[p,t] × (1 − FIN.ESCROW_RESERVE_RATE) / (debt_avg[t] + accrued_interest[t-1]),  esc_bal_avg = (bal[t-1]+bal[t])/2
+coverage[t]  = Σ_p esc_bal_avg[p,t] × (1 − FIN.ESCROW_RESERVE_RATE) / (debt_avg[t] + accrued_interest[t−1])
+esc_bal_avg  = (esc_bal[t−1] + esc_bal[t]) / 2
 ```
+
+**Обозначения:**
+- `coverage[t]` — результат: покрытие долга остатками эскроу, доля
+- `esc_bal_avg[p,t]` — средний остаток эскроу за месяц
+- `esc_bal` — остаток эскроу (F.ESC.BALANCE)
+- `debt_avg[t]` — средний остаток основного долга (F.FIN.DEBT)
+- `accrued_interest[t−1]` — накопленные проценты на конец прошлого месяца (F.FIN.INTEREST)
 **Зависит от:** `F.ESC.BALANCE`, `F.FIN.DEBT`, `F.FIN.INTEREST`
 
 **Значение за прошлый месяц (t−1):** `F.FIN.DEBT`, `F.FIN.INTEREST`
@@ -743,8 +1054,12 @@ coverage[t] = Σ_p esc_bal_avg[p,t] × (1 − FIN.ESCROW_RESERVE_RATE) / (debt_a
 ### `F.FIN.EQUITY_REQUIRED` — Требуемое собственное участие
 **Единица:** руб · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-equity_req = FIN.EQUITY_SHARE × capex_total (включая стоимость участка)
+equity_req = FIN.EQUITY_SHARE × capex_total
 ```
+
+**Обозначения:**
+- `equity_req` — результат: требуемое собственное участие, руб
+- `capex_total` — итого бюджет, включая стоимость участка (F.CAPEX.TOTAL), руб
 **Зависит от:** `FIN.EQUITY_SHARE`, `F.CAPEX.TOTAL`
 
 **Почему так:** Банк требует внести собственные средства ДО первой выборки кредита; земля обычно засчитывается в собственное участие
@@ -761,6 +1076,16 @@ equity_req = FIN.EQUITY_SHARE × capex_total (включая стоимость 
 ```
 need[t] = MAX(0, capex_cash[t] + opex_cash[t] + taxes_paid[t] + fees[t] − dkp_cash[t] − released_to_developer[t] − cash_bal[t-1])
 ```
+
+**Обозначения:**
+- `need[t]` — результат: потребность в финансировании месяца t, руб
+- `capex_cash[t]` — платежи по бюджету в месяце: Σ_i item_cash[i,t] (F.CAPEX.ITEM_CASH)
+- `opex_cash[t]` — коммерческие и управленческие расходы месяца
+- `taxes_paid[t]` — налоговые платежи (F.TAX.PAYMENTS)
+- `fees[t]` — комиссии банка (F.FIN.FEES)
+- `dkp_cash[t]` — поступления по ДКП (мимо эскроу)
+- `released_to_developer[t]` — средства, переданные застройщику после погашения долга
+- `cash_bal[t−1]` — остаток денег на конец прошлого месяца (F.CF.CASH_BALANCE)
 **Зависит от:** `F.CAPEX.ITEM_CASH`, `F.TAX.PAYMENTS`, `F.ESC.BALANCE`
 
 **Значение за прошлый месяц (t−1):** `F.TAX.PAYMENTS`
@@ -774,8 +1099,19 @@ need[t] = MAX(0, capex_cash[t] + opex_cash[t] + taxes_paid[t] + fees[t] − dkp_
 ### `F.FIN.EQUITY_IN` — Взнос собственного капитала
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-equity_in[t] = MIN(need[t], equity_req − Σ_{τ<t} equity_in[τ]) пока накопленный взнос < equity_req; после первой выборки — только на покрытие дефицита вне лимита (cash gap)
+ЕСЛИ Σ_{τ<t} equity_in[τ] < equity_req:
+  equity_in[t] = MIN( need[t], equity_req − Σ_{τ<t} equity_in[τ] )
+ИНАЧЕ (после первой выборки кредита):
+  equity_in[t] = cash_gap[t]
 ```
+
+**Пояснение:** Сначала акционер вносит требуемое собственное участие; после первой выборки кредита — только на покрытие дефицита вне лимита (cash gap).
+
+**Обозначения:**
+- `equity_in[t]` — результат: взнос акционера в месяце t, руб
+- `need[t]` — потребность в финансировании (F.FIN.FUNDING_NEED)
+- `equity_req` — требуемое собственное участие (F.FIN.EQUITY_REQUIRED)
+- `cash_gap[t]` — дефицит денег сверх лимита кредита
 **Зависит от:** `F.FIN.FUNDING_NEED`, `F.FIN.EQUITY_REQUIRED`
 
 **Почему так:** Очерёдность: собственные средства → кредит
@@ -787,8 +1123,15 @@ equity_in[t] = MIN(need[t], equity_req − Σ_{τ<t} equity_in[τ]) пока н�
 ### `F.FIN.LIMIT` — Лимит проектного финансирования
 **Единица:** руб · **Размерность:** скаляр · **Статус:** verified
 ```
-limit = capex_total_financeable − equity_req  (без капитализированных процентов — они учитываются отдельно как PIK)
+limit = capex_total_financeable − equity_req
 ```
+
+**Пояснение:** Капитализированные проценты в лимит не входят — они учитываются отдельно (PIK).
+
+**Обозначения:**
+- `limit` — результат: лимит проектного финансирования, руб
+- `capex_total_financeable` — затраты проекта, принимаемые банком к финансированию, руб
+- `equity_req` — требуемое собственное участие (F.FIN.EQUITY_REQUIRED)
 **Зависит от:** `F.CAPEX.TOTAL`, `F.FIN.EQUITY_REQUIRED`
 
 **Почему так:** Лимит покрывает бюджет за вычетом собственного участия; проценты капитализируются и гасятся при раскрытии эскроу — как в исходнике (строки 107–110)
@@ -805,6 +1148,14 @@ limit = capex_total_financeable − equity_req  (без капитализиро
 ```
 draw[t] = MIN(need[t] − equity_in[t], limit − Σ_{τ<t} draw[τ]) × 1{ Σ equity_in >= equity_req } × 1{ t < t_release_last }
 ```
+
+**Обозначения:**
+- `draw[t]` — результат: выборка кредита в месяце t, руб
+- `need[t]` — потребность в финансировании (F.FIN.FUNDING_NEED)
+- `equity_in[t]` — взнос акционера (F.FIN.EQUITY_IN)
+- `limit` — лимит кредита (F.FIN.LIMIT)
+- `equity_req` — требуемое собственное участие
+- `t_release_last` — месяц раскрытия эскроу последней очереди
 **Зависит от:** `F.FIN.FUNDING_NEED`, `F.FIN.EQUITY_IN`, `F.FIN.LIMIT`
 
 **Почему так:** Выборка после внесения собственного участия и в пределах лимита
@@ -816,8 +1167,23 @@ draw[t] = MIN(need[t] − equity_in[t], limit − Σ_{τ<t} draw[τ]) × 1{ Σ e
 ### `F.FIN.RATE` — Текущая ставка ПФ
 **Единица:** %годовых · **Размерность:** t · **Статус:** verified
 ```
-K1[t] = MIN(coverage[t-1], 1);  K2[t] = 1 − K1[t];  base_rate[t] = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD;  SkR[t] = MAX((esc − (debt+accr))/(debt+accr) × FIN.RATE_DISCOUNT_COEF, 0);  rate[t] = MAX(FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN)
+K1[t]        = MIN( coverage[t−1], 1 )
+K2[t]        = 1 − K1[t]
+base_rate[t] = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD
+SkR[t]       = MAX( (esc − (debt + accr)) / (debt + accr) × FIN.RATE_DISCOUNT_COEF, 0 )
+rate[t]      = MAX( FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN )
 ```
+
+**Обозначения:**
+- `rate[t]` — результат: ставка проектного финансирования в месяце t, % год.
+- `K1[t]` — доля долга, покрытая эскроу (льготная ставка)
+- `K2[t]` — доля долга, не покрытая эскроу (базовая ставка)
+- `coverage[t−1]` — покрытие долга эскроу за прошлый месяц (F.ESC.COVERAGE)
+- `base_rate[t]` — базовая ставка: ключевая + спред
+- `SkR[t]` — скидка к ставке при избыточном покрытии эскроу
+- `esc` — остаток на эскроу
+- `debt` — основной долг
+- `accr` — накопленные проценты
 **Зависит от:** `F.ESC.COVERAGE`, `FIN.KEY_RATE_PATH`, `FIN.RATE_BASE_SPREAD`, `FIN.RATE_PREFERENTIAL`, `FIN.RATE_DISCOUNT_COEF`, `FIN.RATE_MIN`
 
 **Значение за прошлый месяц (t−1):** `F.ESC.COVERAGE`
@@ -836,8 +1202,18 @@ K1[t] = MIN(coverage[t-1], 1);  K2[t] = 1 − K1[t];  base_rate[t] = FIN.KEY_RAT
 ### `F.FIN.INTEREST` — Проценты начисленные (капитализируемые)
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-interest[t] = ( (debt[t-1] + (debt[t-1] + draw[t]))/2 + accrued[t-1] ) × rate[t] × days[t] / 365;  accrued[t] = accrued[t-1] + interest[t] − interest_paid[t]
+interest[t] = ( (debt[t−1] + (debt[t−1] + draw[t])) / 2 + accrued[t−1] ) × rate[t] × days[t] / 365
+accrued[t]  = accrued[t−1] + interest[t] − interest_paid[t]
 ```
+
+**Обозначения:**
+- `interest[t]` — результат: проценты, начисленные за месяц t, руб
+- `accrued[t]` — накопленные неоплаченные проценты на конец месяца
+- `debt[t]` — основной долг (F.FIN.DEBT)
+- `draw[t]` — выборка (F.FIN.DRAW)
+- `rate[t]` — ставка (F.FIN.RATE)
+- `days[t]` — дней в месяце (F.TIME.DAYS)
+- `interest_paid[t]` — проценты, погашенные в месяце (F.FIN.REPAYMENT)
 **Зависит от:** `F.FIN.RATE`, `F.FIN.DRAW`, `F.TIME.DAYS`
 
 **Почему так:** Методика исходника (строка 107) сохранена: проценты на средний долг + начисленные ранее (сложный процент при капитализации)
@@ -849,8 +1225,21 @@ interest[t] = ( (debt[t-1] + (debt[t-1] + draw[t]))/2 + accrued[t-1] ) × rate[t
 ### `F.FIN.REPAYMENT` — Погашение долга и процентов
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-from_escrow[t] = MIN(Σ_p release[p,t], debt[t-1] + draw[t] + accrued[t]) — сначала проценты, затем тело;  from_dkp[t] = MIN(dkp_cash[t] (100% sweep), остаток долга) после t_release;  debt[t] = debt[t-1] + draw[t] − principal_repaid[t]
+from_escrow[t] = MIN( Σ_p release[p,t], debt[t−1] + draw[t] + accrued[t] )
+from_dkp[t]    = MIN( dkp_cash[t], debt_left[t] ) × 1{ t > t_release }
+debt[t]        = debt[t−1] + draw[t] − principal_repaid[t]
 ```
+
+**Пояснение:** Из раскрытого эскроу сначала гасятся проценты, затем основной долг. После раскрытия эскроу поступления по ДКП полностью идут на погашение (100% sweep).
+
+**Обозначения:**
+- `from_escrow[t]` — погашение за счёт раскрытого эскроу, руб
+- `from_dkp[t]` — погашение за счёт поступлений по ДКП, руб
+- `release[p,t]` — раскрытие эскроу (F.ESC.BALANCE)
+- `dkp_cash[t]` — поступления по ДКП
+- `debt_left[t]` — остаток долга с процентами после погашения из эскроу
+- `t_release` — месяц раскрытия эскроу
+- `principal_repaid[t]` — погашенный основной долг
 **Зависит от:** `F.ESC.BALANCE`, `F.FIN.DRAW`, `F.FIN.INTEREST`, `F.SALES.CASH_IN`
 
 **Почему так:** ч.6 ст.15.5 214-ФЗ позволяет направлять средства эскроу в погашение кредита; остаток долга гасится из ДКП
@@ -865,8 +1254,15 @@ from_escrow[t] = MIN(Σ_p release[p,t], debt[t-1] + draw[t] + accrued[t]) — с
 ### `F.FIN.DEBT` — Остаток основного долга
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-debt[t] = debt[t-1] + draw[t] − principal_repaid[t];  debt_avg[t] = (debt[t-1] + debt[t-1] + draw[t]) / 2
+debt[t]     = debt[t−1] + draw[t] − principal_repaid[t]
+debt_avg[t] = (debt[t−1] + debt[t−1] + draw[t]) / 2
 ```
+
+**Обозначения:**
+- `debt[t]` — результат: остаток основного долга на конец месяца, руб
+- `debt_avg[t]` — средний долг за месяц (выборка — в середине месяца)
+- `draw[t]` — выборка (F.FIN.DRAW)
+- `principal_repaid[t]` — погашение основного долга (F.FIN.REPAYMENT)
 **Зависит от:** `F.FIN.DRAW`, `F.FIN.REPAYMENT`
 
 **Значение за прошлый месяц (t−1):** `F.FIN.REPAYMENT`
@@ -880,8 +1276,17 @@ debt[t] = debt[t-1] + draw[t] − principal_repaid[t];  debt_avg[t] = (debt[t-1]
 ### `F.FIN.FEES` — Комиссии банка
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-fee_arr[t] = FIN.FEE_ARRANGEMENT × limit × 1{t = t_first_draw};  fee_commit[t] = FIN.FEE_COMMIT × (limit − Σ draw) × days[t]/365 × 1{availability}
+fee_arr[t]    = FIN.FEE_ARRANGEMENT × limit × 1{ t = t_first_draw }
+fee_commit[t] = FIN.FEE_COMMIT × (limit − Σ draw) × days[t] / 365 × 1{ availability }
 ```
+
+**Обозначения:**
+- `fee_arr[t]` — комиссия за выдачу — в месяц первой выборки, руб
+- `fee_commit[t]` — комиссия за неиспользованный лимит, руб
+- `limit` — лимит кредита (F.FIN.LIMIT)
+- `t_first_draw` — месяц первой выборки
+- `availability` — месяц t входит в период доступности лимита
+- `days[t]` — дней в месяце (F.TIME.DAYS)
 **Зависит от:** `F.FIN.LIMIT`, `F.FIN.DRAW`, `FIN.FEE_ARRANGEMENT`, `FIN.FEE_COMMITMENT`
 
 **Почему так:** Стандартные комиссии кредитного договора
@@ -896,8 +1301,16 @@ fee_arr[t] = FIN.FEE_ARRANGEMENT × limit × 1{t = t_first_draw};  fee_commit[t]
 ### `F.FIN.EFFECTIVE_RATE` — Эффективная стоимость кредита
 **Единица:** %годовых · **Размерность:** скаляр · **Статус:** verified
 ```
-eff_rate = XIRR( bank_flow[t] = draw[t] − repaid_principal[t] − interest_paid[t] − fees[t] (с позиции банка знак обратный), date[t] )
+bank_flow[t] = draw[t] − repaid_principal[t] − interest_paid[t] − fees[t]
+eff_rate     = XIRR( bank_flow[t], date[t] )
 ```
+
+**Пояснение:** С позиции банка знак потока обратный.
+
+**Обозначения:**
+- `eff_rate` — результат: эффективная стоимость кредита, % год.
+- `bank_flow[t]` — денежный поток по кредиту в месяце t
+- `XIRR` — внутренняя норма доходности по датам потоков
 **Зависит от:** `F.FIN.DRAW`, `F.FIN.REPAYMENT`, `F.FIN.FEES`
 
 **Почему так:** XIRR по датам — корректен при неравных периодах
@@ -914,8 +1327,14 @@ eff_rate = XIRR( bank_flow[t] = draw[t] − repaid_principal[t] − interest_pai
 ### `F.TAX.OUTPUT_VAT` — НДС с реализации
 **Единица:** руб · **Размерность:** k, t · **Статус:** needs_verification
 ```
-output_vat[k,t] = value[k,t] × TAX.VAT_RATE / (1 + TAX.VAT_RATE) × taxable(k, channel(t));  taxable — из TAX.VAT_REGIME
+output_vat[k,t] = value[k,t] × TAX.VAT_RATE / (1 + TAX.VAT_RATE) × taxable(k, channel(t))
 ```
+
+**Обозначения:**
+- `output_vat[k,t]` — результат: НДС с реализации продукта k в месяце t, руб
+- `value[k,t]` — стоимость договоров (F.SALES.CONTRACT_VALUE)
+- `taxable(k, channel)` — 1, если продажа продукта k по этому каналу облагается НДС (по TAX.VAT_REGIME), иначе 0
+- `channel(t)` — канал продаж в месяце t: ДДУ или ДКП
 **Зависит от:** `F.SALES.CONTRACT_VALUE`, `TAX.VAT_RATE`, `TAX.VAT_REGIME`
 
 **Почему так:** Цена в договоре включает НДС → выделение 22/122. Облагаются только продукты/каналы из таблицы режима
@@ -932,8 +1351,15 @@ output_vat[k,t] = value[k,t] × TAX.VAT_RATE / (1 + TAX.VAT_RATE) × taxable(k, 
 ### `F.TAX.INPUT_VAT_SHARE` — Доля входящего НДС к вычету
 **Единица:** доля · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-input_share = TAX.INPUT_VAT_RECOVERABLE ?? (Σ облагаемая выручка без НДС / Σ вся выручка без НДС)
+input_share = TAX.INPUT_VAT_RECOVERABLE ?? ( taxable_revenue_net / revenue_net )
 ```
+
+**Пояснение:** Знак «??»: если доля задана вручную — берётся она, иначе — пропорция облагаемой выручки.
+
+**Обозначения:**
+- `input_share` — результат: доля входящего НДС к вычету
+- `taxable_revenue_net` — облагаемая НДС выручка без НДС за весь проект
+- `revenue_net` — вся выручка без НДС
 **Зависит от:** `TAX.INPUT_VAT_RECOVERABLE`, `F.TAX.OUTPUT_VAT`, `F.SALES.REVENUE_TOTAL`
 
 **Почему так:** Раздельный учёт (п.4 ст.170 НК РФ): НДС по освобождённым операциям включается в стоимость
@@ -943,8 +1369,17 @@ input_share = TAX.INPUT_VAT_RECOVERABLE ?? (Σ облагаемая выручк
 ### `F.TAX.VAT_PAYABLE` — НДС к уплате / возмещению
 **Единица:** руб · **Размерность:** quarter · **Статус:** needs_verification
 ```
-vat_q = Σ_{t∈q} output_vat[t] − Σ_{t∈q} input_vat[t] × input_share;  уплата — равными долями в 3 месяца, следующих за кварталом (vat_q > 0); возмещение — через 3 месяца после квартала (vat_q < 0)
+vat_q = Σ_{t∈q} output_vat[t] − Σ_{t∈q} input_vat[t] × input_share
 ```
+
+**Пояснение:** Если vat_q > 0 — НДС уплачивается равными долями в течение трёх месяцев, следующих за кварталом. Если vat_q < 0 — возмещение через три месяца после квартала.
+
+**Обозначения:**
+- `vat_q` — результат: НДС к уплате (+) или возмещению (−) за квартал q, руб
+- `q` — квартал
+- `output_vat[t]` — НДС с реализации (F.TAX.OUTPUT_VAT)
+- `input_vat[t]` — входящий НДС по затратам
+- `input_share` — доля к вычету (F.TAX.INPUT_VAT_SHARE)
 **Зависит от:** `F.TAX.OUTPUT_VAT`, `F.CAPEX.ITEM_CASH`, `F.TAX.INPUT_VAT_SHARE`
 
 **Почему так:** Налоговый период по НДС — квартал; порядок уплаты — ст.174 НК РФ
@@ -959,8 +1394,24 @@ vat_q = Σ_{t∈q} output_vat[t] − Σ_{t∈q} input_vat[t] × input_share;  у
 ### `F.TAX.PROFIT_BASE` — Налоговая база по налогу на прибыль
 **Единица:** руб · **Размерность:** t · **Статус:** needs_verification
 ```
-ДДУ: economy[p] = Σ средства ДДУ очереди p без НДС − затраты на передаваемые объекты очереди p (распределение общих затрат пропорционально продаваемой площади); признаётся в месяце handover_end[p]. ДКП: profit_dkp[t] = выручка ДКП без НДС − себестоимость проданных площадей (средняя себестоимость м² × проданная площадь) в месяце продажи. Прочие расходы, не относящиеся к целевому финансированию, — в периоде возникновения. base[t] = economy × 1{t = handover_end} + profit_dkp[t] − other_expenses[t]
+base[t]       = economy[p] × 1{ t = handover_end[p] } + profit_dkp[t] − other_expenses[t]
+economy[p]    = ddu_funds_net[p] − cost_transferred[p]
+profit_dkp[t] = dkp_revenue_net[t] − avg_cost_m2 × dkp_sold_area[t]
 ```
+
+**Пояснение:** Экономия по ДДУ признаётся в месяце окончания передачи очереди; общие затраты распределяются между очередями пропорционально продаваемой площади. Прибыль по ДКП — в месяце продажи. Прочие расходы, не относящиеся к целевому финансированию, — в периоде возникновения.
+
+**Обозначения:**
+- `base[t]` — результат: налоговая база по налогу на прибыль в месяце t, руб
+- `economy[p]` — экономия застройщика по ДДУ очереди p
+- `ddu_funds_net[p]` — средства дольщиков очереди p без НДС
+- `cost_transferred[p]` — затраты на передаваемые объекты очереди p
+- `handover_end[p]` — окончание передачи ключей очереди p
+- `profit_dkp[t]` — прибыль от продаж по ДКП
+- `dkp_revenue_net[t]` — выручка по ДКП без НДС
+- `avg_cost_m2` — средняя себестоимость 1 м²
+- `dkp_sold_area[t]` — площадь, проданная по ДКП
+- `other_expenses[t]` — прочие расходы вне целевого финансирования
 **Зависит от:** `F.SALES.CONTRACT_VALUE`, `F.CAPEX.TOTAL`, `F.FIN.INTEREST`, `TIME.MILESTONES`
 
 **Значение за прошлый месяц (t−1):** `F.FIN.INTEREST`
@@ -978,8 +1429,18 @@ vat_q = Σ_{t∈q} output_vat[t] − Σ_{t∈q} input_vat[t] × input_share;  у
 ### `F.TAX.PROFIT_TAX` — Налог на прибыль с учётом переноса убытков
 **Единица:** руб · **Размерность:** year · **Статус:** needs_verification
 ```
-loss_used[y] = MIN(loss_cf[y-1], MAX(base[y],0) × TAX.LOSS_CARRYFORWARD_LIMIT);  tax[y] = (MAX(base[y],0) − loss_used[y]) × TAX.PROFIT_RATE;  loss_cf[y] = loss_cf[y-1] − loss_used[y] + MAX(−base[y],0);  уплата — в марте следующего года (упрощение; авансовые платежи — опция)
+loss_used[y] = MIN( loss_cf[y−1], MAX(base[y], 0) × TAX.LOSS_CARRYFORWARD_LIMIT )
+tax[y]       = ( MAX(base[y], 0) − loss_used[y] ) × TAX.PROFIT_RATE
+loss_cf[y]   = loss_cf[y−1] − loss_used[y] + MAX(−base[y], 0)
 ```
+
+**Пояснение:** Налог уплачивается в марте следующего года (упрощение; авансовые платежи — опция).
+
+**Обозначения:**
+- `tax[y]` — результат: налог на прибыль за год y, руб
+- `base[y]` — налоговая база за год (F.TAX.PROFIT_BASE)
+- `loss_used[y]` — убытки прошлых лет, зачтённые в году y
+- `loss_cf[y]` — непогашенные убытки на конец года
 **Зависит от:** `F.TAX.PROFIT_BASE`, `TAX.PROFIT_RATE`, `TAX.LOSS_CARRYFORWARD_LIMIT`
 
 **Почему так:** Ставка 25% (ст.284), ограничение переноса убытков (ст.283)
@@ -993,6 +1454,12 @@ loss_used[y] = MIN(loss_cf[y-1], MAX(base[y],0) × TAX.LOSS_CARRYFORWARD_LIMIT);
 ```
 taxes_paid[t] = vat_paid[t] − vat_refund[t] + profit_tax_paid[t] + land_pay[t]
 ```
+
+**Обозначения:**
+- `taxes_paid[t]` — результат: налоговые платежи месяца t, руб
+- `vat_paid, vat_refund` — уплата и возмещение НДС (F.TAX.VAT_PAYABLE)
+- `profit_tax_paid[t]` — уплата налога на прибыль (F.TAX.PROFIT_TAX)
+- `land_pay[t]` — земельный налог или аренда (F.LAND.TAX_OR_RENT)
 **Зависит от:** `F.TAX.VAT_PAYABLE`, `F.TAX.PROFIT_TAX`, `F.LAND.TAX_OR_RENT`
 
 **Почему так:** Единая строка налогов в CF
@@ -1011,6 +1478,13 @@ taxes_paid[t] = vat_paid[t] − vat_refund[t] + profit_tax_paid[t] + land_pay[t]
 ```
 cfads[t] = Σ_p release[p,t] + dkp_cash[t] − Σ_i item_cash[i,t] − taxes_paid[t]
 ```
+
+**Обозначения:**
+- `cfads[t]` — результат: денежный поток проекта до финансирования, руб
+- `release[p,t]` — раскрытие эскроу (F.ESC.BALANCE)
+- `dkp_cash[t]` — поступления по ДКП
+- `item_cash[i,t]` — платежи по бюджету (F.CAPEX.ITEM_CASH)
+- `taxes_paid[t]` — налоги (F.TAX.PAYMENTS)
 **Зависит от:** `F.ESC.BALANCE`, `F.SALES.CASH_IN`, `F.CAPEX.ITEM_CASH`, `F.TAX.PAYMENTS`
 
 **Почему так:** Деньги дольщиков доступны застройщику только после раскрытия эскроу — поэтому в CFADS входит раскрытие, а не продажи
@@ -1025,8 +1499,17 @@ cfads[t] = Σ_p release[p,t] + dkp_cash[t] − Σ_i item_cash[i,t] − taxes_pai
 ### `F.CF.FCFE` — Денежный поток акционера
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-fcfe[t] = cfads[t] + draw[t] − principal_repaid[t] − interest_paid[t] − fees[t];  отрицательные значения = взносы акционера (equity_in + cash gap), положительные = распределения
+fcfe[t] = cfads[t] + draw[t] − principal_repaid[t] − interest_paid[t] − fees[t]
 ```
+
+**Пояснение:** Отрицательные значения — взносы акционера (equity_in и cash gap), положительные — распределения акционеру.
+
+**Обозначения:**
+- `fcfe[t]` — результат: денежный поток акционера, руб
+- `cfads[t]` — поток проекта (F.CF.CFADS)
+- `draw[t]` — выборка (F.FIN.DRAW)
+- `principal_repaid[t], interest_paid[t]` — погашение долга и процентов (F.FIN.REPAYMENT)
+- `fees[t]` — комиссии (F.FIN.FEES)
 **Зависит от:** `F.CF.CFADS`, `F.FIN.DRAW`, `F.FIN.REPAYMENT`, `F.FIN.FEES`
 
 **Почему так:** Стандартное определение FCFE
@@ -1041,8 +1524,16 @@ fcfe[t] = cfads[t] + draw[t] − principal_repaid[t] − interest_paid[t] − fe
 ### `F.CF.CASH_BALANCE` — Остаток денежных средств
 **Единица:** руб · **Размерность:** t · **Статус:** verified
 ```
-cash[t] = cash[t-1] + fcfe[t] + equity_in[t] − distributions[t];  CHECK: cash[t] >= 0, иначе cash_gap[t] = −cash[t] покрывается акционером
+cash[t] = cash[t−1] + fcfe[t] + equity_in[t] − distributions[t]
 ```
+
+**Пояснение:** Проверка: cash[t] >= 0. Если остаток отрицательный, дефицит cash_gap[t] = −cash[t] покрывает акционер.
+
+**Обозначения:**
+- `cash[t]` — результат: остаток денежных средств на конец месяца, руб
+- `fcfe[t]` — поток акционера (F.CF.FCFE)
+- `equity_in[t]` — взнос акционера (F.FIN.EQUITY_IN)
+- `distributions[t]` — выплаты акционеру
 **Зависит от:** `F.CF.FCFE`, `F.FIN.EQUITY_IN`
 
 **Почему так:** Разрыв ликвидности должен быть виден явно
@@ -1058,6 +1549,9 @@ cash[t] = cash[t-1] + fcfe[t] + equity_in[t] − distributions[t];  CHECK: cash[
 ```
 r = VAL.RISK_FREE + VAL.EQUITY_PREMIUM
 ```
+
+**Обозначения:**
+- `r` — результат: ставка дисконтирования, % год.
 **Зависит от:** `VAL.RISK_FREE`, `VAL.EQUITY_PREMIUM`
 
 **Почему так:** Кумулятивный подход: доходность ОФЗ + премия за риск; каждая часть имеет свой источник
@@ -1072,8 +1566,16 @@ r = VAL.RISK_FREE + VAL.EQUITY_PREMIUM
 ### `F.KPI.NPV` — NPV проекта и акционера
 **Единица:** руб · **Размерность:** скаляр · **Статус:** verified
 ```
-npv_project = Σ_t cfads[t] / (1+r)^((date[t] − GEN.VALUATION_DATE)/365);  npv_equity = то же для fcfe[t]
+npv_project = Σ_t cfads[t] / (1 + r)^((date[t] − GEN.VALUATION_DATE) / 365)
+npv_equity  = Σ_t fcfe[t]  / (1 + r)^((date[t] − GEN.VALUATION_DATE) / 365)
 ```
+
+**Обозначения:**
+- `npv_project` — результат: NPV проекта, руб
+- `npv_equity` — результат: NPV акционера, руб
+- `cfads[t]` — поток проекта (F.CF.CFADS)
+- `fcfe[t]` — поток акционера (F.CF.FCFE)
+- `r` — ставка дисконтирования (F.KPI.DISCOUNT_RATE)
 **Зависит от:** `F.CF.CFADS`, `F.CF.FCFE`, `F.KPI.DISCOUNT_RATE`, `GEN.VALUATION_DATE`
 
 **Почему так:** Дисконтирование по фактическим датам (XNPV)
@@ -1088,8 +1590,14 @@ npv_project = Σ_t cfads[t] / (1+r)^((date[t] − GEN.VALUATION_DATE)/365);  npv
 ### `F.KPI.IRR` — IRR проекта и акционера
 **Единица:** %годовых · **Размерность:** скаляр · **Статус:** verified
 ```
-irr_project = XIRR(cfads[t], date[t]);  irr_equity = XIRR(fcfe[t], date[t])
+irr_project = XIRR( cfads[t], date[t] )
+irr_equity  = XIRR( fcfe[t], date[t] )
 ```
+
+**Обозначения:**
+- `irr_project` — результат: IRR проекта
+- `irr_equity` — результат: IRR акционера
+- `XIRR` — внутренняя норма доходности по датам потоков
 **Зависит от:** `F.CF.CFADS`, `F.CF.FCFE`
 
 **Почему так:** IRR — ставка, обнуляющая NPV
@@ -1105,8 +1613,19 @@ irr_project = XIRR(cfads[t], date[t]);  irr_equity = XIRR(fcfe[t], date[t])
 ### `F.KPI.MARGIN` — Прибыль и маржа
 **Единица:** руб / доля · **Размерность:** скаляр · **Статус:** verified
 ```
-gross_profit = revenue_net − capex_total_net;  net_profit = gross_profit − Σ interest − Σ fees − Σ profit_tax;  gross_margin = gross_profit / revenue_net;  net_margin = net_profit / revenue_net;  ROI = net_profit / (capex_total_net + Σ interest)
+gross_profit = revenue_net − capex_total_net
+net_profit   = gross_profit − Σ interest − Σ fees − Σ profit_tax
+gross_margin = gross_profit / revenue_net
+net_margin   = net_profit / revenue_net
+ROI          = net_profit / (capex_total_net + Σ interest)
 ```
+
+**Обозначения:**
+- `revenue_net` — выручка без НДС (F.SALES.REVENUE_TOTAL)
+- `capex_total_net` — бюджет без НДС
+- `interest` — проценты (F.FIN.INTEREST)
+- `fees` — комиссии (F.FIN.FEES)
+- `profit_tax` — налог на прибыль (F.TAX.PROFIT_TAX)
 **Зависит от:** `F.SALES.REVENUE_TOTAL`, `F.CAPEX.TOTAL`, `F.FIN.INTEREST`, `F.TAX.PROFIT_TAX`
 
 **Почему так:** Недисконтированные показатели — с корректными названиями
@@ -1118,8 +1637,16 @@ gross_profit = revenue_net − capex_total_net;  net_profit = gross_profit − �
 ### `F.KPI.COST_PER_M2` — Себестоимость 1 м² продаваемой площади и наценка
 **Единица:** руб/м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-cost_m2 = (capex_total_net + Σ interest) / F.TEP.SALEABLE_AREA;  markup = wavg_price_all / cost_m2 − 1
+cost_m2 = (capex_total_net + Σ interest) / F.TEP.SALEABLE_AREA
+markup  = wavg_price_all / cost_m2 − 1
 ```
+
+**Обозначения:**
+- `cost_m2` — результат: себестоимость 1 м² продаваемой площади, руб
+- `markup` — результат: наценка к себестоимости, доля
+- `capex_total_net` — бюджет без НДС
+- `interest` — проценты (F.FIN.INTEREST)
+- `wavg_price_all` — средневзвешенная цена всех продаж (F.SALES.WAVG_PRICE)
 **Зависит от:** `F.CAPEX.TOTAL`, `F.FIN.INTEREST`, `F.TEP.SALEABLE_AREA`, `F.SALES.WAVG_PRICE`
 
 **Почему так:** Делитель — вся продаваемая площадь
@@ -1134,8 +1661,15 @@ cost_m2 = (capex_total_net + Σ interest) / F.TEP.SALEABLE_AREA;  markup = wavg_
 ### `F.KPI.PEAK_EQUITY` — Пиковая потребность в капитале и срок окупаемости
 **Единица:** руб / дата · **Размерность:** скаляр · **Статус:** verified
 ```
-peak_equity = −MIN_t Σ_{τ<=t} fcfe[τ];  payback_date = первая date[t] после пика, где Σ_{τ<=t} fcfe[τ] >= 0
+peak_equity  = −MIN_t Σ_{τ<=t} fcfe[τ]
+payback_date = MIN{ date[t] : t > t_peak,  Σ_{τ<=t} fcfe[τ] >= 0 }
 ```
+
+**Обозначения:**
+- `peak_equity` — результат: пиковая потребность в капитале акционера, руб
+- `payback_date` — результат: дата окупаемости
+- `t_peak` — месяц пика потребности
+- `fcfe[τ]` — поток акционера (F.CF.FCFE)
 **Зависит от:** `F.CF.FCFE`
 
 **Почему так:** Ключевые для инвестора показатели ликвидности
@@ -1145,8 +1679,18 @@ peak_equity = −MIN_t Σ_{τ<=t} fcfe[τ];  payback_date = первая date[t]
 ### `F.KPI.LTC_LTV` — LTC и LTV
 **Единица:** доля · **Размерность:** t · **Статус:** verified
 ```
-LTC[t] = (debt[t] + accrued[t]) / Σ_{τ<=t} capex_cash[τ];  LTV[t] = (debt[t] + accrued[t]) / market_value_unsold[t], market_value_unsold = остаток площадей × price[t]
+LTC[t]                 = (debt[t] + accrued[t]) / Σ_{τ<=t} capex_cash[τ]
+LTV[t]                 = (debt[t] + accrued[t]) / market_value_unsold[t]
+market_value_unsold[t] = unsold_area[t] × price[t]
 ```
+
+**Обозначения:**
+- `LTC[t]` — результат: долг к понесённым затратам
+- `LTV[t]` — результат: долг к рыночной стоимости непроданных площадей
+- `debt[t], accrued[t]` — основной долг и накопленные проценты (F.FIN.DEBT, F.FIN.INTEREST)
+- `capex_cash[τ]` — платежи по бюджету
+- `unsold_area[t]` — непроданный остаток площадей
+- `price[t]` — цена 1 м² (F.SALES.PRICE)
 **Зависит от:** `F.FIN.DEBT`, `F.FIN.INTEREST`, `F.CAPEX.ITEM_CASH`, `F.SALES.PRICE`
 
 **Почему так:** LTV — к рыночной стоимости активов (остаток площадей + эскроу), а не к дисконтированной стоимости капитала
@@ -1163,6 +1707,13 @@ LTC[t] = (debt[t] + accrued[t]) / Σ_{τ<=t} capex_cash[τ];  LTV[t] = (debt[t] 
 ```
 LLCR[t] = Σ_{τ>=t}^{t_maturity} cfads[τ] / (1 + rate_avg)^((date[τ]−date[t])/365) / (debt[t] + accrued[t])
 ```
+
+**Обозначения:**
+- `LLCR[t]` — результат: коэффициент покрытия долга за срок кредита
+- `cfads[τ]` — поток проекта (F.CF.CFADS)
+- `t_maturity` — месяц погашения кредита
+- `rate_avg` — средняя ставка кредита
+- `debt[t] + accrued[t]` — долг с процентами
 **Зависит от:** `F.CF.CFADS`, `F.FIN.RATE`, `F.FIN.DEBT`
 
 **Почему так:** Общепринятое определение в проектном финансировании: приведённый CFADS за оставшийся срок кредита / остаток долга. Минимальное значение по периодам — ковенант
@@ -1179,8 +1730,16 @@ LLCR[t] = Σ_{τ>=t}^{t_maturity} cfads[τ] / (1 + rate_avg)^((date[τ]−date[t
 ### `F.KPI.UNFORECASTED_REVENUE` — Выручка после РНВ (продажи по ДКП)
 **Единица:** руб / доля · **Размерность:** скаляр · **Статус:** verified
 ```
-dkp_revenue = Σ_t value[t] × flag_dkp[t];  dkp_share = dkp_revenue / revenue_gross
+dkp_revenue = Σ_t value[t] × flag_dkp[t]
+dkp_share   = dkp_revenue / revenue_gross
 ```
+
+**Обозначения:**
+- `dkp_revenue` — результат: выручка от продаж по ДКП, руб
+- `dkp_share` — результат: доля выручки после РНВ
+- `value[t]` — стоимость договоров (F.SALES.CONTRACT_VALUE)
+- `flag_dkp[t]` — флаг продаж по ДКП (F.TIME.FLAG_POST_RNV)
+- `revenue_gross` — выручка с НДС (F.SALES.REVENUE_TOTAL)
 **Зависит от:** `F.SALES.CONTRACT_VALUE`, `F.TIME.FLAG_POST_RNV`
 
 **Почему так:** Показатель риска: доля выручки, не участвующей в покрытии кредита эскроу
@@ -1198,28 +1757,40 @@ dkp_revenue = Σ_t value[t] × flag_dkp[t];  dkp_share = dkp_revenue / revenue_g
 **Единица:** bool · **Размерность:** скаляр · **Статус:** verified
 ```
 PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9
-SCHEDULE_SUM      : для каждой статьи |Σ_t w − 1| < 1e-9
+SCHEDULE_SUM      : |Σ_t w[i,t] − 1| < 1e-9 для каждой статьи i
 SOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]
-UNSOLD_AT_END     : остаток > 0 в последнем месяце → предупреждение
-REVENUE_EQ_CF     : Σ план продаж = Σ поступления (эскроу + ДКП) + дебиторка на конец
-BUDGET_EQ_CF      : Σ бюджет по статьям = Σ затрат в CF
+UNSOLD_AT_END     : remaining[k,T] > 0 → предупреждение
+REVENUE_EQ_CF     : Σ value = Σ поступлений (эскроу + ДКП) + дебиторка на конец
+BUDGET_EQ_CF      : Σ бюджета по статьям = Σ затрат в CF
 ESCROW_NONNEG     : esc_bal >= 0
 DEBT_LE_LIMIT     : Σ draw <= limit
 DEBT_REPAID       : debt[T] + accrued[T] = 0
-CASH_NONNEG       : cash[t] >= 0 (иначе cash gap)
-SOURCES_PRESENT   : у каждого параметра и формулы есть source_ids, у level 5 — автор и диапазон
-PARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) или override с вложенным документом
-NCS_DEVIATION     : |deviation| <= tolerance или есть обоснование
-APT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE (иначе предупреждение с разницей в м² и %)
-STAGE_INPUTS      : для стадии GEN.PROJECT_STAGE заполнены обязательные входы раздела TEP с документом
-GPZU_LIMITS       : F.CHECK.GPZU_LIMITS — превышение пределов ГПЗУ без решения об отклонении блокирует отчёт
-APART_ALLOWED     : F.TEP.APART_AREA > 0 → GPZU.APART_ALLOWED = true по вложенному ГПЗУ (иначе продукт «апартаменты» недоступен)
-GFA_SHARES_SUM    : стадия «оценка участка»: TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1
-UNDERGROUND_CAP   : F.CHECK.UNDERGROUND_CAPACITY — стадия «концепция»: ошибка / предупреждение по вместимости подземной части
-BENCH_MIN_COMPS   : выборка аналогов — не меньше BENCH.MARKET_MIN_COMPS или есть экспертное обоснование; пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS → скидка экспертная (уровень 5), без блокировки
-APT_MIX_SHARE_SUM : стадия «оценка участка»: |Σ_k area_share[k] − 1| < 1e-9
+CASH_NONNEG       : cash[t] >= 0, иначе cash gap
+SOURCES_PRESENT   : source_ids ≠ ∅ у каждого параметра и формулы; level 5 → автор и диапазон заданы
+PARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) ИЛИ override с документом
+NCS_DEVIATION     : |deviation| <= CAPEX.NCS_BENCH_TOLERANCE ИЛИ есть обоснование
+APT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE, иначе предупреждение
+STAGE_INPUTS      : обязательные входы TEP для GEN.PROJECT_STAGE заполнены и с документом
+GPZU_LIMITS       : F.CHECK.GPZU_LIMITS без превышений (или есть решение об отклонении)
+APART_ALLOWED     : F.TEP.APART_AREA > 0 → GPZU.APART_ALLOWED = да
+GFA_SHARES_SUM    : стадия «оценка участка» → TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1
+UNDERGROUND_CAP   : F.CHECK.UNDERGROUND_CAPACITY (стадия «концепция»)
+BENCH_MIN_COMPS   : число аналогов >= BENCH.MARKET_MIN_COMPS ИЛИ экспертное обоснование
+APT_MIX_SHARE_SUM : стадия «оценка участка» → |Σ_k area_share[k] − 1| < 1e-9
 PARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA
 ```
+
+**Пояснение:** Свод проверок модели. APART_ALLOWED проверяется по вложенному ГПЗУ; если апартаменты не допускаются, продукт «апартаменты» недоступен. BENCH_MIN_COMPS: если пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS, скидка апартаментов — экспертная (уровень 5), без блокировки расчёта. UNDERGROUND_CAP даёт ошибку или предупреждение по вместимости подземной части. T — последний месяц модели.
+
+**Обозначения:**
+- `T` — последний месяц модели
+- `w[i,t]` — вес месяца в графике статьи (F.CAPEX.SCHEDULE_WEIGHT)
+- `sold, stock, remaining` — продажи и остатки (F.SALES.SOLD_AREA)
+- `esc_bal` — остаток эскроу (F.ESC.BALANCE)
+- `draw, limit, debt, accrued` — кредит (F.FIN.*)
+- `cash[t]` — остаток денег (F.CF.CASH_BALANCE)
+- `deviation` — отклонение СМР от НЦС (F.CAPEX.NCS_BENCH)
+- `apt_check` — расхождение квартирографии и ТЭП (F.TEP.APT_AREA_CHECK)
 **Зависит от:** `F.CHECK.GPZU_LIMITS`, `F.CHECK.UNDERGROUND_CAPACITY`
 
 **Почему так:** Ни одна из этих ошибок исходника не должна повториться незаметно
@@ -1229,15 +1800,21 @@ PARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA
 ### `F.CHECK.GPZU_LIMITS` — Проверка проекта по предельным параметрам ГПЗУ
 **Единица:** bool · **Размерность:** скаляр · **Статус:** verified
 ```
-предел[x] = GPZU.DEVIATION_PERMIT.permitted_value по x, если есть решение об отклонении; иначе значение из ГПЗУ
-F.TEP.GFA_ABOVE (наземная)                <= предел[GPZU.MAX_GFA_ABOVE]
-TEP.MAX_FLOORS (если нет — TEP.AVG_FLOORS) <= предел[GPZU.MAX_FLOORS]
-TEP.BUILDING_HEIGHT_M                     <= предел[GPZU.MAX_HEIGHT_M]
-TEP.FOOTPRINT_AREA / LAND.AREA            <= предел[GPZU.MAX_BUILT_SHARE]
-превышение любого → БЛОКИРУЮЩАЯ ошибка, отчёт не выпускается
-F.TEP.GFA_ABOVE < BENCH.GPZU_UNDERUSE_SHARE × GPZU.MAX_GFA_ABOVE → информационное сообщение «резерв площади по ГПЗУ»
-пустой предел в ГПЗУ — сравнение по нему не выполняется
+limit[x] = GPZU.DEVIATION_PERMIT.permitted_value[x] ?? значение x по ГПЗУ
+
+F.TEP.GFA_ABOVE                           <= limit[GPZU.MAX_GFA_ABOVE]
+TEP.MAX_FLOORS ?? TEP.AVG_FLOORS          <= limit[GPZU.MAX_FLOORS]
+TEP.BUILDING_HEIGHT_M                     <= limit[GPZU.MAX_HEIGHT_M]
+TEP.FOOTPRINT_AREA / LAND.AREA            <= limit[GPZU.MAX_BUILT_SHARE]
+
+F.TEP.GFA_ABOVE < BENCH.GPZU_UNDERUSE_SHARE × GPZU.MAX_GFA_ABOVE → информационное сообщение
 ```
+
+**Пояснение:** Превышение любого предела — блокирующая ошибка, отчёт не выпускается. Если есть решение об отклонении от предельных параметров, сравнение идёт с разрешённым значением. Если предел в ГПЗУ пустой, сравнение по нему не выполняется. Информационное сообщение — «резерв площади по ГПЗУ».
+
+**Обозначения:**
+- `limit[x]` — предел по параметру x: из решения об отклонении, если оно есть, иначе из ГПЗУ
+- `??` — берётся левое значение, если оно задано, иначе правое
 **Зависит от:** `F.TEP.GFA_ABOVE`, `TEP.MAX_FLOORS`, `TEP.AVG_FLOORS`, `TEP.BUILDING_HEIGHT_M`, `TEP.FOOTPRINT_AREA`, `LAND.AREA`, `GPZU.MAX_GFA_ABOVE`, `GPZU.MAX_FLOORS`, `GPZU.MAX_HEIGHT_M`, `GPZU.MAX_BUILT_SHARE`, `GPZU.DEVIATION_PERMIT`, `BENCH.GPZU_UNDERUSE_SHARE`
 
 **Почему так:** Предельные параметры ГПЗУ (ст.38 ГрК РФ) обязательны: проект сверх них не получит разрешение на строительство, а финмодель на его основе завышает выручку. Сравнивается только сопоставимое: наземная ГНС с наземным пределом, этажность, высота, доля застройки. Снять ошибку можно только решением о разрешении на отклонение от предельных параметров (ст.40 ГрК РФ): однократное отклонение не более 10% — упрощённая процедура без публичных слушаний (ч.1.1); отклонение по этажности и высоте в границах исторических поселений не допускается (ч.2). На стадии «Оценка участка» ГНС берётся из ГПЗУ, поэтому проверка выполняется автоматически. Недоиспользование пределов — не ошибка, но резерв площади показывается
@@ -1252,13 +1829,17 @@ F.TEP.GFA_ABOVE < BENCH.GPZU_UNDERUSE_SHARE × GPZU.MAX_GFA_ABOVE → инфор
 ### `F.CHECK.UNDERGROUND_CAPACITY` — Вместимость подземной части (стадия «Концепция»)
 **Единица:** bool · **Размерность:** скаляр · **Статус:** verified
 ```
-parking = F.TEP.PARKING_COUNT;  storage_area — из F.TEP.STORAGE (storage_count × TEP.STORAGE_AVG_AREA, на концепции — по ТЭП)
-ОШИБКА:         parking × F.TEP.PARKING_SPACE_MIN_AREA + storage_area > TEP.GFA_BELOW
-ПРЕДУПРЕЖДЕНИЕ: parking × Q1(BENCH.PARKING_AREA_SAMPLE.area_per_space_m2) + storage_area + TEP.GFA_BELOW × TEP.TECH_ROOMS_SHARE_BELOW > TEP.GFA_BELOW
-если задан TEP.PARKING_AREA_TEP: area_per_space = TEP.PARKING_AREA_TEP / parking;
-  вне [Q1; Q3] бенчмарка → ПРЕДУПРЕЖДЕНИЕ «площадь на место вне диапазона компании»
-квартили — по F.BENCH.STATS; если в выборке меньше BENCH.COST_MIN_PROJECTS проектов — проверки по бенчмарку не выполняются (сообщение «нет бенчмарка»)
+ОШИБКА,          если  parking × F.TEP.PARKING_SPACE_MIN_AREA + storage_area > TEP.GFA_BELOW
+ПРЕДУПРЕЖДЕНИЕ,  если  parking × Q1(BENCH.PARKING_AREA_SAMPLE.area_per_space_m2) + storage_area + TEP.GFA_BELOW × TEP.TECH_ROOMS_SHARE_BELOW > TEP.GFA_BELOW
+ПРЕДУПРЕЖДЕНИЕ,  если  TEP.PARKING_AREA_TEP / parking вне [Q1; Q3] бенчмарка
 ```
+
+**Пояснение:** Последняя проверка выполняется, только если задан TEP.PARKING_AREA_TEP; текст предупреждения — «площадь на место вне диапазона компании». Квартили берутся по F.BENCH.STATS; если в выборке меньше BENCH.COST_MIN_PROJECTS проектов, проверки по бенчмарку не выполняются (сообщение «нет бенчмарка»).
+
+**Обозначения:**
+- `parking` — количество машино-мест (F.TEP.PARKING_COUNT)
+- `storage_area` — площадь кладовых (F.TEP.STORAGE): storage_count × TEP.STORAGE_AVG_AREA, на концепции — по ТЭП
+- `Q1, Q3` — первый и третий квартили выборки (F.BENCH.STATS)
 **Зависит от:** `GEN.PROJECT_STAGE`, `F.TEP.PARKING_COUNT`, `F.TEP.PARKING_SPACE_MIN_AREA`, `F.TEP.STORAGE`, `TEP.GFA_BELOW`, `TEP.TECH_ROOMS_SHARE_BELOW`, `TEP.PARKING_AREA_TEP`, `BENCH.PARKING_AREA_SAMPLE`, `F.BENCH.STATS`, `BENCH.COST_MIN_PROJECTS`
 
 **Почему так:** Два уровня: ошибка — если физически не помещаются даже машино-места минимального размера (5,3 × 2,5 м, Приказ Росреестра № П/0316) и кладовые; предупреждение — по реалистичной площади с проездами, пандусами и техпомещениями из бенчмарка компании. Проверка только по 13,25 м² почти никогда не срабатывает, так как не учитывает проезды, пандусы и техпомещения
@@ -1274,22 +1855,33 @@ parking = F.TEP.PARKING_COUNT;  storage_area — из F.TEP.STORAGE (storage_cou
 ### `F.BENCH.WINDOW_FILTER` — Отбор аналогов: сопоставимость, даты, фазы продаж
 **Единица:** bool · **Размерность:** i · **Статус:** needs_verification
 ```
-сопоставимость (жёсткие фильтры): product = продукт проекта; struct_system = TEP.STRUCTURAL_SYSTEM;
-  F.BENCH.HEIGHT_BAND аналога = F.BENCH.HEIGHT_BAND проекта; excluded = false (исключение — только вручную с причиной)
-break  = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)
-oldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)
-цены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break );
-        если аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:
+сопоставимость:  product = продукт проекта;  struct_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = F.BENCH.HEIGHT_BAND проекта;  excluded = нет
+break   = MAX(BENCH.STRUCTURAL_BREAK_DATES.date)
+oldest  = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)
+
+цены:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_M), oldest, break )
+        ЕСЛИ аналогов со сделками в окне < BENCH.MARKET_MEDIAN_MIN_COMPS:
           from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_WINDOW_EXT_M), oldest, break )
-        сделка входит, если from <= дата <= GEN.VALUATION_DATE
-стартовая цена: дополнительно дата сделки < EDATE(first_ddu_date аналога, BENCH.START_PHASE_M)
-фазы продаж аналога (для темпа):
-  старт    — первые BENCH.PACE_START_M месяцев с first_ddu_date
-  активная — после старта до MIN( даты распроданности BENCH.PACE_ACTIVE_END_SHARE × total_saleable_m2, rnv_date )
-  хвост    — после активной фазы, пока продажи видны в ЕИСЖС (до rnv_date)
-  аналог не используется для темпа, если активная фаза короче BENCH.PACE_MIN_ACTIVE_M месяцев (для цены — используется)
-темп:   месяцы фазы в окне from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break )
+        сделка входит, если  from <= дата сделки <= GEN.VALUATION_DATE
+стартовая цена:  дата сделки < EDATE(first_ddu_date, BENCH.START_PHASE_M)
+
+фазы:   старт    = первые BENCH.PACE_START_M месяцев от first_ddu_date
+        активная = от конца старта до MIN( дата продажи BENCH.PACE_ACTIVE_END_SHARE × total_saleable_m2, rnv_date )
+        хвост    = после активной фазы до rnv_date
+темп:   from = MAX( EDATE(GEN.VALUATION_DATE, −BENCH.PACE_WINDOW_M), break )
 ```
+
+**Пояснение:** Аналог исключается из выборки только вручную, с причиной. Аналог не используется для темпа, если его активная фаза короче BENCH.PACE_MIN_ACTIVE_M месяцев (для цены — используется). Хвост — пока продажи видны в ЕИСЖС.
+
+**Обозначения:**
+- `break` — последняя дата структурного разрыва рынка
+- `oldest` — самая ранняя допустимая дата сделки
+- `from` — начало окна отбора
+- `EDATE(d, m)` — дата d, сдвинутая на m месяцев
+- `first_ddu_date` — дата первого ДДУ аналога
+- `rnv_date` — дата РНВ аналога
+- `total_saleable_m2` — продаваемая площадь аналога
+- `excluded` — аналог исключён вручную
 **Зависит от:** `BENCH.MARKET_SAMPLE`, `TEP.STRUCTURAL_SYSTEM`, `F.BENCH.HEIGHT_BAND`, `GEN.VALUATION_DATE`, `BENCH.STRUCTURAL_BREAK_DATES`, `BENCH.PRICE_MAX_AGE_M`, `BENCH.PRICE_WINDOW_M`, `BENCH.PRICE_WINDOW_EXT_M`, `BENCH.MARKET_MEDIAN_MIN_COMPS`, `BENCH.START_PHASE_M`, `BENCH.PACE_WINDOW_M`, `BENCH.PACE_START_M`, `BENCH.PACE_ACTIVE_END_SHARE`, `BENCH.PACE_MIN_ACTIVE_M`
 
 **Почему так:** В расчёт попадает только сопоставимый рынок: тот же продукт, несущая система и группа высотности; свежие сделки после последнего структурного сдвига (01.07.2024). Если свежих аналогов мало, окно расширяется, но не дальше предельной давности. Темп считается по фазам: на старте спрос отложенный, в активной фазе — основной, хвост — неликвидные лоты со скидками; после РНВ продажи идут по ДКП и в ЕИСЖС не видны
@@ -1306,8 +1898,14 @@ oldest = EDATE(GEN.VALUATION_DATE, −BENCH.PRICE_MAX_AGE_M)
 ### `F.BENCH.COMP_PRICE` — Цена аналога (средневзвешенная по проданной площади)
 **Единица:** руб/м2 · **Размерность:** i · **Статус:** verified
 ```
-comp_price[i] = Σ стоимость сделок[i] / Σ площадь сделок[i]  — по сделкам, прошедшим F.BENCH.WINDOW_FILTER
+comp_price[i] = Σ стоимость сделок[i] / Σ площадь сделок[i]
 ```
+
+**Пояснение:** Учитываются только сделки, прошедшие отбор F.BENCH.WINDOW_FILTER.
+
+**Обозначения:**
+- `comp_price[i]` — результат: средневзвешенная цена аналога i, руб/м²
+- `i` — аналог из выборки
 **Зависит от:** `F.BENCH.WINDOW_FILTER`, `BENCH.MARKET_SAMPLE`
 
 **Почему так:** Так считается средняя цена ДДУ в ЕИСЖС: крупные лоты весят больше, цена отражает реально проданные метры
@@ -1322,8 +1920,13 @@ comp_price[i] = Σ стоимость сделок[i] / Σ площадь сде
 ### `F.BENCH.PRICE_INDEXED` — Цена аналога на дату оценки
 **Единица:** руб/м2 · **Размерность:** i · **Статус:** verified
 ```
-price_idx[i] = comp_price[i] × BENCH.DDU_PRICE_INDEX[GEN.VALUATION_DATE] / BENCH.DDU_PRICE_INDEX[средняя дата сделок аналога, взвешенная по площади]
+price_idx[i] = comp_price[i] × BENCH.DDU_PRICE_INDEX[GEN.VALUATION_DATE] / BENCH.DDU_PRICE_INDEX[avg_deal_date[i]]
 ```
+
+**Обозначения:**
+- `price_idx[i]` — результат: цена аналога на дату оценки, руб/м²
+- `comp_price[i]` — цена аналога (F.BENCH.COMP_PRICE)
+- `avg_deal_date[i]` — средняя дата сделок аналога, взвешенная по площади
 **Зависит от:** `F.BENCH.COMP_PRICE`, `BENCH.DDU_PRICE_INDEX`, `GEN.VALUATION_DATE`
 
 **Почему так:** Сделки в окне идут в разные месяцы; приведение к одной дате по индексу цен ДДУ региона делает аналоги сравнимыми
@@ -1336,8 +1939,17 @@ price_idx[i] = comp_price[i] × BENCH.DDU_PRICE_INDEX[GEN.VALUATION_DATE] / BENC
 ### `F.BENCH.PRICE_ADJUSTED` — Цена аналога после корректировок на отличия от проекта
 **Единица:** руб/м2 · **Размерность:** i · **Статус:** verified
 ```
-price_adj[i] = price_idx[i] × (1 + Σ_j adj[i,j]);  adj_total[i] = Σ_j |adj[i,j]|;  j — строки BENCH.PRICE_ADJUSTMENTS (локация, класс, отделка, стадия готовности), у каждой — величина, обоснование, источник
+price_adj[i] = price_idx[i] × (1 + Σ_j adj[i,j])
+adj_total[i] = Σ_j |adj[i,j]|
 ```
+
+**Пояснение:** Корректировки — строки BENCH.PRICE_ADJUSTMENTS (локация, класс, отделка, стадия готовности); у каждой — величина, обоснование и источник.
+
+**Обозначения:**
+- `price_adj[i]` — результат: цена аналога после корректировок, руб/м²
+- `adj[i,j]` — корректировка j для аналога i, доля
+- `adj_total[i]` — сумма модулей корректировок — мера несопоставимости аналога
+- `price_idx[i]` — цена на дату оценки (F.BENCH.PRICE_INDEXED)
 **Зависит от:** `F.BENCH.PRICE_INDEXED`, `BENCH.PRICE_ADJUSTMENTS`
 
 **Почему так:** Сравнительный подход: цена аналога поправляется на отличия от оцениваемого проекта. Каждая поправка видна и обоснована; сумма модулей поправок показывает, насколько аналог непохож на проект
@@ -1351,12 +1963,23 @@ price_adj[i] = price_idx[i] × (1 + Σ_j adj[i,j]);  adj_total[i] = Σ_j |adj[i,
 ### `F.BENCH.MARKET_PRICE` — Рыночная цена по выборке аналогов
 **Единица:** руб/м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-n = число аналогов после F.BENCH.WINDOW_FILTER
-n >= BENCH.MARKET_MEDIAN_MIN_COMPS:                     market_price = MEDIAN(price_adj)
-BENCH.MARKET_MIN_COMPS <= n < BENCH.MARKET_MEDIAN_MIN_COMPS: market_price = Σ_i w[i] × price_adj[i],
-                                                          w[i] = (1 / (1 + adj_total[i])) / Σ_i (1 / (1 + adj_total[i]))
-n < BENCH.MARKET_MIN_COMPS:                              ошибка — сохранить только с экспертным обоснованием
+ЕСЛИ n >= BENCH.MARKET_MEDIAN_MIN_COMPS:
+  market_price = MEDIAN(price_adj)
+ЕСЛИ BENCH.MARKET_MIN_COMPS <= n < BENCH.MARKET_MEDIAN_MIN_COMPS:
+  market_price = Σ_i w[i] × price_adj[i]
+  w[i] = (1 / (1 + adj_total[i])) / Σ_i (1 / (1 + adj_total[i]))
+ЕСЛИ n < BENCH.MARKET_MIN_COMPS:
+  ошибка
 ```
+
+**Пояснение:** При нехватке аналогов расчёт можно сохранить только с экспертным обоснованием.
+
+**Обозначения:**
+- `market_price` — результат: рыночная цена по выборке, руб/м²
+- `n` — число аналогов после F.BENCH.WINDOW_FILTER
+- `price_adj` — цены аналогов после корректировок (F.BENCH.PRICE_ADJUSTED)
+- `w[i]` — вес аналога: чем меньше корректировок, тем больше вес
+- `adj_total[i]` — сумма модулей корректировок аналога
 **Зависит от:** `F.BENCH.PRICE_ADJUSTED`, `F.BENCH.WINDOW_FILTER`, `BENCH.MARKET_MIN_COMPS`, `BENCH.MARKET_MEDIAN_MIN_COMPS`
 
 **Почему так:** Медиана устойчива к выбросам (премиальный или демпингующий ЖК). На малой выборке медиана неустойчива, поэтому больший вес получает самый похожий аналог (с наименьшей суммарной корректировкой) — логика сравнительного подхода в оценке. Результат подставляется в SALES.PRODUCTS.start_price как значение уровня 3
@@ -1371,8 +1994,17 @@ n < BENCH.MARKET_MIN_COMPS:                              ошибка — сох
 ### `F.BENCH.COMP_PACE` — Нормированный темп продаж аналога по фазам
 **Единица:** доля · **Размерность:** i, phase · **Статус:** verified
 ```
-pace_norm[i,m] = проданная площадь[i,m] / площадь в экспозиции на начало месяца[i,m];  comp_pace[i,phase] = СРЕДНЕЕ_m(pace_norm[i,m]) по месяцам фазы (старт, активная, хвост), прошедшим F.BENCH.WINDOW_FILTER
+pace_norm[i,m]    = sold_area[i,m] / exposed_area[i,m]
+comp_pace[i,phase] = AVERAGE_m( pace_norm[i,m] )
 ```
+
+**Пояснение:** Среднее берётся по месяцам фазы (старт, активная, хвост), прошедшим отбор F.BENCH.WINDOW_FILTER.
+
+**Обозначения:**
+- `comp_pace[i,phase]` — результат: нормированный темп аналога i в фазе
+- `pace_norm[i,m]` — доля площади в экспозиции, проданная за месяц m
+- `sold_area[i,m]` — проданная площадь аналога за месяц
+- `exposed_area[i,m]` — площадь в экспозиции на начало месяца
 **Зависит от:** `F.BENCH.WINDOW_FILTER`, `BENCH.MARKET_SAMPLE`, `BENCH.PACE_WINDOW_M`
 
 **Почему так:** Темп в доле от предложения сравним между ЖК разного масштаба; по фазам — потому что старт, основная фаза и хвост продаются с разной скоростью; среднее по месяцам сглаживает сезонность
@@ -1386,8 +2018,14 @@ pace_norm[i,m] = проданная площадь[i,m] / площадь в эк
 ### `F.BENCH.MARKET_PACE` — Рыночный темп продаж по фазам
 **Единица:** доля · **Размерность:** phase · **Статус:** verified
 ```
-market_pace[phase] = MEDIAN_i(comp_pace[i,phase]) отдельно для фаз старт, активная, хвост;  ошибка по фазе, если аналогов с данными по ней < BENCH.MARKET_MIN_COMPS (сохранить только с экспертным обоснованием)
+market_pace[phase] = MEDIAN_i( comp_pace[i,phase] )
 ```
+
+**Пояснение:** Считается отдельно для фаз старт, активная, хвост. Ошибка по фазе, если аналогов с данными по ней меньше BENCH.MARKET_MIN_COMPS (сохранить можно только с экспертным обоснованием).
+
+**Обозначения:**
+- `market_pace[phase]` — результат: рыночный темп продаж в фазе
+- `comp_pace[i,phase]` — темп аналога (F.BENCH.COMP_PACE)
 **Зависит от:** `F.BENCH.COMP_PACE`, `BENCH.MARKET_MIN_COMPS`
 
 **Почему так:** Медиана нормированных темпов устойчива к ЖК со случайно высокими или низкими продажами. SALES.PACE проекта может ссылаться на все три фазы (способ «доля от остатка в месяц»), значение — уровень 3
@@ -1401,8 +2039,15 @@ market_pace[phase] = MEDIAN_i(comp_pace[i,phase]) отдельно для фаз
 ### `F.BENCH.COST_UNIT` — Расценка проекта-аналога на дату договора
 **Единица:** руб/м2 · **Размерность:** i · **Статус:** verified
 ```
-cost_unit[i] = contract_amount[i] (без НДС) / base_qty[i];  база — по базе статьи: м² ГНС; для паркинга — м² подземной части; для сетей — по типу статьи (capex_items.yaml → base)
+cost_unit[i] = contract_amount[i] / base_qty[i]
 ```
+
+**Пояснение:** Сумма договора — без НДС. База — по базе статьи бюджета (capex_items.yaml → base): м² ГНС; для паркинга — м² подземной части; для сетей — по типу статьи.
+
+**Обозначения:**
+- `cost_unit[i]` — результат: расценка проекта-аналога i, руб за единицу базы
+- `contract_amount[i]` — сумма договора без НДС
+- `base_qty[i]` — объём базы у аналога
 **Зависит от:** `BENCH.COST_SAMPLE`
 
 **Почему так:** Ставка на единицу базы статьи — то, что подставляется в бюджет проекта (ставка × база × индекс). Без НДС — как все затраты в модели (docs/00, соглашения)
@@ -1415,8 +2060,18 @@ cost_unit[i] = contract_amount[i] (без НДС) / base_qty[i];  база — �
 ### `F.BENCH.COST_INDEXED` — Расценка аналога на дату оценки и в регионе проекта
 **Единица:** руб/м2 · **Размерность:** i · **Статус:** verified
 ```
-cost_idx[i] = cost_unit[i] × (1 + adj_value[i]) × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i]);  ncs_k_per — из regions.yaml (таблица 1 НЦС); adj_value — корректировка на отличие фасада и т.п. (BENCH.COST_SAMPLE), только с обоснованием
+cost_idx[i] = cost_unit[i] × (1 + adj_value[i]) × BENCH.COST_INDEX_HIST[GEN.VALUATION_DATE] / BENCH.COST_INDEX_HIST[contract_date[i]] × ncs_k_per(GEN.REGION_CODE) / ncs_k_per(region_code[i])
 ```
+
+**Пояснение:** Корректировка adj_value (например, на отличие фасада) — только с обоснованием (BENCH.COST_SAMPLE).
+
+**Обозначения:**
+- `cost_idx[i]` — результат: расценка аналога на дату оценки в регионе проекта
+- `cost_unit[i]` — расценка аналога (F.BENCH.COST_UNIT)
+- `adj_value[i]` — корректировка на отличия аналога, доля
+- `contract_date[i]` — дата договора аналога
+- `ncs_k_per(r)` — коэффициент перехода к ценам региона r (regions.yaml, таблица 1 НЦС)
+- `region_code[i]` — регион аналога
 **Зависит от:** `BENCH.COST_SAMPLE`, `F.BENCH.COST_UNIT`, `BENCH.COST_INDEX_HIST`, `GEN.VALUATION_DATE`, `GEN.REGION_CODE`
 
 **Почему так:** Время приводится официальными индексами изменения сметной стоимости Минстроя, регион — отношением коэффициентов перехода НЦС (регион проекта / регион аналога). Оба показателя — государственные и одинаковы для всех проектов
@@ -1430,11 +2085,18 @@ cost_idx[i] = cost_unit[i] × (1 + adj_value[i]) × BENCH.COST_INDEX_HIST[GEN.VA
 ### `F.BENCH.COST_BENCH` — Бенчмарк расценки статьи бюджета
 **Единица:** руб/м2 · **Размерность:** item · **Статус:** verified
 ```
-сопоставимые проекты: housing_class = GEN.HOUSING_CLASS;  structural_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = группа проекта (единственный фильтр по высотности; этажность каждого аналога показывается в выборке);  VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = false
-n >= BENCH.COST_MIN_PROJECTS: cost_bench = MEDIAN(cost_idx) по сопоставимым проектам (уровень 4)
-n <  BENCH.COST_MIN_PROJECTS в группе: предлагается значение по НЦС (F.CAPEX.NCS_BENCH) с пометкой, параметр — экспертный (уровень 5)
-незавершённые проекты (completed = false) — только по сумме договора, с пометкой
+сопоставимые:  housing_class = GEN.HOUSING_CLASS;  structural_system = TEP.STRUCTURAL_SYSTEM;  F.BENCH.HEIGHT_BAND аналога = группа проекта;
+               GEN.VALUATION_DATE − contract_date <= BENCH.COST_MAX_AGE_Y лет;  excluded = нет
+ЕСЛИ n >= BENCH.COST_MIN_PROJECTS:  cost_bench = MEDIAN(cost_idx)
+ИНАЧЕ:                              cost_bench = значение по НЦС (F.CAPEX.NCS_BENCH)
 ```
+
+**Пояснение:** Медиана по сопоставимым проектам — уровень 4. Если проектов меньше порога, предлагается значение по НЦС с пометкой, параметр становится экспертным (уровень 5). Группа высотности — единственный фильтр по высотности; этажность каждого аналога показывается в выборке. Незавершённые проекты (completed = нет) учитываются только по сумме договора, с пометкой.
+
+**Обозначения:**
+- `cost_bench` — результат: бенчмарк расценки статьи
+- `n` — число сопоставимых проектов
+- `cost_idx` — расценки аналогов (F.BENCH.COST_INDEXED)
 **Зависит от:** `F.BENCH.COST_INDEXED`, `BENCH.COST_SAMPLE`, `GEN.HOUSING_CLASS`, `TEP.STRUCTURAL_SYSTEM`, `F.BENCH.HEIGHT_BAND`, `BENCH.COST_MAX_AGE_Y`, `BENCH.COST_MIN_PROJECTS`, `GEN.VALUATION_DATE`, `F.CAPEX.NCS_BENCH`
 
 **Почему так:** При оценке нового участка каждый проект компании — одно наблюдение: крупный проект не должен перевешивать. Медиана устойчива к нетипичному проекту
@@ -1448,12 +2110,20 @@ n <  BENCH.COST_MIN_PROJECTS в группе: предлагается знач�
 ### `F.BENCH.STATS` — Статистика выборки и предупреждения
 **Единица:** руб/м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-для любой выборки x (price_adj, comp_pace, cost_idx): n, MEDIAN, СРЕДНЕЕ, MIN, MAX, Q1, Q3 (QUARTILE.INC), CV = STDEV.S / СРЕДНЕЕ
-|СРЕДНЕЕ / MEDIAN − 1| > BENCH.WARN_MEAN_MEDIAN_GAP → требуется комментарий аналитика
-CV > BENCH.WARN_CV                                  → требуется комментарий аналитика
-IQR = Q3 − Q1;  x < Q1 − BENCH.OUTLIER_IQR_K × IQR  или  x > Q3 + BENCH.OUTLIER_IQR_K × IQR → выброс: подсвечивается,
-НЕ удаляется автоматически; исключение — только вручную с причиной (excluded, exclusion_reason), фиксируется в журнале
+для выборки x (price_adj, comp_pace, cost_idx):  n, MEDIAN, AVERAGE, MIN, MAX, Q1, Q3 (QUARTILE.INC),  CV = STDEV.S / AVERAGE
+|AVERAGE / MEDIAN − 1| > BENCH.WARN_MEAN_MEDIAN_GAP  → нужен комментарий аналитика
+CV > BENCH.WARN_CV                                  → нужен комментарий аналитика
+IQR = Q3 − Q1
+x < Q1 − BENCH.OUTLIER_IQR_K × IQR  ИЛИ  x > Q3 + BENCH.OUTLIER_IQR_K × IQR  → выброс
 ```
+
+**Пояснение:** Выброс подсвечивается, но НЕ удаляется автоматически; исключить его можно только вручную с причиной (excluded, exclusion_reason), это фиксируется в журнале.
+
+**Обозначения:**
+- `CV` — коэффициент вариации
+- `Q1, Q3` — первый и третий квартили
+- `IQR` — межквартильный размах
+- `STDEV.S` — стандартное отклонение выборки
 **Зависит от:** `F.BENCH.PRICE_ADJUSTED`, `F.BENCH.COMP_PACE`, `F.BENCH.COST_INDEXED`, `BENCH.WARN_MEAN_MEDIAN_GAP`, `BENCH.WARN_CV`, `BENCH.OUTLIER_IQR_K`
 
 **Почему так:** Аналитик и проверяющий видят не только итог, но и качество выборки: разброс, скошенность, выбросы. Автоматическое удаление выбросов скрыло бы решение, влияющее на цену; ручное исключение с причиной остаётся в журнале
@@ -1468,10 +2138,14 @@ IQR = Q3 − Q1;  x < Q1 − BENCH.OUTLIER_IQR_K × IQR  или  x > Q3 + BENCH.
 ### `F.BENCH.HEIGHT_BAND` — Группа высотности здания
 **Единица:** enum · **Размерность:** скаляр · **Статус:** needs_verification
 ```
-band = «свыше_100м», если высота > height_max_m группы «26_плюс_до_100м» (100 м);
-иначе band — строка BENCH.HEIGHT_BAND, где floors_min <= этажность <= floors_max (floors_max = null — без верхней границы)
-этажность = TEP.MAX_FLOORS (для аналога — max_floors), высота = TEP.BUILDING_HEIGHT_M (для аналога — height_m)
+ЕСЛИ высота > 100 м (height_max_m группы «26_плюс_до_100м»):  band = «свыше_100м»
+ИНАЧЕ:  band = строка BENCH.HEIGHT_BAND, где floors_min <= этажность <= floors_max
 ```
+
+**Пояснение:** floors_max = пусто — без верхней границы. Этажность — TEP.MAX_FLOORS (у аналога — max_floors), высота — TEP.BUILDING_HEIGHT_M (у аналога — height_m).
+
+**Обозначения:**
+- `band` — результат: группа высотности здания
 **Зависит от:** `BENCH.HEIGHT_BAND`, `TEP.MAX_FLOORS`, `TEP.BUILDING_HEIGHT_M`
 
 **Почему так:** Стоимость и цена зависят от высотности скачками (конструктив, лифты, пожарные требования). Здание выше 100 м — уникальный объект (ч.2 ст.48.1 ГрК РФ) и с другими группами не смешивается
@@ -1484,12 +2158,17 @@ band = «свыше_100м», если высота > height_max_m группы �
 ### `F.BENCH.APART_DISCOUNT` — Скидка апартаментов к квартирам по парам
 **Единица:** доля · **Размерность:** скаляр · **Статус:** verified
 ```
-пара j входит, если: один класс; один ЖК или distance_km <= BENCH.PAIR_RADIUS_KM; сделки обеих сторон — в одном окне
-  (BENCH.PRICE_WINDOW_M, правило BENCH.STRUCTURAL_BREAK_DATES, как в F.BENCH.WINDOW_FILTER); близкая стадия готовности; excluded = false
-discount[j] = 1 − apart_price_m2[j] / flat_price_m2[j]   (обе цены — для покупателя, как в договоре; средневзвешенные по проданной площади)
-пар >= BENCH.MIN_PAIRS: apart_discount = MEDIAN_j(discount[j])  (уровень 3)
-пар <  BENCH.MIN_PAIRS: apart_discount — экспертная оценка (уровень 5: автор, обоснование, диапазон min–max); расчёт не блокируется
+discount[j] = 1 − apart_price_m2[j] / flat_price_m2[j]
+ЕСЛИ пар >= BENCH.MIN_PAIRS:  apart_discount = MEDIAN_j( discount[j] )
+ИНАЧЕ:                        apart_discount = экспертная оценка
 ```
+
+**Пояснение:** Пара j входит, если: один класс; один ЖК или расстояние <= BENCH.PAIR_RADIUS_KM; сделки обеих сторон — в одном окне (BENCH.PRICE_WINDOW_M с учётом BENCH.STRUCTURAL_BREAK_DATES, как в F.BENCH.WINDOW_FILTER); близкая стадия готовности; пара не исключена. Обе цены — для покупателя, как в договоре, средневзвешенные по проданной площади. Медиана по парам — уровень 3; экспертная оценка — уровень 5 (автор, обоснование, диапазон min–max), расчёт не блокируется.
+
+**Обозначения:**
+- `discount[j]` — скидка апартаментов к квартирам в паре j
+- `apart_price_m2[j], flat_price_m2[j]` — цены апартаментов и квартир в паре
+- `apart_discount` — результат: скидка апартаментов к квартирам
 **Зависит от:** `BENCH.APART_PAIRS_SAMPLE`, `BENCH.PAIR_RADIUS_KM`, `BENCH.PRICE_WINDOW_M`, `BENCH.STRUCTURAL_BREAK_DATES`, `BENCH.MIN_PAIRS`
 
 **Почему так:** Скидка апартаментов наблюдается напрямую: в одной локации, одном классе и одно время разница цены отражает продукт (без семейной ипотеки, с НДС, нежилой статус), а не место или рынок. Цены берутся такими, как платит покупатель: НДС из выручки апартаментов выделяется отдельно в F.TAX.OUTPUT_VAT и в скидке повторно не учитывается. Медиана по парам устойчива к одной нетипичной паре
@@ -1506,10 +2185,14 @@ discount[j] = 1 − apart_price_m2[j] / flat_price_m2[j]   (обе цены — 
 ### `F.BENCH.APART_PRICE` — Цена апартаментов
 **Единица:** руб/м2 · **Размерность:** скаляр · **Статус:** verified
 ```
-аналогов-апартаментов (продукт = апартаменты) >= BENCH.MARKET_MIN_COMPS: apart_price = F.BENCH.MARKET_PRICE по этим аналогам
-иначе: apart_price = F.BENCH.MARKET_PRICE (квартиры) × (1 − F.BENCH.APART_DISCOUNT), пометка «скидка по парам» (или «экспертная», если пар меньше BENCH.MIN_PAIRS)
-цена — для покупателя (с НДС, как в договоре); НДС выделяется в F.TAX.OUTPUT_VAT
+ЕСЛИ аналогов-апартаментов >= BENCH.MARKET_MIN_COMPS:  apart_price = F.BENCH.MARKET_PRICE (по аналогам-апартаментам)
+ИНАЧЕ:  apart_price = F.BENCH.MARKET_PRICE (квартиры) × (1 − F.BENCH.APART_DISCOUNT)
 ```
+
+**Пояснение:** Во втором случае цена помечается «скидка по парам» (или «экспертная», если пар меньше BENCH.MIN_PAIRS). Цена — для покупателя (с НДС, как в договоре); НДС выделяется в F.TAX.OUTPUT_VAT.
+
+**Обозначения:**
+- `apart_price` — результат: цена апартаментов, руб/м²
 **Зависит от:** `F.BENCH.MARKET_PRICE`, `F.BENCH.APART_DISCOUNT`, `BENCH.MARKET_MIN_COMPS`
 
 **Почему так:** Апартаменты — отдельный продукт: без семейной ипотеки, с НДС, с другим спросом. Цена — по прямым аналогам; если их мало — через наблюдаемую скидку к квартирам в той же локации (уровень 3), а не по допущению

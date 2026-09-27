@@ -24,10 +24,19 @@ export function provisionalHorizon(project: DemoProject): number | null {
 }
 
 /**
- * Что считать: итоговые формулы (корни графа) + машино-места и разбивка ГНС, которые показываются на любой стадии
- * (в ядре на стадии «Концепция» они нужны только будущим модулям продаж и CAPEX).
+ * Что считать: итоговые формулы (корни графа) + показатели ТЭП и участка, которые показываются на любой стадии,
+ * даже если бюджет их не читает (в режиме совместимости суммы статей берутся из исходника, а не ставка × площадь).
  */
-const TARGETS: FormulaId[] = [...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]), "F.TEP.PARKING_COUNT", "F.TEP.GFA_SPLIT"];
+const TARGETS: FormulaId[] = [
+  ...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]),
+  "F.TEP.PARKING_COUNT",
+  "F.TEP.GFA_SPLIT",
+  "F.TEP.GFA_TOTAL",
+  "F.TEP.SALEABLE_AREA",
+  "F.TEP.LANDSCAPE_AREA",
+  "F.LAND.TAX_OR_RENT",
+  "F.LAND.VRI_FEE",
+];
 
 export interface ProjectModel {
   result: ResultSet;

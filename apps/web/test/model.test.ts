@@ -15,6 +15,14 @@ describe("модель проекта в интерфейсе", () => {
     expect((m.result.formulas["F.TEP.GFA_SPLIT"]?.value as { res: Decimal }).res.toNumber()).toBe(210458);
   });
 
+  it("бюджет считается ядром: «Компенсация городу» и УДС в денежном потоке", () => {
+    const cash = m.result.formulas["F.CAPEX.ITEM_CASH"]?.value as Record<string, Decimal[]>;
+    const sum = (xs: Decimal[] | undefined) => (xs ?? []).reduce((a, b) => a.add(b), new Decimal(0)).toNumber();
+    expect(sum(cash.CITY_CASH_COMPENSATION)).toBe(1260033986.66);
+    expect(sum(cash.ROADS_UDS)).toBeGreaterThan(535620851);
+    expect((m.result.formulas["F.CAPEX.TOTAL"]?.value as Decimal).gt(0)).toBe(true);
+  });
+
   it("незаполненные обязательные параметры подсвечиваются", () => {
     expect(m.missing.has("TAX.LAND_RATE")).toBe(true);
     expect(m.missing.has("LAND.AREA")).toBe(false);

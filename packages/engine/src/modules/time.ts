@@ -16,8 +16,10 @@ export interface MilestoneRow {
   construction_start?: IsoDate | null;
   construction_end?: IsoDate | null;
   rnv_date?: IsoDate | null;
+  handover_start?: IsoDate | null;
   handover_end?: IsoDate | null;
   sales_start?: IsoDate | null;
+  vri_change_date?: IsoDate | null;
 }
 export type MilestoneKey = Exclude<keyof MilestoneRow, "phase">;
 
@@ -29,9 +31,21 @@ const MILESTONE_NAMES: Record<MilestoneKey, string> = {
   construction_start: "начало строительства",
   construction_end: "окончание строительства",
   rnv_date: "РНВ",
+  handover_start: "начало передачи по актам",
   handover_end: "окончание передачи по актам",
   sales_start: "старт продаж",
+  vri_change_date: "смена ВРИ",
 };
+
+export const MILESTONE_KEYS = Object.keys(MILESTONE_NAMES) as MilestoneKey[];
+
+export function isMilestoneKey(value: unknown): value is MilestoneKey {
+  return typeof value === "string" && value in MILESTONE_NAMES;
+}
+
+export function milestoneName(key: MilestoneKey): string {
+  return MILESTONE_NAMES[key];
+}
 
 /** Вехи по очередям в порядке номера очереди. */
 export function milestones(ctx: FormulaContext): MilestoneRow[] {
@@ -47,6 +61,12 @@ export function milestone(row: MilestoneRow, key: MilestoneKey): IsoDate {
     throw new CalcError(`Очередь ${row.phase}: заполните веху «${MILESTONE_NAMES[key]}» датой (ГГГГ-ММ-ДД)`, "TIME.MILESTONES");
   }
   return v;
+}
+
+/** Дата смены ВРИ — одна на проект: самая ранняя заполненная среди очередей (TIME.MILESTONES). */
+export function vriChangeDate(rows: MilestoneRow[]): IsoDate | null {
+  const dates = rows.map((r) => r.vri_change_date).filter(isIsoDate);
+  return dates.length === 0 ? null : dates.reduce((a, b) => (b < a ? b : a));
 }
 
 export function F_TIME_DATE(ctx: FormulaContext): IsoDate[] {

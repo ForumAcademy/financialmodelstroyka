@@ -60,6 +60,8 @@ function parseInput(kind: string, unit: string, raw: string): unknown {
     const n = Number(t.replace(/\s/g, "").replace(",", "."));
     return Number.isNaN(n) ? t : n;
   }
+  // Число, показанное с разрядами («1 000»), читается обратно как число в любом столбце.
+  if (/^-?\d{1,3}(\s\d{3})+([.,]\d+)?$/.test(t)) return Number(t.replace(/\s/g, "").replace(",", "."));
   return t;
 }
 
@@ -73,7 +75,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   const readonly = p.scope === "template";
   const need = model.missing.has(id);
   const commit = (raw: string) => dispatch({ type: "value", id: project.id, param: id, value: parseInput(p.kind, p.unit, raw) });
-  const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : String(shown);
+  const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : typeof shown === "number" ? fmt.inputNumber(shown) : String(shown);
 
   let control: ReactNode;
   const summary = compositeSummary(shown);
@@ -250,7 +252,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
             <tr key={r}>
               {columns.map((c) => {
                 const v = row[c.key];
-                const text = v === null || v === undefined ? "" : String(v);
+                const text = v === null || v === undefined ? "" : typeof v === "number" ? fmt.inputNumber(v) : String(v);
                 return (
                   <td key={c.key} className={`col-${c.key}`}>
                     {c.options ? (
@@ -346,7 +348,8 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
               }
               const series = row.series && dates ? aggregate(row.series, dates, period).sums : null;
               const total = row.total !== undefined ? row.total : row.series && row.totalMode !== "none" ? row.series.reduce((a, b) => a + b, 0) : undefined;
-              const totalText = total === undefined ? (row.series ? "" : "—") : fmt.value(total);
+              // Деньги в итогах — до рубля, как в ячейках по периодам
+              const totalText = total === undefined ? (row.series ? "" : "—") : row.unit === "руб" && (typeof total === "number" || total instanceof Decimal) ? fmt.num(total, 0) : fmt.value(total);
               const click = () => row.formula && open({ kind: "formula", id: row.formula, label: row.label, value: total === undefined ? "—" : `${totalText} ${fmt.unit(row.unit ?? "")}` });
               return (
                 <tr key={i} className={`${row.bold ? "total" : ""} ${row.formula ? "clickable" : ""}`} onClick={click}>

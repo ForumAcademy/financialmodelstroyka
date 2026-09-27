@@ -5,20 +5,33 @@
 import Decimal from "decimal.js";
 import type { FormulaContext } from "../context";
 import { CalcError } from "../context";
-import { maxDate, minDate, monthDiff, type IsoDate } from "../lib/dates";
-import { milestone, milestones } from "./time";
+import { eomonth, maxDate, minDate, monthDiff, quarterMonthEnds, type IsoDate } from "../lib/dates";
+import { isMilestoneKey, milestone, milestones, vriChangeDate, type MilestoneRow } from "./time";
 
 const ONE = new Decimal(1);
 const ZERO = new Decimal(0);
 const MONTHS_PER_YEAR = 12;
 
 /** Период владения участком для налога: от приобретения до окончания передачи последней очереди. */
-function landPeriod(ctx: FormulaContext): { from: IsoDate; to: IsoDate } {
-  const rows = milestones(ctx);
+function landPeriod(rows: MilestoneRow[]): { from: IsoDate; to: IsoDate } {
   return {
     from: minDate(rows.map((r) => milestone(r, "land_acquired"))),
     to: maxDate(rows.map((r) => milestone(r, "handover_end"))),
   };
+}
+
+/** Дата смены ВРИ; обязательна, если задана кадастровая стоимость после смены ВРИ (CHECK.ALL → VRI_DATE_REQUIRED). */
+function vriDate(ctx: FormulaContext, rows: MilestoneRow[]): IsoDate | null {
+  const date = vriChangeDate(rows);
+  if (date === null && ctx.num("LAND.CADASTRAL_VALUE_AFTER_VRI") !== null) {
+    throw new CalcError("Задана кадастровая стоимость после смены ВРИ — заполните веху «смена ВРИ» (TIME.MILESTONES)", "TIME.MILESTONES");
+  }
+  return date;
+}
+
+/** Полных лет от даты a до даты b (по месяцам: годовщина — в том же месяце). */
+function fullYears(a: IsoDate, b: IsoDate): number {
+  return Math.floor(monthDiff(a, b) / MONTHS_PER_YEAR);
 }
 
 export function F_LAND_TAX_COEF(ctx: FormulaContext): Decimal[] {
@@ -27,30 +40,57 @@ export function F_LAND_TAX_COEF(ctx: FormulaContext): Decimal[] {
   const upTo = ctx.requireNum("TAX.LAND_COEF_UP_TO_3Y");
   const over = ctx.requireNum("TAX.LAND_COEF_OVER_3Y");
   const thresholdMonths = ctx.requireNum("TIME.RNS_TO_RNV_TAX_YEARS").mul(MONTHS_PER_YEAR);
-  const { from, to } = landPeriod(ctx);
-  // Коэффициент действует с приобретения участка до госрегистрации прав на объект (≈ окончание передачи последней очереди).
+  const rows = milestones(ctx);
+  const { from, to } = landPeriod(rows);
+  const vri = vriChangeDate(rows);
+  // Коэффициент действует с приобретения участка до госрегистрации прав на объект (≈ окончание передачи последней очереди);
+  // до смены ВРИ не применяется — коэффициенты привязаны к ВРИ «жилищное строительство».
   return date.map((d) => {
-    if (d < from || d > to) return ONE;
+    if (d < from || d > to || (vri !== null && d < vri)) return ONE;
     return thresholdMonths.gte(monthDiff(from, d)) ? upTo : over;
   });
 }
 
-export function F_LAND_TAX_OR_RENT(ctx: FormulaContext): Decimal[] {
-  const tenure = ctx.require<string>("LAND.TENURE");
-  if (tenure === "аренда") {
-    ctx.param("LAND.RENT_ANNUAL");
-    throw new CalcError("Аренда участка: индекс арендной платы и период аренды в спецификации не заданы (вопрос владельцу продукта)", "LAND.TENURE");
-  }
-  if (tenure !== "собственность") throw new CalcError(`Неизвестная форма права «${tenure}»`, "LAND.TENURE");
-  if (ctx.num("LAND.CADASTRAL_VALUE_AFTER_VRI") !== null) {
-    throw new CalcError("Кадастровая стоимость после смены ВРИ задана, но дата смены ВРИ в спецификации не определена (вопрос владельцу продукта)", "LAND.CADASTRAL_VALUE_AFTER_VRI");
-  }
+function landTax(ctx: FormulaContext, rows: MilestoneRow[], date: IsoDate[]): Decimal[] {
+  const vri = vriDate(ctx, rows);
   const cad = ctx.requireNum("LAND.CADASTRAL_VALUE");
+  const cadAfter = vri === null ? null : ctx.requireNum("LAND.CADASTRAL_VALUE_AFTER_VRI");
   const rate = ctx.requireNum("TAX.LAND_RATE");
   const coef = ctx.formula<Decimal[]>("F.LAND.TAX_COEF");
+  const { from, to } = landPeriod(rows);
+  return date.map((d, t) => {
+    if (d < from || d > to) return ZERO;
+    const value = cadAfter !== null && vri !== null && d >= vri ? cadAfter : cad;
+    return value.mul(rate).mul(coef[t] as Decimal).div(MONTHS_PER_YEAR);
+  });
+}
+
+function landRent(ctx: FormulaContext, rows: MilestoneRow[], date: IsoDate[]): Decimal[] {
+  const annual = ctx.requireNum("LAND.RENT_ANNUAL");
+  const indexation = ctx.requireNum("LAND.RENT_INDEXATION");
+  const freq = ctx.require<string>("LAND.RENT_PAYMENT_FREQ");
+  const endKey = ctx.require<string>("LAND.RENT_END_MILESTONE");
+  if (!isMilestoneKey(endKey)) throw new CalcError(`Неизвестная веха окончания аренды «${endKey}»`, "LAND.RENT_END_MILESTONE");
+  const acquired = minDate(rows.map((r) => milestone(r, "land_acquired")));
+  const rentEnd = minDate(rows.map((r) => milestone(r, endKey)));
+  // Арендная плата, приходящаяся на месяц с концом d (rent_month): индексация раз в год с даты приобретения.
+  const rentMonth = (d: IsoDate): Decimal =>
+    d >= acquired && d < rentEnd ? annual.mul(ONE.add(indexation).pow(fullYears(acquired, d))).div(MONTHS_PER_YEAR) : ZERO;
+  const isQuarterStart = (d: IsoDate) => quarterMonthEnds(d)[0] === d;
+  const quarterSum = (d: IsoDate) => quarterMonthEnds(d).reduce((s, m) => s.add(rentMonth(m)), ZERO);
+  if (freq === "ежемесячно") return date.map(rentMonth);
+  if (freq === "поквартально авансом") return date.map((d) => (isQuarterStart(d) ? quarterSum(d) : ZERO));
+  if (freq === "поквартально по окончании квартала") return date.map((d) => (isQuarterStart(eomonth(d, 1)) ? quarterSum(d) : ZERO));
+  throw new CalcError(`Неизвестная периодичность арендной платы «${freq}»`, "LAND.RENT_PAYMENT_FREQ");
+}
+
+export function F_LAND_TAX_OR_RENT(ctx: FormulaContext): Decimal[] {
+  const tenure = ctx.require<string>("LAND.TENURE");
+  const rows = milestones(ctx);
   const date = ctx.formula<IsoDate[]>("F.TIME.DATE");
-  const { from, to } = landPeriod(ctx);
-  return date.map((d, t) => (d >= from && d <= to ? cad.mul(rate).mul(coef[t] as Decimal).div(MONTHS_PER_YEAR) : ZERO));
+  if (tenure === "собственность") return landTax(ctx, rows, date);
+  if (tenure === "аренда") return landRent(ctx, rows, date);
+  throw new CalcError(`Неизвестная форма права «${tenure}»`, "LAND.TENURE");
 }
 
 export function F_LAND_VRI_FEE(ctx: FormulaContext): Decimal {
@@ -67,3 +107,4 @@ export const LAND_FORMULAS = {
   "F.LAND.TAX_OR_RENT": F_LAND_TAX_OR_RENT,
   "F.LAND.VRI_FEE": F_LAND_VRI_FEE,
 } as const;
+

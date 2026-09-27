@@ -2,13 +2,20 @@
 
 import Decimal from "decimal.js";
 import type { FormulaId } from "@fm/spec";
-import { Calc, Inputs, pendingStages, toNum, val, type CalcRow } from "../Sheet";
+import { Calc, Inputs, pendingStages, val, type CalcRow } from "../Sheet";
 import { formulaIds } from "./common";
-import { BUDGET_GROUPS } from "./BudgetTab";
+import { BUDGET_GROUPS, groupCash } from "./BudgetTab";
 import type { ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 
 type Props = { project: DemoProject; model: ProjectModel };
+
+/** Итого расходы по месяцам: сумма групп бюджета. */
+const totalCash = (model: ProjectModel): number[] | null => {
+  const groups = BUDGET_GROUPS.map(([key]) => groupCash(model, key));
+  const first = groups[0];
+  return first ? first.map((_, t) => groups.reduce((a, g) => a + (g?.[t] ?? 0), 0)) : null;
+};
 
 const phases = (project: DemoProject) => Math.max(Number(project.input.values["GEN.PHASES_COUNT"] ?? 1), ((project.input.values["TIME.MILESTONES"] as unknown[] | undefined) ?? []).length, 1);
 const flagRow = (model: ProjectModel, id: FormulaId, p: number) => (val<number[][]>(model, id)?.[p] ?? null);
@@ -81,9 +88,8 @@ export function CashflowTab({ project, model }: Props) {
     { section: "Доходы" },
     { label: "Поступления от продаж", unit: "руб", formula: "F.SALES.CASH_IN", series: null, bold: true },
     { section: "Расходы" },
-    { label: "Земельный налог / аренда", unit: "руб", formula: "F.LAND.TAX_OR_RENT", series: toNum(val<Decimal[]>(model, "F.LAND.TAX_OR_RENT")) },
-    ...BUDGET_GROUPS.map(([, title]): CalcRow => ({ label: title, unit: "руб", formula: "F.CAPEX.ITEM_CASH", series: null })),
-    { label: "Итого расходы", unit: "руб", formula: "F.CAPEX.TOTAL", series: null, bold: true },
+    ...BUDGET_GROUPS.map(([key, title]): CalcRow => ({ label: title, unit: "руб", formula: "F.CAPEX.ITEM_CASH", series: groupCash(model, key) })),
+    { label: "Итого расходы", unit: "руб", formula: "F.CAPEX.TOTAL", series: totalCash(model), bold: true },
     { section: "Налоги" },
     { label: "НДС к уплате", unit: "руб", formula: "F.TAX.VAT_PAYABLE", series: null },
     { label: "Налог на прибыль", unit: "руб", formula: "F.TAX.PROFIT_TAX", series: null },
@@ -132,7 +138,7 @@ export function DashboardTab({ project, model }: Props) {
     { label: "Средневзвешенная цена квартир", unit: "руб/м2", formula: "F.SALES.WAVG_PRICE" },
     { label: "Цена квартир в конце продаж", unit: "руб/м2", formula: "F.SALES.END_PRICE" },
     { section: "Расходы и маржа" },
-    { label: "Затраты", unit: "руб", formula: "F.CAPEX.TOTAL", bold: true },
+    { label: "Затраты", unit: "руб", formula: "F.CAPEX.TOTAL", total: val(model, "F.CAPEX.TOTAL"), bold: true },
     { label: "Себестоимость 1 м² и наценка", unit: "руб/м2", formula: "F.KPI.COST_PER_M2" },
     { label: "Маржа", unit: "доля", formula: "F.KPI.MARGIN", bold: true },
     { label: "Налоги", unit: "руб", formula: "F.TAX.PAYMENTS" },

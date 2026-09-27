@@ -17,6 +17,7 @@ export function loadSeed(): Seed {
         sources: [],
         paramSources: {},
         legacyWarnings: legacyChecks(c),
+        legacyCase: c,
         specVersion: spec.specVersion,
         updatedAt: "2026-09-25T09:00:00.000Z",
         note: String(c.project_inputs["TIME.MILESTONES_NOTE"] ?? ""),

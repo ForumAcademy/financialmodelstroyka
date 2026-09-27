@@ -2,7 +2,7 @@
  * Расчёт проекта в интерфейсе: вызов ядра и вспомогательные преобразования для таблиц.
  * Формул модели здесь нет — только то, что вернуло ядро (@fm/engine).
  */
-import { calculate, ENGINE_MODULES, FORMULAS, sinkFormulas, type ResultSet } from "@fm/engine";
+import { calculate, dataQuestions, ENGINE_MODULES, FORMULAS, sinkFormulas, type DataQuestion, type ResultSet } from "@fm/engine";
 import { getFormula, getParameter, PARAMETER_IDS, type FormulaId, type ParameterId } from "@fm/spec";
 import type { DemoProject } from "./types";
 
@@ -54,6 +54,7 @@ function manualScheduleEnd(project: DemoProject, monthsTo: (d: string) => number
 const TARGETS: FormulaId[] = [
   ...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]),
   "F.SALES.REVENUE_TOTAL",
+  "F.SALES.WAVG_PRICE",
   "F.TEP.PARKING_COUNT",
   "F.TEP.GFA_SPLIT",
   "F.TEP.GFA_TOTAL",
@@ -81,6 +82,11 @@ export function computeProject(project: DemoProject): ProjectModel {
 /** Предупреждения режима совместимости: расхождения исходного Excel, которые совместимость повторяет как есть. */
 export function compatWarnings(project: DemoProject, m: ProjectModel) {
   return project.input.mode === "legacy" ? m.result.messages.filter((x) => x.severity === "warning" && x.key) : [];
+}
+
+/** Вопросы к данным по предупреждениям совместимости: только у проектов из исходного Excel в режиме совместимости. */
+export function projectQuestions(project: DemoProject, m: ProjectModel): DataQuestion[] {
+  return project.input.mode === "legacy" && project.legacyCase ? dataQuestions(project.legacyCase, project.input, m.result) : [];
 }
 
 /** Этап плана, на котором появится формула (по её модулю). */

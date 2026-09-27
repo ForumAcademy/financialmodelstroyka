@@ -1,107 +1,241 @@
 "use client";
 
-import type { CalcMessage } from "@fm/engine";
+import { useState } from "react";
+import { fmtRub, type DataQuestion, type QuestionBlock } from "@fm/engine";
+import { savedAuthor } from "./Change";
 import { useHow } from "./HowPanel";
+import { BLOCKS, impactSize, issueItems, type IssueItem } from "@/lib/issues";
+import { exportIssues } from "@/lib/issues-export";
+import { useStore } from "@/lib/store";
+import { ISSUE_STATUS_LABEL, type DemoProject, type IssueStatus } from "@/lib/types";
 
 type Tab = "sales" | "budget" | "escrow" | "cf" | "tep";
 
-/** Вкладка, на которой видно расхождение: по модулю формулы. */
-export function tabOf(m: CalcMessage): Tab {
-  if (m.formulaId.startsWith("F.SALES.")) return "sales";
-  if (m.formulaId.startsWith("F.CAPEX.")) return "budget";
-  if (m.formulaId.startsWith("F.ESC.") || m.formulaId === "F.TIME.FLAG_ESCROW_RELEASE") return "escrow";
-  return "tep";
-}
-
+const TAB_OF_BLOCK: Record<QuestionBlock, Tab> = { sales: "sales", budget: "budget", cf: "cf", escrow: "escrow", fin: "cf" };
 const TAB_LABEL: Record<Tab, string> = { sales: "План продаж", budget: "Бюджет", escrow: "Эскроу", cf: "CF", tep: "ТЭП" };
+const AUTHOR_KEY = "fm.author";
+const STATUSES: IssueStatus[] = ["open", "work", "done"];
 
-/** Направления списка расхождений: где в исходнике не сходится. */
-export const DIRECTIONS = [
-  { id: "sales", title: "Продажи", tab: "sales" },
-  { id: "budget", title: "Бюджет", tab: "budget" },
-  { id: "cf", title: "Денежный поток", tab: "cf" },
-  { id: "escrow", title: "Эскроу", tab: "escrow" },
-  { id: "fin", title: "Финансирование", tab: "cf" },
-] as const;
-export type Direction = (typeof DIRECTIONS)[number]["id"];
-
-/**
- * Направление по ключу предупреждения. В денежный поток — всё, что меняет только CF, а не бюджет:
- * графики статей, сдвиг маркетинга и брокериджа, обрезка поступлений.
- */
-export function directionOf(m: CalcMessage): Direction {
-  const key = m.key ?? "";
-  if (key.startsWith("CAPEX.SCHEDULE_SUM:") || key === "LEGACY.CF1_LAG" || key === "SALES.CASH_IN_CUT") return "cf";
-  if (key === "LEGACY.ESCROW_DATE" || m.formulaId.startsWith("F.ESC.")) return "escrow";
-  if (m.formulaId.startsWith("F.FIN.")) return "fin";
-  if (m.formulaId.startsWith("F.SALES.")) return "sales";
-  return "budget";
-}
-
-/** Строка над вкладками в режиме совместимости: сколько расхождений и где их список. */
-export function CompatBanner({ count, open }: { count: number; open: () => void }) {
-  if (count === 0) return null;
+/** Строка над вкладками в режиме совместимости: сколько расхождений не решено и где их список. */
+export function CompatBanner({ open, total, go }: { open: number; total: number; go: () => void }) {
+  if (total === 0) return null;
   return (
     <div className="compat-warnings">
-      Режим совместимости с исходным Excel: расчёт повторяет файл один в один, включая {count} мест, где в файле что-то не сходится.{" "}
-      <button className="linklike" onClick={open}>
+      Режим совместимости с исходным Excel: расчёт повторяет файл один в один. Не решено {open} из {total} расхождений.{" "}
+      <button className="linklike" onClick={go}>
         Открыть список
       </button>
     </div>
   );
 }
 
-/**
- * Вкладка «Расхождения с Excel». Режим совместимости повторяет исходный Excel один в один, вместе с его ошибками
- * (решение владельца продукта 27.09.2026); здесь — эти места по направлениям. В обычном режиме они исправлены.
- */
-export function DiscrepanciesTab({ warnings, legacy, go }: { warnings: CalcMessage[]; legacy: boolean; go: (tab: Tab) => void }) {
+function Impact({ q }: { q: DataQuestion }) {
+  const a = q.impact.amount;
+  const timing = q.impact.kind === "сроки денег";
+  return (
+    <>
+      {a && !a.isZero() ? <div className="impact-amount">{timing ? `~${fmtRub(a)}` : `${a.gt(0) ? "+" : "−"}${fmtRub(a)}`}</div> : null}
+      {/* сумма уже над строкой — в пояснении остаётся, что меняется и в какую сторону */}
+      <div className="small muted">{timing ? q.impact.text : q.impact.text.replace(/ на ~[^;]*₽/, "")}</div>
+    </>
+  );
+}
+
+function StatusCell({ project, item }: { project: DemoProject; item: IssueItem }) {
+  const { dispatch } = useStore();
+  const [pending, setPending] = useState<IssueStatus | null>(null);
+  const [comment, setComment] = useState("");
+  const [author, setAuthor] = useState(savedAuthor);
+  const history = item.state?.history ?? [];
+  const save = () => {
+    if (!pending || !author.trim()) return;
+    try {
+      localStorage.setItem(AUTHOR_KEY, author.trim());
+    } catch {
+      /* имя автора — только удобство */
+    }
+    const event = { status: pending, author: author.trim(), at: new Date().toISOString(), ...(comment.trim() ? { comment: comment.trim() } : {}) };
+    dispatch({ type: "issue", id: project.id, key: item.key, no: item.no, question: item.question, event });
+    setPending(null);
+    setComment("");
+  };
+  return (
+    <div className="issue-status">
+      <select className={`status-${pending ?? item.status}`} value={pending ?? item.status} onChange={(e) => setPending(e.target.value as IssueStatus)} aria-label="Статус">
+        {STATUSES.map((s) => (
+          <option key={s} value={s}>
+            {ISSUE_STATUS_LABEL[s]}
+          </option>
+        ))}
+      </select>
+      {pending && pending !== item.status ? (
+        <div className="issue-status-form">
+          <textarea placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+          {savedAuthor() ? null : <input placeholder="Ваше имя" value={author} onChange={(e) => setAuthor(e.target.value)} />}
+          <div className="row-actions">
+            <button className="btn small primary" disabled={!author.trim()} onClick={save}>
+              Сохранить
+            </button>
+            <button className="btn small" onClick={() => setPending(null)}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {history.length ? (
+        <details className="issue-history">
+          <summary>История ({history.length})</summary>
+          <ul>
+            {[...history].reverse().map((e, k) => (
+              <li key={k}>
+                <b>{ISSUE_STATUS_LABEL[e.status]}</b> · {e.author} · {new Date(e.at).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })}
+                {e.comment ? <div>{e.comment}</div> : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
+function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]; go: (t: Tab) => void }) {
   const { open } = useHow();
-  if (!legacy) return <p className="muted">Расхождения с исходным Excel показываются для проектов в режиме совместимости.</p>;
-  let n = 0;
+  return (
+    <table className="grid issues-table">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Вопрос</th>
+          <th>Что смутило систему</th>
+          <th>Влияние</th>
+          <th>Рекомендация</th>
+          <th>Статус</th>
+          <th>Где видно</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((i) => (
+          <tr key={i.key} className={i.stale ? "stale" : ""}>
+            <td data-label="№" className="issue-no">
+              {i.no}
+            </td>
+            <td data-label="Вопрос" className="issue-question">
+              {i.question}
+            </td>
+            <td data-label="Что смутило систему">{i.q ? i.q.explanation : <span className="muted">Не воспроизводится: после обновления исходника расхождение пропало. Статус сохранён.</span>}</td>
+            <td data-label="Влияние">{i.q ? <Impact q={i.q} /> : "—"}</td>
+            <td data-label="Рекомендация">{i.q?.recommendation ?? "—"}</td>
+            <td data-label="Статус">
+              <StatusCell project={project} item={i} />
+            </td>
+            <td data-label="Где видно" className="nowrap">
+              {i.q ? (
+                <>
+                  <button className="linklike" onClick={() => go(TAB_OF_BLOCK[i.q?.block ?? "budget"])}>
+                    {TAB_LABEL[TAB_OF_BLOCK[i.q.block]]}
+                  </button>
+                  <br />
+                  <button className="linklike" onClick={() => i.q && open({ kind: "formula", id: i.q.formulaId })}>
+                    как посчитано
+                  </button>
+                </>
+              ) : (
+                "—"
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+type Sub = "active" | "archive";
+type Filter = "all" | "open" | "work";
+
+/**
+ * Вкладка «Расхождения с Excel» — рабочий список вопросов к авторам исходного файла (решение владельца продукта
+ * 27.09.2026). Режим совместимости повторяет Excel один в один; здесь — места, где файл не сходится сам с собой,
+ * с влиянием, рекомендацией и статусом. Решённые — в «Архиве».
+ */
+export function DiscrepanciesTab({ project, questions, go }: { project: DemoProject; questions: DataQuestion[]; go: (tab: Tab) => void }) {
+  const [sub, setSub] = useState<Sub>("active");
+  const [grouped, setGrouped] = useState(true);
+  const [sort, setSort] = useState<"impact" | "no">("impact");
+  const [filter, setFilter] = useState<Filter>("all");
+  const [exporting, setExporting] = useState(false);
+  if (project.input.mode !== "legacy") return <p className="muted discrepancies">Расхождения с исходным Excel показываются для проектов в режиме совместимости.</p>;
+  const all = issueItems(project, questions);
+  const active = all.filter((i) => i.status !== "done");
+  const archive = all.filter((i) => i.status === "done");
+  const shown = (sub === "active" ? active.filter((i) => filter === "all" || i.status === filter) : archive).sort((a, b) =>
+    sort === "impact" ? impactSize(b) - impactSize(a) || a.no - b.no : a.no - b.no,
+  );
+  const blockOf = (i: IssueItem) => i.q?.block ?? "budget";
   return (
     <div className="discrepancies">
       <p className="small muted">
-        Места, где исходный Excel не сходится сам с собой. Режим совместимости повторяет их как есть, в обычном режиме они исправлены. Каждое станет вопросом к авторам файла.
+        Ошибки и нестыковки, найденные в исходном Excel. Режим совместимости повторяет их как есть, в обычном режиме они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше.
       </p>
-      {DIRECTIONS.map((d) => {
-        const list = warnings.filter((w) => directionOf(w) === d.id);
-        return (
-          <section key={d.id}>
+      <div className="issues-toolbar">
+        <div className="seg">
+          <button className={sub === "active" ? "on" : ""} onClick={() => setSub("active")}>
+            Активные ({active.length})
+          </button>
+          <button className={sub === "archive" ? "on" : ""} onClick={() => setSub("archive")}>
+            Архив ({archive.length})
+          </button>
+        </div>
+        {sub === "active" ? (
+          <label className="small">
+            Статус{" "}
+            <select value={filter} onChange={(e) => setFilter(e.target.value as Filter)}>
+              <option value="all">все активные</option>
+              <option value="open">{ISSUE_STATUS_LABEL.open}</option>
+              <option value="work">{ISSUE_STATUS_LABEL.work}</option>
+            </select>
+          </label>
+        ) : null}
+        <label className="small">
+          Порядок{" "}
+          <select value={sort} onChange={(e) => setSort(e.target.value as "impact" | "no")}>
+            <option value="impact">по влиянию</option>
+            <option value="no">по номеру</option>
+          </select>
+        </label>
+        <label className="small">
+          <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} /> по блокам
+        </label>
+        <button
+          className="btn small"
+          disabled={exporting}
+          onClick={async () => {
+            setExporting(true);
+            try {
+              await exportIssues(project, all);
+            } finally {
+              setExporting(false);
+            }
+          }}
+        >
+          Выгрузить в Excel
+        </button>
+      </div>
+      {shown.length === 0 ? (
+        <p className="muted">{sub === "archive" ? "Решённых пунктов пока нет." : "Активных пунктов нет."}</p>
+      ) : grouped ? (
+        BLOCKS.filter((b) => shown.some((i) => blockOf(i) === b.id)).map((b) => (
+          <section key={b.id}>
             <h2>
-              {d.title} <span className="muted small">{list.length ? list.length : "расхождений нет"}</span>
+              {b.title} <span className="muted small">{shown.filter((i) => blockOf(i) === b.id).length}</span>
             </h2>
-            {list.length ? (
-              <table className="grid discrepancy-table">
-                <thead>
-                  <tr>
-                    <th>№</th>
-                    <th>Что не сходится</th>
-                    <th>Где видно</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {list.map((w) => (
-                    <tr key={w.key}>
-                      <td>{++n}</td>
-                      <td>{w.text}</td>
-                      <td className="nowrap">
-                        <button className="linklike" onClick={() => go(tabOf(w))}>
-                          {TAB_LABEL[tabOf(w)]}
-                        </button>
-                        <br />
-                        <button className="linklike" onClick={() => open({ kind: "formula", id: w.formulaId })}>
-                          как посчитано
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : null}
+            <Rows project={project} items={shown.filter((i) => blockOf(i) === b.id)} go={go} />
           </section>
-        );
-      })}
+        ))
+      ) : (
+        <Rows project={project} items={shown} go={go} />
+      )}
     </div>
   );
 }

@@ -25,3 +25,18 @@ export function fmtQuarter(iso: string): string {
   const monthsInQuarter = 3;
   return `${Math.ceil(Number(m) / monthsInQuarter)} кв ${y}`;
 }
+
+const THOUSAND = 1e3;
+const MILLION = 1e6;
+const BILLION = 1e9;
+const SHORT = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 });
+const SHORT1 = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 1 });
+
+/** Сумма коротко для пояснений: 7 533 738 473 → «7,53 млрд ₽», 60 249 127 → «60,2 млн ₽». */
+export function fmtRub(value: Decimal | number): string {
+  const x = Math.abs(new Decimal(value).toNumber());
+  if (x >= BILLION) return `${SHORT.format(x / BILLION)} млрд ₽`;
+  if (x >= MILLION) return `${SHORT1.format(x / MILLION)} млн ₽`;
+  if (x >= THOUSAND) return `${SHORT1.format(x / THOUSAND)} тыс. ₽`;
+  return `${RU.format(x)} ₽`;
+}

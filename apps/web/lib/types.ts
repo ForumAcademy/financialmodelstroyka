@@ -1,4 +1,4 @@
-import type { CalcMessage, ProjectInput } from "@fm/engine";
+import type { CalcMessage, LegacyCase, ProjectInput } from "@fm/engine";
 import type { ParameterId } from "@fm/spec";
 
 /** Источник проекта (docs/00, раздел 6): документ проекта (уровень 4) или экспертная оценка (уровень 5). */
@@ -40,6 +40,26 @@ export interface ValueChange {
   at: string;
 }
 
+export type IssueStatus = "open" | "work" | "done";
+
+export const ISSUE_STATUS_LABEL: Record<IssueStatus, string> = { open: "Не решено", work: "В работе", done: "Решено" };
+
+/** Смена статуса пункта расхождений: кто, когда, необязательный комментарий. */
+export interface IssueEvent {
+  status: IssueStatus;
+  comment?: string;
+  author: string;
+  at: string;
+}
+
+/** Состояние пункта: текущий статус, история и снимок вопроса (чтобы показать пункт, если он перестал воспроизводиться). */
+export interface IssueState {
+  status: IssueStatus;
+  history: IssueEvent[];
+  no: number;
+  question: string;
+}
+
 export interface DemoProject {
   id: string;
   name: string;
@@ -55,6 +75,10 @@ export interface DemoProject {
   updatedAt: string;
   /** Расхождения внутри исходного Excel (legacyChecks): показываются в режиме совместимости вместе с предупреждениями расчёта. */
   legacyWarnings?: CalcMessage[];
+  /** Кейс исходного Excel (ячейки для вопросов к данным); только у проектов, созданных из исходника. */
+  legacyCase?: LegacyCase;
+  /** Статусы пунктов «Расхождения с Excel» по постоянному ключу — сохраняются при пересчёте. */
+  issues?: Record<string, IssueState>;
   /** Примечание к данным (например, допущения при переносе вех исходника). */
   note?: string;
 }

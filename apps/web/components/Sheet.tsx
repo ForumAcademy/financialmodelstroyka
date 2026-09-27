@@ -110,7 +110,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   }
 
   return (
-    <div className={`field ${p.kind === "table" ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
+    <div className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
       <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
         {p.name}
         {readonly ? <span className="tag">справочник</span> : null}
@@ -118,7 +118,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
       </button>
       <div className="field-control">
         {control}
-        {p.kind !== "table" ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" ? fmt.unit(p.unit) : ""}</span> : null}
+        {p.kind !== "table" || readonly ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" && p.kind !== "table" ? fmt.unit(p.unit) : ""}</span> : null}
       </div>
     </div>
   );
@@ -143,7 +143,7 @@ export function Inputs({ project, model, groups }: { project: DemoProject; model
       ) : null}
       <div className="input-groups">
         {groups.map((g) => (
-          <div key={g.title} className={`input-group ${g.params.some((id) => getParameter(id).kind === "table") ? "wide" : ""}`}>
+          <div key={g.title} className={`input-group ${g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template") ? "wide" : ""}`}>
             <h3>{g.title}</h3>
             {g.note ? <p className="group-note">{g.note}</p> : null}
             <div className="fields">

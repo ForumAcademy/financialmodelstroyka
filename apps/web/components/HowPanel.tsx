@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { getCapexItem, getFormula, getParameter, getSource, spec, type CapexItemId, type FormulaId, type ParameterId, type SourceId } from "@fm/spec";
 import * as fmt from "@/lib/format";
 import { compositeSummary, DataView } from "./DataView";
+import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { isParameterIdLike, stageOf } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -100,7 +101,7 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
       <h3>Формула</h3>
       <p>{f.name}</p>
       <pre className="expr">{f.expr.trim()}</pre>
-      {f.note ? <p className="formula-note">{f.note}</p> : null}
+      {f.note ? <p className="formula-note">{humanize(f.note)}</p> : null}
       {f.terms && Object.keys(f.terms).length ? (
         <>
           <h3>Обозначения в формуле</h3>
@@ -114,13 +115,13 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
         </>
       ) : null}
       <h3>Почему так</h3>
-      <p>{f.rationale}</p>
+      <p>{humanize(f.rationale)}</p>
       {f.rejected.length ? (
         <>
           <h3>Что отклонено</h3>
           <ul>
             {f.rejected.map((r) => (
-              <li key={r}>{r}</li>
+              <li key={r}>{humanize(r)}</li>
             ))}
           </ul>
         </>
@@ -175,18 +176,26 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
           {fmt.value(v ?? null)} {v !== null && v !== undefined ? fmt.unit(p.unit) : ""}
         </div>
       )}
-      <p className="muted small">{origin === "project" ? "Вводное значение проекта" : origin === "region" ? "Из справочника регионов" : "Значение справочника"}</p>
+      <p className="muted small">
+        {origin === "project"
+          ? "Введено в проекте"
+          : origin === "region"
+            ? "Из справочника регионов — подставляется по региону проекта"
+            : p.scope === "template"
+              ? "Значение справочника — одинаково для всех проектов, в проекте не меняется"
+              : "Значение по умолчанию из справочника — можно заменить в проекте"}
+      </p>
       {project && model(project).missing.has(id) ? (
         <p className="need-legend">
-          <span className="need-badge">Заполните</span> Обязательное значение не введено — без него не считаются формулы из раздела «Используется в формулах» ниже.
+          <span className="need-badge">Заполните</span> Обязательное значение не введено — без него не считаются формулы из раздела «Где используется в расчёте» ниже.
         </p>
       ) : null}
-      <h3>Что это</h3>
-      <p>{p.basis}</p>
+      <h3>Что это и откуда</h3>
+      <p>{humanize(p.basis)}</p>
       {p.how_to_fill ? (
         <>
           <h3>Где взять значение</h3>
-          <p>{p.how_to_fill}</p>
+          <p>{humanize(p.how_to_fill)}</p>
         </>
       ) : null}
       {project && p.scope !== "template" ? (
@@ -209,7 +218,10 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
               </span>
             </p>
           ) : (
-            <p className="warn small">Источник не указан</p>
+            <p className="warn small">
+              Источник не указан. Выберите ниже документ, из которого взято значение (договор, ТЭП, ГПЗУ, расчёт), или добавьте его в источники проекта.
+              Пока документа нет, значение считается непроверенным.
+            </p>
           )}
           <select value={linked?.id ?? ""} onChange={(e) => dispatch({ type: "linkSource", id: project.id, param: id, sourceId: e.target.value || null })}>
             <option value="">— выбрать источник проекта —</option>
@@ -232,7 +244,7 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
       </ul>
       {usedBy.length ? (
         <>
-          <h3>Используется в формулах</h3>
+          <h3>Где используется в расчёте</h3>
           <ul className="small">
             {usedBy.map((f) => (
               <li key={f.id}>
@@ -256,17 +268,34 @@ function CapexView({ id, open }: { id: CapexItemId; open: (t: HowTarget) => void
       <p className="muted small">Статья бюджета · группа «{c.group}»</p>
       <h3>Как считается</h3>
       <p>
-        Сумма = ставка × база × индекс. База: <strong>{c.base}</strong>
-        {c.rate_param ? (
+        {c.base === "фикс" || c.base === "фикс_в_месяц" || c.base === "формула" ? (
+          <>Основа суммы: {baseName(c.base)}. </>
+        ) : (
           <>
-            , ставка: <button className="link" onClick={() => open({ kind: "param", id: c.rate_param! })}>{getParameter(c.rate_param).name}</button>
+            Сумма = {c.rate_param ? "ставка" : "стоимость"} × «{baseName(c.base)}»
+            {c.rate_param ? (
+              <>
+                {" "}(ставка:{" "}
+                <button className="link" onClick={() => open({ kind: "param", id: c.rate_param! })}>
+                  {getParameter(c.rate_param).name}
+                </button>
+                )
+              </>
+            ) : null}
+            .{" "}
           </>
-        ) : null}
-        . График расходования: {c.schedule_rule}
-        {c.schedule_from ? ` (${c.schedule_from}${c.schedule_to ? ` → ${c.schedule_to}` : ""})` : ""}.
+        )}
+        Цена статьи {indexName(c.index_type)}.
+      </p>
+      <p>
+        Когда платится: {scheduleName(c.schedule_rule)}
+        {c.schedule_from
+          ? `, ${c.schedule_to ? `с даты «${milestoneName(c.schedule_from)}» до даты «${milestoneName(c.schedule_to)}»` : `в дату «${milestoneName(c.schedule_from)}»`}`
+          : ""}
+        .
       </p>
       <h3>Почему так</h3>
-      <p>{c.basis}</p>
+      <p>{humanize(c.basis)}</p>
       <h3>Формула</h3>
       <button className="dep" onClick={() => open({ kind: "formula", id: formula })}>
         <span>{getFormula(formula).name}</span>
@@ -278,7 +307,7 @@ function CapexView({ id, open }: { id: CapexItemId; open: (t: HowTarget) => void
           <SpecSource key={sid} id={sid} />
         ))}
       </ul>
-      {c.legacy.issue ? <p className="small muted">В исходном Excel: {c.legacy.issue}</p> : null}
+      {c.legacy.issue ? <p className="small muted">В исходном Excel: {humanize(c.legacy.issue)}</p> : null}
       <Actions formula={formula} source={c.source_ids[0]} />
     </>
   );

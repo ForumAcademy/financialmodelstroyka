@@ -109,6 +109,7 @@ const TARGETS: FormulaId[] = [
   ...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]),
   "F.SALES.REVENUE_TOTAL",
   "F.SALES.WAVG_PRICE",
+  "F.CAPEX.TOTAL",
   "F.TEP.PARKING_COUNT",
   "F.TEP.GFA_SPLIT",
   "F.TEP.GFA_TOTAL",

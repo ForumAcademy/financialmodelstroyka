@@ -111,13 +111,25 @@ function build(item: AssumptionItem, result: ResultSet, fallback: ResultSet | nu
 
   const used = spec.formulas.find((x) => (x.depends_on as string[]).includes(param));
   const computed = used && f[used.id as FormulaId] !== undefined;
+  if (item.group === "fin") {
+    // Кредит — только по расчёту сервиса: в «Как в исходном Excel» проценты посчитаны с ошибками исходника
+    const interest = f["F.FIN.INTEREST"]?.value as Decimal[] | undefined;
+    const total = interest?.reduce((a, x) => a.add(x), new Decimal(0)) ?? null;
+    return {
+      what: `${label(param)} ${valueText}`,
+      formulaId: (used?.id ?? "F.FIN.RATE") as FormulaId,
+      impact: total
+        ? { amount: null, kind: "зависит", text: `от значения зависят проценты по кредиту: в расчёте сервиса ~${fmtRub(total)} за весь срок` }
+        : { amount: null, kind: "нет", text: "кредит в расчёте сервиса пока не посчитан: не хватает вводных проекта; значение повлияет на проценты по кредиту и пиковую потребность в деньгах" },
+    };
+  }
   return {
     what: `${label(param)} ${valueText}`,
     formulaId: (used?.id ?? "F.CHECK.ALL") as FormulaId,
     impact: {
       amount: null,
       kind: "нет",
-      text: computed ? "влияние в рублях не оценено" : item.group === "fin" ? "финансирование пока не считается (расчёт — этап 5): значение повлияет на проценты по кредиту и пиковую потребность в деньгах" : "значение пока не участвует в расчёте",
+      text: computed ? "влияние в рублях не оценено" : "значение пока не участвует в расчёте",
     },
   };
 }

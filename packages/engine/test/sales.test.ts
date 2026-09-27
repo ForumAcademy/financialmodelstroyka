@@ -134,7 +134,7 @@ const project = (extra: Record<string, unknown> = {}) => ({
 });
 
 describe("SALES и ESCROW: правила расчёта сервиса", () => {
-  const r = calculate(project(), { horizonMonths: 10 }, ["F.SALES.REVENUE_TOTAL", "F.SALES.END_PRICE", "F.SALES.WAVG_PRICE", "F.ESC.COVERAGE"]);
+  const r = calculate(project(), { horizonMonths: 10 }, ["F.SALES.REVENUE_TOTAL", "F.SALES.END_PRICE", "F.SALES.WAVG_PRICE", "F.ESC.BALANCE"]);
   const sold = rows(r, "F.SALES.SOLD_AREA");
   const price = rows(r, "F.SALES.PRICE");
 
@@ -183,10 +183,6 @@ describe("SALES и ESCROW: правила расчёта сервиса", () => 
     expect(rel[9]?.eq(dep[9] as Decimal)).toBe(true);
     expect(esc.balance[0]?.slice(8).every((x) => x.isZero())).toBe(true);
     expect(esc.balance[0]?.[7]?.sub(sum(dep.slice(0, 8))).abs().lt(1e-6)).toBe(true);
-  });
-
-  it("покрытие долга эскроу — на этапе 5", () => {
-    expect(r.messages).toContainEqual(expect.objectContaining({ formulaId: "F.ESC.COVERAGE", severity: "info" }));
   });
 
   it("сумма долей оплат не 1 — ошибка", () => {

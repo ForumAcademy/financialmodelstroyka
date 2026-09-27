@@ -126,7 +126,7 @@ case = {
         "FIN.EQUITY_SHARE": cf["D132"].value, "FIN.RATE_PREFERENTIAL": cf["D116"].value,
         "FIN.RATE_BASE_legacy": cf["D117"].value, "FIN.KEY_RATE_legacy": cf["D115"].value,
         "FIN.RATE_DISCOUNT_COEF": cf["D118"].value, "FIN.RATE_MIN": cf["D119"].value,
-        "FIN.ESCROW_RESERVE_RATE": cf["D92"].value, "FIN.FEE_ARRANGEMENT": cf["D111"].value,
+        "FIN.ESCROW_RESERVE_RATE": cf["D92"].value, "FIN.FEE_ARRANGEMENT": cf["D111"].value, "FIN.LEGACY_LIMIT": num(b["F67"].value),
         "FIN.COLLATERAL_DISCOUNT": cf["D102"].value, "VAL.COST_OF_EQUITY_legacy": cf["D139"].value,
         "TAX.LAND_RATE_legacy": cf["D84"].value,
     },
@@ -152,6 +152,12 @@ case = {
                 "brokerage_row78": series(cf, 78, 6, 45), "marketing_row79": series(cf, 79, 6, 45),
                 "escrow_release_row6": series(cf, 6, 6, 45), "escrow_release_row6_typed": [c - 6 for c in range(6, 46) if not str(wf["CF1 "].cell(6, c).value).startswith("=")],
                 "escrow_deposit_row8": series(cf, 8, 6, 45), "escrow_date_D6_formula": wf["CF1 "]["D6"].value},
+        # Кредит CF1 (строки 98–132, по кварталам F…AS; знаки — как в CF1) и лимит Бюджет!F67
+        "fin": {"limit_F67": num(b["F67"].value), "limit_F67_formula": wf["Бюджет "]["F67"].value,
+                "draw_row98": series(cf, 98, 6, 45), "repaid_escrow_row100": series(cf, 100, 6, 45), "debt_row106": series(cf, 106, 6, 45),
+                "interest_row107": series(cf, 107, 6, 45), "pik_paid_row108": series(cf, 108, 6, 45), "accrued_row110": series(cf, 110, 6, 45),
+                "fee_row111": series(cf, 111, 6, 45), "flow_row113": series(cf, 113, 6, 45), "k1_row122": series(cf, 122, 6, 45),
+                "rate_row125": series(cf, 125, 6, 45), "equity_row132": series(cf, 132, 6, 45), "eff_rate_D128": cf["D128"].value},
     },
     "legacy_outputs_for_reference": {
         "_warning": "Значения исходника. Многие рассчитаны с ошибками (docs/02_legacy_audit.md) — использовать только для сверки, не как эталон.",

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { Engine, FORMULAS, type ProjectInput } from "../src/index";
+import { Engine, FORMULAS, type FormulaContext, type ProjectInput } from "../src/index";
 
 /** Справочник допущений компании: значение проекта → стандарт компании → значение по умолчанию (parameters.yaml). */
 describe("стандартные значения компании в расчёте", () => {
   it("стандарт главнее значения по умолчанию, значение проекта главнее стандарта", () => {
     const trace = (input: ProjectInput) => {
-      const e = new Engine(input, { ...FORMULAS, "F.TIME.DATE": (ctx) => ctx.param("TIME.ESCROW_RELEASE_LAG_M") }, { horizonMonths: 1 });
+      const e = new Engine(input, { ...FORMULAS, "F.TIME.DATE": (ctx: FormulaContext) => ctx.param("TIME.ESCROW_RELEASE_LAG_M") }, { horizonMonths: 1 });
       return e.run(["F.TIME.DATE"]).parameters["TIME.ESCROW_RELEASE_LAG_M"];
     };
     expect(trace({ values: {} })).toMatchObject({ value: 3, origin: "template" });

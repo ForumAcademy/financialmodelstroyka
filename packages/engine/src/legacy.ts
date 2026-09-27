@@ -66,6 +66,23 @@ export interface LegacyChecks {
     escrow_deposit_row8: number[];
     escrow_date_D6_formula: string;
   };
+  /** Кредит CF1 (строки 98–132, по кварталам F…AS; знаки — как в CF1) и лимит Бюджет!F67. */
+  fin?: {
+    limit_F67: number;
+    limit_F67_formula: string;
+    draw_row98: number[];
+    repaid_escrow_row100: number[];
+    debt_row106: number[];
+    interest_row107: number[];
+    pik_paid_row108: number[];
+    accrued_row110: number[];
+    fee_row111: number[];
+    flow_row113: number[];
+    k1_row122: number[];
+    rate_row125: number[];
+    equity_row132: number[];
+    eff_rate_D128: unknown;
+  };
 }
 
 /** Месяцев в квартале ручных рядов CF1: доля квартала делится поровну на три месяца (F.CAPEX.SCHEDULE_WEIGHT). */
@@ -177,6 +194,17 @@ function legacySales(c: LegacyCase, values: Partial<Record<ParameterId, unknown>
 }
 
 /**
+ * Ставки кредита исходника: ключевая CF1!D115 — одна на весь срок; базовая CF1!D117 задана целиком, в ядре базовая =
+ * ключевая + спред, поэтому спред = D117 − D115 (20% − 14,25% = 5,75 п.п.) — базовая ставка получается та же.
+ */
+function legacyFin(c: LegacyCase, values: Partial<Record<ParameterId, unknown>>): void {
+  const key = c.project_inputs["FIN.KEY_RATE_legacy"];
+  const base = c.project_inputs["FIN.RATE_BASE_legacy"];
+  if (typeof key === "number") values["FIN.LEGACY_KEY_RATE"] = key;
+  if (typeof key === "number" && typeof base === "number") values["FIN.RATE_BASE_SPREAD"] = new Decimal(base).sub(key).toNumber();
+}
+
+/**
  * Входы кейса исходного Excel → ProjectInput в расчёте «как в исходном Excel».
  * Ключи, которые не являются ID параметров (…_legacy, *_TEXT, SALES.PRODUCTS.<продукт>), здесь не нужны.
  * Нормы машино-мест исходника заданы по типам квартир (TEP.APT_MIX.parking_norm) → TEP.PARKING_NORM, rule = per_type.
@@ -189,5 +217,6 @@ export function legacyCaseInput(c: LegacyCase): ProjectInput {
   values["TEP.PARKING_NORM"] = { rule: "per_type", values: mix.map((r) => r.parking_norm) };
   if (c.capex_legacy) values["CAPEX.ITEMS"] = legacyCapex(c, values);
   legacySales(c, values);
+  legacyFin(c, values);
   return { values, mode: "legacy" };
 }

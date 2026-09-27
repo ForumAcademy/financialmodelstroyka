@@ -9,13 +9,13 @@ describe("Расхождения с Excel: вопросы и статусы", ()
   if (!demo) throw new Error("нет демо-проекта");
   const questions = projectQuestions(demo, computeProject(demo));
 
-  it("12 вопросов по исходному Excel и 11 по стандартным значениям компании, все не решены", () => {
-    expect(questions.filter((q) => !q.parameterId).map((q) => q.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-    // номера стандартных значений — после 12, по месту в справочнике; маркетинг, брокеридж и вознаграждение за
+  it("19 вопросов по исходному Excel и 11 по стандартным значениям компании, все не решены", () => {
+    expect(questions.filter((q) => !q.parameterId).map((q) => q.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+    // номера стандартных значений — после 19 (13–19 — кредит в CF1), по месту в справочнике; маркетинг, брокеридж и вознаграждение за
     // управление в демо-проекте заданы суммами Excel — ставки из справочника в расчёте не участвуют, вопросов нет;
-    // резерв в «Расчёте сервиса» считается ставкой 2% от СМР — вопрос 18
-    expect(questions.filter((q) => q.parameterId).map((q) => q.no)).toEqual([15, 18, 20, 21, 22, 23, 24, 25, 26, 27, 29]);
-    expect(issueCounts(demo, questions)).toEqual({ open: 23, total: 23 });
+    // резерв в «Расчёте сервиса» считается ставкой 2% от СМР — вопрос 25
+    expect(questions.filter((q) => q.parameterId).map((q) => q.no)).toEqual([22, 25, 27, 28, 29, 30, 31, 32, 33, 34, 36]);
+    expect(issueCounts(demo, questions)).toEqual({ open: 30, total: 30 });
   });
 
   it("статус с комментарием, автором и историей сохраняется по ключу; «Решено» уходит из нерешённых", () => {
@@ -24,7 +24,7 @@ describe("Расхождения с Excel: вопросы и статусы", ()
     s = reducer(s, { type: "issue", id: demo.id, key: "LEGACY.CONTINGENCY_F42", no: 4, question: "q", event: { status: "done", author: "Анна", at, comment: "ставка 10% подтверждена" } });
     const p = s[0]!;
     expect(p.issues?.["LEGACY.CONTINGENCY_F42"]?.history.map((e) => e.status)).toEqual(["work", "done"]);
-    expect(issueCounts(p, projectQuestions(p, computeProject(p)))).toEqual({ open: 22, total: 23 });
+    expect(issueCounts(p, projectQuestions(p, computeProject(p)))).toEqual({ open: 29, total: 30 });
   });
 
   it("если расхождение пропало, пункт остаётся с пометкой «не воспроизводится», статус не меняется", () => {

@@ -69,6 +69,13 @@ const NUMBERS: Record<string, number> = {
   "SALES.CASH_IN_CUT": 10,
   "LEGACY.CF1_LAG": 11,
   "LEGACY.ESCROW_DATE": 12,
+  "LEGACY.FIN_DRAW_REPAID": 13,
+  "LEGACY.FIN_INTEREST": 14,
+  "LEGACY.FIN_RATE": 15,
+  "LEGACY.FIN_PIK_SIGN": 16,
+  "LEGACY.FIN_EQUITY": 17,
+  "LEGACY.FIN_FEE_BASE": 18,
+  "LEGACY.FIN_EFF_RATE": 19,
 };
 
 /** Последний постоянный номер пункта по исходному Excel: номера следующих вопросов (стандарт компании) идут после него. */
@@ -308,6 +315,8 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         recommendation: `Уточнить плановую дату РНВ; в расчёте сервиса раскрытие = РНВ + ${lag ?? "лаг"} мес.`,
       };
     }
+    const fin = finQuestion(kind ?? "", c, result);
+    if (fin) return fin;
     return {
       compared: m.text,
       block: m.formulaId.startsWith("F.SALES.") ? "sales" : m.formulaId.startsWith("F.ESC.") ? "escrow" : m.formulaId.startsWith("F.FIN.") ? "fin" : "budget",
@@ -336,4 +345,105 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       };
     })
     .sort((a, b) => a.no - b.no);
+}
+
+type FinBuilt = Omit<DataQuestion, "key" | "no" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
+
+/** Вопросы по кредиту CF1 (строки 98–132): числа — из расчёта «как в исходном Excel», который повторяет CF1. */
+function finQuestion(kind: string, c: LegacyCase, result: ResultSet): FinBuilt | null {
+  const f = result.formulas;
+  const lf = c.legacy_checks?.fin;
+  const draw = (f["F.FIN.DRAW"]?.value ?? []) as Decimal[];
+  const interest = (f["F.FIN.INTEREST"]?.value ?? []) as Decimal[];
+  const rate = (f["F.FIN.RATE"]?.value ?? []) as Decimal[];
+  const rep = f["F.FIN.REPAYMENT"]?.value as { interest_paid: Decimal[] } | undefined;
+  const equity = f["F.FIN.EQUITY_IN"]?.value as { total: Decimal[] } | undefined;
+  const fees = (f["F.FIN.FEES"]?.value ?? []) as Decimal[];
+  const date = (f["F.TIME.DATE"]?.value ?? []) as IsoDate[];
+  const drawn = sum(draw);
+  const accrued = sum(interest);
+  const paid = sum(rep?.interest_paid);
+  const paidAt = (rep?.interest_paid ?? []).findIndex((x) => !x.isZero());
+  if (kind === "LEGACY.FIN_DRAW_REPAID") {
+    return {
+      compared: `Кредит в CF1 выдаётся на все расходы квартала вместе с собственными средствами и в том же квартале гасится: выдано и погашено ${fmtRub(drawn)}, долг на конец каждого квартала 0 (CF1 строки 98, 100, 106).`,
+      threat: "Долг, проценты и сроки погашения в Excel не отражают кредит, который нужен проекту.",
+      block: "fin",
+      question: "Как кредит должен выдаваться и гаситься в модели?",
+      explanation: `Строка погашения берёт большее из раскрытого эскроу и суммы долга с выдачей квартала, поэтому вся выдача сразу гасится, хотя эскроу ещё не раскрыто (CF1 строки 98, 100, 106).`,
+      impact: { amount: null, kind: "нет", text: `выдано и сразу погашено ${fmtRub(drawn)}; долг в Excel всегда 0` },
+      recommendation: "В расчёте сервиса кредит выдаётся на потребность месяца после собственного участия и гасится из раскрытого эскроу.",
+    };
+  }
+  if (kind === "LEGACY.FIN_INTEREST") {
+    return {
+      compared: `При долге 0 на конец каждого квартала в CF1 начислено процентов на ${fmtRub(accrued)}: они считаются от половины выдачи квартала (в первом квартале — от всей выдачи) плюс проценты прошлого квартала (CF1 строки 97, 107).`,
+      threat: `Сумма процентов ${fmtRub(accrued)} не связана с настоящим долгом.`,
+      block: "fin",
+      question: "На какой остаток долга начислять проценты?",
+      explanation: `Проценты должны начисляться на остаток долга вместе с уже начисленными процентами. В CF1 к половине выдачи прибавляются проценты только прошлого квартала, а в первом квартале ячейка начального долга пустая (CF1 строки 97, 107).`,
+      impact: { amount: null, kind: "нет", text: `проценты в Excel ${fmtRub(accrued)} при нулевом долге` },
+      recommendation: "В расчёте сервиса проценты начисляются на средний долг месяца и накопленные проценты.",
+    };
+  }
+  if (kind === "LEGACY.FIN_RATE") {
+    const max = rate.reduce((m, x) => Decimal.max(m, x), ZERO);
+    const tMax = rate.findIndex((x) => x.eq(max));
+    return {
+      compared: `Ставка кредита в CF1 доходит до ${fmtShare(max)} годовых${date[tMax] ? ` в ${fmtQuarter(date[tMax] as IsoDate)}` : ""}, хотя должна быть между льготной 5% и базовой 20% (CF1 строки 122, 125).`,
+      threat: "Проценты в Excel посчитаны по ставке, которой не бывает в кредитном договоре.",
+      block: "fin",
+      question: "Какой знак у долга и процентов в расчёте покрытия эскроу?",
+      explanation: "Покрытие долга эскроу делится на проценты, записанные со знаком минус, и получается отрицательным. Отрицательное покрытие увеличивает ставку в разы (CF1 строки 110, 122, 125).",
+      impact: { amount: null, kind: "нет", text: `ставка до ${fmtShare(max)} годовых` },
+      recommendation: "В расчёте сервиса покрытие считается от положительного долга с процентами, ставка — между льготной и базовой.",
+    };
+  }
+  if (kind === "LEGACY.FIN_PIK_SIGN") {
+    return {
+      compared: `При раскрытии эскроу${date[paidAt] ? ` в ${fmtQuarter(date[paidAt] as IsoDate)}` : ""} CF1 «оплачивает» проценты ${fmtRub(paid)}, но они попадают в поток по кредиту со знаком плюс, как поступление денег (CF1 строки 108, 113).`,
+      threat: `Денежный поток Excel завышен на ~${fmtRub(paid)}: проценты увеличивают остаток денег вместо того, чтобы уменьшать его.`,
+      block: "fin",
+      question: "Должны ли проценты при раскрытии эскроу уменьшать деньги проекта?",
+      explanation: "Проценты в CF1 записаны со знаком минус, а в потоке по кредиту они ещё раз вычитаются. Раскрытое эскроу на погашение не идёт, а договоры купли-продажи кредит не гасят (CF1 строки 100, 101, 108, 113).",
+      impact: { amount: paid, kind: "поступления", text: `поступления: завышены на ~${fmtRub(paid)}` },
+      recommendation: "В расчёте сервиса проценты платятся из раскрытого эскроу и уменьшают деньги проекта.",
+    };
+  }
+  if (kind === "LEGACY.FIN_EQUITY") {
+    const total = sum(equity?.total);
+    return {
+      compared: `Собственные средства в CF1 — 10% расходов каждого квартала, всего ${fmtRub(total)}; в первом квартале — только комиссия за выдачу (CF1 строка 132).`,
+      threat: "Кредит в Excel начинает выдаваться раньше, чем застройщик внёс собственное участие, поэтому сроки и сумма долга занижены.",
+      block: "fin",
+      question: "Какое собственное участие требует банк и когда его вносить?",
+      explanation: "Банк требует внести собственное участие до первой выдачи кредита. В CF1 собственные средства идут долей от расходов каждого квартала параллельно с кредитом (CF1 строка 132).",
+      impact: { amount: total, kind: "сроки денег", text: `сроки денег: собственные средства ${fmtRub(total)} внесены позже, чем требует банк` },
+      recommendation: "В расчёте сервиса собственное участие вносится вперёд, до первой выдачи; долю подтвердите по кредитному решению банка.",
+    };
+  }
+  if (kind === "LEGACY.FIN_FEE_BASE") {
+    const fee = sum(fees);
+    return {
+      compared: `Комиссия за выдачу в CF1 ${fmtRub(fee)} посчитана от «лимита» ${lf ? fmtRub(lf.limit_F67) : "из бюджета"}, куда входят участок и налоги (Бюджет!F67, CF1 строка 111).`,
+      threat: "Комиссия в Excel завышена на долю участка и налогов в «лимите».",
+      block: "fin",
+      question: "Какой лимит кредита в кредитном решении банка?",
+      explanation: "Лимит в бюджете — сумма СМР, ПИР, участка, коммерческих расходов и налогов. Участок оплачивается собственными средствами и в лимит не входит (Бюджет!F67, CF1 строка 111).",
+      impact: { amount: null, kind: "расходы", text: "комиссия зависит от лимита по кредитному решению" },
+      recommendation: "В расчёте сервиса лимит — бюджет за вычетом собственного участия, комиссия — процент от него при открытии кредита.",
+    };
+  }
+  if (kind === "LEGACY.FIN_EFF_RATE") {
+    return {
+      compared: `Эффективная ставка кредита в CF1 не считается и показывает ошибку #NUM!: в потоке по кредиту для банка есть только одна сумма ${fmtRub(paid)} при раскрытии эскроу (CF1!D128, строка 127).`,
+      threat: "Полную стоимость кредита по Excel оценить нельзя.",
+      block: "fin",
+      question: "Нужна ли полная стоимость кредита в отчёте?",
+      explanation: "Выдачи гасятся в том же квартале, поэтому в потоке для банка нет выдач и погашений разного знака, и функция доходности не находит решения (CF1!D128).",
+      impact: { amount: null, kind: "нет", text: "показатель не считается" },
+      recommendation: "В расчёте сервиса полная стоимость кредита считается по датам выдач, погашений и комиссий.",
+    };
+  }
+  return null;
 }

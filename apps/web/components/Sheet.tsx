@@ -416,8 +416,9 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
               }
               const series = row.series && dates ? aggregate(row.series, dates, period, row.periodMode).sums : null;
               const total = row.total !== undefined ? row.total : row.series && row.totalMode !== "none" ? row.series.reduce((a, b) => a + b, 0) : undefined;
-              // Деньги в итогах — до рубля, как в ячейках по периодам
-              const totalText = total === undefined ? (row.series ? "" : "—") : row.unit?.startsWith("руб") && (typeof total === "number" || total instanceof Decimal) ? fmt.num(total, 0) : fmt.value(total);
+              // Деньги в итогах — до рубля, как в ячейках по периодам; доли — в процентах
+              const isNum = typeof total === "number" || total instanceof Decimal;
+              const totalText = total === undefined ? (row.series ? "" : "—") : isNum && (row.unit?.startsWith("руб") || row.unit === "доля" || row.unit === "%годовых" || row.unit === "коэф") ? cellText(new Decimal(total).toNumber(), row.unit) : fmt.value(total);
               const click = () => row.formula && open({ kind: "formula", id: row.formula, label: row.label, value: total === undefined ? "—" : `${totalText} ${fmt.unit(row.unit ?? "")}` });
               return (
                 <tr key={i} className={`${row.bold ? "total" : ""} ${row.formula ? "clickable" : ""}`} onClick={click}>
@@ -426,7 +427,7 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
                   <td className="num">{totalText}</td>
                   {keys.map((k, j) => (
                     <td key={k} className="num">
-                      {series ? (series[j] ? fmt.num(series[j] as number, 0) : "") : row.total !== undefined ? "" : "—"}
+                      {series ? (series[j] ? cellText(series[j] as number, row.unit) : "") : row.total !== undefined ? "" : "—"}
                     </td>
                   ))}
                 </tr>
@@ -438,6 +439,14 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
     </section>
   );
 }
+
+/** Число в ячейке расчёта: доли и ставки — в процентах, коэффициенты — с двумя знаками, остальное — целыми. */
+function cellText(v: number, unit: string | undefined): string {
+  if (unit === "доля" || unit === "%годовых") return fmt.share(Math.round(v * PERCENT_CELL) / PERCENT_CELL);
+  if (unit === "коэф") return fmt.num(v, 2);
+  return fmt.num(v, 0);
+}
+const PERCENT_CELL = 10_000;
 
 /** Значение формулы, если ядро его посчитало. */
 export function val<T = unknown>(model: ProjectModel, id: FormulaId): T | undefined {

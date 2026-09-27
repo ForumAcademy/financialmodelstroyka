@@ -12,7 +12,8 @@ describe("Панель «Как посчитано»: пример на цифр
   const [demo] = loadSeed().projects;
   if (!demo) throw new Error("нет демо-проекта");
   const m = computeProject(demo);
-  const computed = Object.keys(m.result.formulas) as FormulaId[];
+  // посчитанные показатели: формулы с null («как в исходном Excel» показателя нет) не показываются
+  const computed = (Object.keys(m.result.formulas) as FormulaId[]).filter((id) => m.result.formulas[id]?.value !== null);
 
   it("у каждой формулы есть название и короткое пояснение простым языком", () => {
     for (const f of spec.formulas) {

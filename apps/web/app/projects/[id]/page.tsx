@@ -25,7 +25,7 @@ function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
   const router = useRouter();
-  const { projects, model } = useStore();
+  const { projects, model, sourceChecks } = useStore();
   const { setProject } = useHow();
   const [exporting, setExporting] = useState(false);
   const project = projects.find((p) => p.id === id);
@@ -63,7 +63,7 @@ function ProjectPage() {
           onClick={async () => {
             setExporting(true);
             try {
-              await exportProject(project);
+              await exportProject(project, sourceChecks);
             } finally {
               setExporting(false);
             }

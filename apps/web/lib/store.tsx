@@ -4,6 +4,7 @@ import { createContext, useContext, useMemo, useReducer, type ReactNode } from "
 import { spec, type ParameterId } from "@fm/spec";
 import type { DemoProject, ProjectSource, Seed } from "./types";
 import { computeProject, type ProjectModel } from "./model";
+import type { SourceCheck } from "./sources";
 
 type Action =
   | { type: "create"; project: DemoProject }
@@ -65,14 +66,34 @@ interface Store {
   projects: DemoProject[];
   dispatch: (a: Action) => void;
   model: (p: DemoProject) => ProjectModel;
+  /** Отметки «проверено» по общим источникам (ID источника → кто, когда, комментарий). */
+  sourceChecks: Record<string, SourceCheck>;
+  setSourceCheck: (sourceId: string, check: SourceCheck | null) => void;
+}
+
+function checksReducer(state: Record<string, SourceCheck>, a: { id: string; check: SourceCheck | null }): Record<string, SourceCheck> {
+  const next = { ...state };
+  if (a.check) next[a.id] = a.check;
+  else delete next[a.id];
+  return next;
 }
 
 const Ctx = createContext<Store | null>(null);
 
 export function StoreProvider({ seed, children }: { seed: Seed; children: ReactNode }) {
   const [projects, dispatch] = useReducer(reducer, seed.projects);
+  const [sourceChecks, dispatchCheck] = useReducer(checksReducer, {});
   const models = useMemo(() => new Map(projects.map((p) => [p.id, computeProject(p)])), [projects]);
-  const store = useMemo<Store>(() => ({ projects, dispatch, model: (p) => models.get(p.id) ?? computeProject(p) }), [projects, models]);
+  const store = useMemo<Store>(
+    () => ({
+      projects,
+      dispatch,
+      model: (p) => models.get(p.id) ?? computeProject(p),
+      sourceChecks,
+      setSourceCheck: (id, check) => dispatchCheck({ id, check }),
+    }),
+    [projects, models, sourceChecks],
+  );
   return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
 }
 

@@ -1,6 +1,7 @@
 import Decimal from "decimal.js";
 import { spec, type ParameterId } from "@fm/spec";
 import { computeProject } from "./model";
+import { sourceStatus, type SourceCheck } from "./sources";
 import type { DemoProject } from "./types";
 import * as fmt from "./format";
 
@@ -11,7 +12,7 @@ const HEAD = "FFE8ECF1";
  * «Выгрузить в Excel» до этапа 13: вводные проекта с источниками, расчёт ТЭП (значения + ID формулы)
  * и реестр источников с гиперссылками. Полная модель с живыми формулами — этап 13.
  */
-export async function exportProject(project: DemoProject): Promise<void> {
+export async function exportProject(project: DemoProject, checks: Record<string, SourceCheck> = {}): Promise<void> {
   const ExcelJS = (await import("exceljs")).default;
   const m = computeProject(project);
   const wb = new ExcelJS.Workbook();
@@ -84,6 +85,7 @@ export async function exportProject(project: DemoProject): Promise<void> {
     { header: "Вид", key: "scope", width: 14 },
     { header: "Для чего", key: "used", width: 60 },
     { header: "Проверено", key: "accessed", width: 12 },
+    { header: "Статус", key: "status", width: 34 },
   ];
   head(src);
   for (const s of project.sources) {
@@ -91,7 +93,10 @@ export async function exportProject(project: DemoProject): Promise<void> {
     if (s.url) row.getCell("title").value = { text: s.title, hyperlink: s.url };
   }
   for (const s of spec.sources.filter((x) => x.scope === "global")) {
-    const row = src.addRow({ title: s.title, level: s.level, scope: "общий", used: s.used_for, accessed: fmt.date(s.accessed) });
+    const c = checks[s.id];
+    const st = sourceStatus(s, c);
+    const status = st.issue === "unverified" ? "не сверен" : st.issue === "stale" ? "устарел" : c ? `проверил ${c.by}${c.comment ? ` — ${c.comment}` : ""}` : "сверен";
+    const row = src.addRow({ title: s.title, level: s.level, scope: "общий", used: s.used_for, accessed: fmt.date(st.accessed), status });
     if (s.url) {
       row.getCell("title").value = { text: s.title, hyperlink: s.url };
       row.getCell("title").font = { color: { argb: BLUE }, underline: true };

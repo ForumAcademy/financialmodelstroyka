@@ -5,7 +5,7 @@ import { Suspense, useMemo, useState } from "react";
 import { getParameter, spec, type ParameterId } from "@fm/spec";
 import { useHow } from "@/components/HowPanel";
 import * as fmt from "@/lib/format";
-import { isStale, REVIEW_PERIOD_MONTHS } from "@/lib/sources";
+import { REVIEW_PERIOD_MONTHS, sourceStatus, type SourceCheck, type SourceIssue } from "@/lib/sources";
 import { useStore } from "@/lib/store";
 import type { ProjectSource } from "@/lib/types";
 
@@ -21,7 +21,10 @@ interface Row {
   checked: string;
   verified: boolean | null;
   /** Требует перепроверки: не сверен с текстом документа или проверен больше REVIEW_PERIOD_MONTHS назад. */
-  issue: "unverified" | "stale" | null;
+  issue: SourceIssue;
+  /** ID общего источника (для отметки «проверено»). */
+  sourceId?: string;
+  check?: SourceCheck | undefined;
   params: ParameterId[];
   project?: { id: string; name: string; sourceId: string };
   searchText: string;
@@ -65,9 +68,30 @@ function NewSourceForm({ projectId, onDone }: { projectId: string; onDone: () =>
   );
 }
 
+function CheckForm({ defaultBy, onSave, onCancel }: { defaultBy: string; onSave: (c: SourceCheck) => void; onCancel: () => void }) {
+  const [by, setBy] = useState(defaultBy);
+  const [comment, setComment] = useState("");
+  return (
+    <div className="check-form">
+      <input placeholder="Кто проверил" value={by} onChange={(e) => setBy(e.target.value)} autoFocus />
+      <input placeholder="Комментарий (редакция, пункт)" value={comment} onChange={(e) => setComment(e.target.value)} />
+      <div className="check-actions">
+        <button className="btn primary small-btn" disabled={!by.trim()} onClick={() => onSave({ by: by.trim(), date: new Date().toISOString().slice(0, 10), comment: comment.trim() || undefined })}>
+          Проверено
+        </button>
+        <button className="link small" onClick={onCancel}>
+          отмена
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SourcesPage() {
   const search = useSearchParams();
-  const { projects, dispatch } = useStore();
+  const { projects, dispatch, sourceChecks, setSourceCheck } = useStore();
+  const [checking, setChecking] = useState<string | null>(null);
+  const [lastBy, setLastBy] = useState("");
   const { open, setProject } = useHow();
   const [q, setQ] = useState(search.get("q") ?? "");
   const [scope, setScope] = useState<Scope>(search.get("project") ? "project" : "all");
@@ -85,13 +109,16 @@ function SourcesPage() {
           level: s.level,
           url: s.url,
           usedFor: s.used_for,
-          checked: s.accessed ? fmt.date(s.accessed) : "—",
-          verified: s.verified,
-          issue: s.verified === false ? "unverified" : s.accessed && isStale(s.accessed) ? "stale" : null,
+          ...(() => {
+            const st = sourceStatus(s, sourceChecks[s.id]);
+            return { checked: st.accessed ? fmt.date(st.accessed) : "—", verified: st.verified, issue: st.issue };
+          })(),
+          sourceId: s.id,
+          check: sourceChecks[s.id],
           params: spec.parameters.filter((p) => (p.source_ids as string[]).includes(s.id)).map((p) => p.id),
           searchText: `${s.id} ${s.title} ${s.used_for}`.toLowerCase(),
         })),
-    [],
+    [sourceChecks],
   );
   const projectRows: Row[] = (scope === "global" ? [] : scope === "project" ? (project ? [project] : []) : projects).flatMap((p) =>
     p.sources.map((s) => ({
@@ -151,7 +178,8 @@ function SourcesPage() {
       </div>
       <div className="seg section-seg">
         <button className={section === null ? "on" : ""} onClick={() => setSection(null)}>
-          Все разделы {issueBadge(allRows)}
+          Все разделы <span className="block-count">{allRows.length}</span>
+          {issueBadge(allRows)}
         </button>
         {SECTIONS.map((sec) => (
           <button key={sec.title} className={section === sec.title ? "on" : ""} onClick={() => setSection(sec.title)}>
@@ -221,7 +249,7 @@ function SourcesPage() {
                 )}
               </td>
               <td className="small">{r.usedFor}</td>
-              <td className="small">
+              <td className="small check-cell">
                 {r.checked}
                 {r.issue ? (
                   <div>
@@ -229,6 +257,30 @@ function SourcesPage() {
                       {r.issue === "unverified" ? "не сверен" : "устарел"}
                     </span>
                   </div>
+                ) : null}
+                {r.check ? (
+                  <div className="checked-by" title={r.check.comment ?? ""}>
+                    ✓ проверил {r.check.by}
+                    {r.check.comment ? <div className="muted">{r.check.comment}</div> : null}
+                    <button className="link small" onClick={() => setSourceCheck(r.sourceId!, null)}>
+                      снять отметку
+                    </button>
+                  </div>
+                ) : null}
+                {r.sourceId && r.issue ? (
+                  checking === r.sourceId ? (
+                    <CheckForm
+                      defaultBy={lastBy}
+                      onCancel={() => setChecking(null)}
+                      onSave={(c) => (setSourceCheck(r.sourceId!, c), setLastBy(c.by), setChecking(null))}
+                    />
+                  ) : (
+                    <div>
+                      <button className="btn small-btn check-btn" onClick={() => setChecking(r.sourceId!)}>
+                        Отметить проверенным
+                      </button>
+                    </div>
+                  )
                 ) : null}
               </td>
               <td className="small">

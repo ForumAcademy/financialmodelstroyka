@@ -1,5 +1,5 @@
 /**
- * Режим совместимости с исходным Excel: входы кейса tests/cases/*_legacy.yaml → ProjectInput.
+ * Расчёт «как в исходном Excel»: входы кейса tests/cases/*_legacy.yaml → ProjectInput.
  * Чтение файла — у вызывающего кода (тесты, сид демо-проекта), ядро остаётся без файловой системы.
  */
 import Decimal from "decimal.js";
@@ -29,7 +29,7 @@ export interface LegacyCase {
   timeline_quarters_F_to_AS?: string[];
   /** План продаж исходника: темп по кварталам с 1 кв 2026 (шт; для ПСН — лоты) и рост цены за квартал. */
   sales_legacy?: { pace_units_quarterly_from_1q2026: Record<string, number[]>; price_growth_quarterly: number };
-  /** Ячейки исходника для проверок режима совместимости (scripts/build_legacy_case.py → legacy_checks). */
+  /** Ячейки исходника для проверок расчёта «как в исходном Excel» (scripts/build_legacy_case.py → legacy_checks). */
   legacy_checks?: LegacyChecks;
 }
 
@@ -72,8 +72,8 @@ export interface LegacyChecks {
 const LEGACY_STEP_MONTHS = 3;
 
 /**
- * Бюджет исходника → CAPEX.ITEMS, Excel один в один (решение владельца продукта 27.09.2026: совместимость воспроизводит
- * исходник вместе с ошибками, исправления живут в обычном режиме, расхождения — предупреждения):
+ * Бюджет исходника → CAPEX.ITEMS, Excel один в один (решение владельца продукта 27.09.2026: расчёт «как в исходном Excel» воспроизводит
+ * исходник вместе с ошибками, исправления живут в расчёте сервиса, расхождения — предупреждения):
  * - сумма статьи — вбитая сумма Бюджет!F (база «фикс»; для статей с параметром-суммой — сам параметр); пустая — 0;
  *   резерв — как в исходнике E42 + D42, маркетинг — вбитое число F51;
  * - сумма с НДС — допущение CAPEX.LEGACY_AMOUNTS_WITH_VAT (S_EXPERT): в исходнике не указано; без индексации (F.CAPEX.INDEX);
@@ -177,7 +177,7 @@ function legacySales(c: LegacyCase, values: Partial<Record<ParameterId, unknown>
 }
 
 /**
- * Входы кейса исходного Excel → ProjectInput в режиме совместимости.
+ * Входы кейса исходного Excel → ProjectInput в расчёте «как в исходном Excel».
  * Ключи, которые не являются ID параметров (…_legacy, *_TEXT, SALES.PRODUCTS.<продукт>), здесь не нужны.
  * Нормы машино-мест исходника заданы по типам квартир (TEP.APT_MIX.parking_norm) → TEP.PARKING_NORM, rule = per_type.
  */

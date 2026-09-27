@@ -7,7 +7,7 @@ const c = loadCase("derbenevskaya_legacy");
 const targets = c.reconciliation_targets as Record<string, number>;
 const sum = (xs: unknown) => (xs as Decimal[]).reduce((a, b) => a.add(b), new Decimal(0));
 
-describe("Дербеневская — сверка ТЭП с исходником (режим совместимости)", () => {
+describe("Дербеневская — сверка ТЭП с исходником (расчёт «как в исходном Excel»)", () => {
   const r = calculate(legacyInput(c), {}, [
     "F.TEP.APT_TYPE_AREA",
     "F.TEP.PARKING_REQUIRED",
@@ -53,7 +53,7 @@ describe("Дербеневская — сверка ТЭП с исходнико
   });
 });
 
-describe("Дербеневская — обычный режим: норматив Москвы (2118-ПП) по площади квартир", () => {
+describe("Дербеневская — расчёт сервиса: норматив Москвы (2118-ПП) по площади квартир", () => {
   it("по правилу regions.yaml: 961 × 0,8 + 720 × 0,8 + 720 × 1,2 → 2 209 м/м", () => {
     const input = legacyInput(c);
     delete input.values["TEP.PARKING_NORM"];
@@ -62,7 +62,7 @@ describe("Дербеневская — обычный режим: нормати
     expect((r.formulas["F.TEP.PARKING_REQUIRED"]?.value as Decimal).toNumber()).toBe(2209);
   });
 
-  it("нормы по типам квартир вне режима совместимости запрещены", () => {
+  it("нормы по типам квартир вне расчёта «как в исходном Excel» запрещены", () => {
     const r = calculate({ ...legacyInput(c), mode: "normal" }, {}, ["F.TEP.PARKING_REQUIRED"]);
     expect(r.messages).toContainEqual(expect.objectContaining({ severity: "error", parameterId: "TEP.PARKING_NORM" }));
   });

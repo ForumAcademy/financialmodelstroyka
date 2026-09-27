@@ -78,7 +78,7 @@ export function dayBefore(date: IsoDate): IsoDate {
   return addDays(date, -1);
 }
 
-/** Последний день предыдущего месяца. */
+/** Последний день месяца перед месяцем даты. */
 export function prevMonthEnd(date: IsoDate): IsoDate {
   return eomonth(date, -1);
 }

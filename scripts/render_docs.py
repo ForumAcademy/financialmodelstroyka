@@ -38,6 +38,8 @@ for f in forms:
         out.append(f"\n## {module}\n")
     out.append(f"\n### `{f['id']}` — {f['name']}\n")
     out.append(f"**Единица:** {f['unit']} · **Размерность:** {', '.join(f.get('dims') or []) or 'скаляр'} · **Статус:** {f['status']}\n")
+    if f.get("plain"):
+        out.append(f"\n**Простыми словами** ({f['plain']['title']}): {' '.join(str(f['plain']['how']).split())}\n\n")
     out.append("```\n" + str(f["expr"]).strip() + "\n```\n")
     if f.get("note"):
         out.append(f"\n**Пояснение:** {f['note']}\n")

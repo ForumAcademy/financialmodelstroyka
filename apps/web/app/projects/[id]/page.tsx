@@ -7,7 +7,7 @@ import { useHow } from "@/components/HowPanel";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
-import { CompatBanner, DiscrepanciesTab } from "@/components/CompatWarnings";
+import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
 import { issueCounts } from "@/lib/issues";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
@@ -39,6 +39,19 @@ function ProjectPage() {
     setProject(project ? project.id : null);
     return () => setProject(null);
   }, [project, setProject]);
+
+  // Переход из панели «Как посчитано» к строке плана продаж: ?tab=sales&row=<продукт>
+  const row = search.get("row");
+  useEffect(() => {
+    if (!row) return;
+    const t = setTimeout(() => {
+      const el = document.querySelector(`table[data-param="SALES.PACE"] tr[data-row="${CSS.escape(row)}"]`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.classList.add("row-flash");
+    }, 100);
+    return () => clearTimeout(t);
+  }, [row]);
 
   if (!project) {
     return (
@@ -80,7 +93,8 @@ function ProjectPage() {
           Выгрузить в Excel
         </button>
       </div>
-      {tab === "issues" ? null : <CompatBanner open={counts.open} total={counts.total} go={() => go("issues", view)} />}
+      {project.legacyCase ? <ModeSwitch project={project} /> : null}
+      {tab === "issues" || project.input.mode !== "legacy" ? null : <CompatBanner open={counts.open} total={counts.total} go={() => go("issues", view)} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>

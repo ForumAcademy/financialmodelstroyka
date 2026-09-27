@@ -172,7 +172,7 @@ export function needHint(id: ParameterId): string {
 
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
   const missing = groups.flatMap((g) => g.params).filter((id) => model.missing.has(id)).length;
-  // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; обычные ставятся парами,
+  // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; простые ставятся парами,
   // блок без соседа в строке тоже растягивается на всю ширину.
   const hasTable = (g: InputGroup) => g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template");
   const full = new Set<number>();
@@ -255,7 +255,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   const raw = project.input.values[id];
   const change = useChange(project, id, raw);
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {
-    // Значение в формате исходного Excel (режим совместимости) — только просмотр, понятными словами.
+    // Значение в формате исходного Excel (расчёт «как в исходном Excel») — только просмотр, понятными словами.
     return (
       <div className="legacy-view">
         <dl>
@@ -287,7 +287,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   const addRow = () => fill([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
   return (
     <div className="table-editor">
-      <table className={id === "TIME.MILESTONES" ? "fit" : ""}>
+      <table className={id === "TIME.MILESTONES" ? "fit" : ""} data-param={id}>
         <thead>
           <tr>
             {columns.map((c) => (
@@ -298,7 +298,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
         </thead>
         <tbody>
           {rows.map((row, r) => (
-            <tr key={r}>
+            <tr key={r} data-row={String(row.name ?? row.product ?? "")}>
               {columns.map((c) => {
                 const v = row[c.key];
                 const text = v === null || v === undefined ? "" : typeof v === "number" ? fmt.inputNumber(v) : String(v);

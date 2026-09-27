@@ -26,6 +26,10 @@ for it in capex:
         cf_row_to_item.setdefault(r, it["item_id"])
 
 # ---------------------------------------------------------------- значения
+
+# ТЭПы!C48, C49: одно пояснение на обе ячейки (решение владельца продукта 27.09.2026)
+NOTE_C48_C49 = "ТЭПы!C49 = 5 200 и C48 = 10 332 не соответствуют текущим ТЭПам. C49 — ровно 127 м/м × 40,945 м², при этом в файле 862 машино-места (ТЭПы!C27). C48 на 10 м² больше площади ПСН в C23 (10 322). C49 в расчётах не участвует (только План продаж!D16). Вероятно, значения из модели Финляндского ЖК, не обновлённые под этот участок. Вопрос автору: откуда 5 200 и 10 332 и нужны ли они."
+
 def value_target(sheet, row, col):
     c = gl(col)
     T = {
@@ -43,7 +47,7 @@ def value_target(sheet, row, col):
             29: ("TEP.LANDSCAPE_SHARE", "keep", "нужна ссылка на ППТ/НГП"),
             30: ("TEP.ROAD_SHARE", "keep", "нужна ссылка на ППТ"),
             31: ("TEP.GREEN_SHARE", "keep", "нужна ссылка на ППТ/НГП"),
-            35: ("CAPEX.ITEMS", "replace", "база только для режима совместимости: перевод вбитых сумм бюджета в ставки на м²; продаваемая площадь — F.TEP.SALEABLE_AREA"),
+            35: ("CAPEX.ITEMS", "replace", "база только для расчёта «как в исходном Excel»: перевод вбитых сумм бюджета в ставки на м²; продаваемая площадь — F.TEP.SALEABLE_AREA"),
             44: ("TEP.APT_MIX" if c == "F" else "TEP.PARKING_COUNT_OVERRIDE", "fix", "итог вбит числом"),
         },
     }
@@ -59,11 +63,11 @@ def value_target(sheet, row, col):
                 "I": ("TEP.PARKING_NORM", "keep", "совпадает с ПП Москвы 2118-ПП"),
             }.get(c, ("TEP.APT_MIX", "clarify", ""))
         if row == 48:
-            return {"C": ("TEP.COMM_AREA", "remove", "10 332 vs 10 322 в C23 — опечатка"),
+            return {"C": ("TEP.COMM_AREA", "clarify", NOTE_C48_C49),
                     "D": ("SALES.PRODUCTS", "keep", "средняя площадь лота ПСН"),
                     "G": ("SALES.PRODUCTS", "keep", "цена ПСН руб/м²")}.get(c)
         if row == 49:
-            return {"C": ("TEP.PARKING_AREA_PER_SPACE", "remove", "5 200 = 127 м/м × 40,945 м² — остаток прежней версии, в расчётах не участвует"),
+            return {"C": ("TEP.PARKING_AREA_PER_SPACE", "clarify", NOTE_C48_C49),
                     "D": ("TEP.PARKING_AREA_PER_SPACE", "keep", ""),
                     "G": ("SALES.PRODUCTS", "fix", "цена м/м в руб/м² × 40,945")}.get(c)
         if row == 50:
@@ -86,8 +90,8 @@ def value_target(sheet, row, col):
         if res is None and row in budget_row_to_item:
             res = (f"CAPEX.ITEMS[{budget_row_to_item[row]}]", "replace", "сумма/ставка вбита числом → ставка × база")
         if res is not None and c == "F" and row in budget_row_to_item:
-            # режим совместимости: сумма статьи — с НДС (CAPEX.LEGACY_AMOUNTS_WITH_VAT)
-            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера обычно ведутся с НДС")
+            # расчёт «как в исходном Excel»: сумма статьи — с НДС (CAPEX.LEGACY_AMOUNTS_WITH_VAT)
+            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера ведутся с НДС (экспертное допущение)")
         if res is not None:
             return res
     if sheet == "CF1":

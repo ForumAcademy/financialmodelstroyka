@@ -52,10 +52,19 @@ export interface IssueEvent {
   at: string;
 }
 
+/** Ручное дополнение к автоматическому пояснению пункта: кто, когда, текст. Дополнения не редактируются, только добавляются. */
+export interface IssueNote {
+  text: string;
+  author: string;
+  at: string;
+}
+
 /** Состояние пункта: текущий статус, история и снимок вопроса (чтобы показать пункт, если он перестал воспроизводиться). */
 export interface IssueState {
   status: IssueStatus;
   history: IssueEvent[];
+  /** Ручные дополнения к пояснению, по порядку. */
+  notes?: IssueNote[];
   no: number;
   question: string;
 }
@@ -73,7 +82,7 @@ export interface DemoProject {
   changes?: Partial<Record<ParameterId, ValueChange>>;
   specVersion: string;
   updatedAt: string;
-  /** Расхождения внутри исходного Excel (legacyChecks): показываются в режиме совместимости вместе с предупреждениями расчёта. */
+  /** Расхождения внутри исходного Excel (legacyChecks): показываются в расчёте «как в исходном Excel» вместе с предупреждениями расчёта. */
   legacyWarnings?: CalcMessage[];
   /** Кейс исходного Excel (ячейки для вопросов к данным); только у проектов, созданных из исходника. */
   legacyCase?: LegacyCase;

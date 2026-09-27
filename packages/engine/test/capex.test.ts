@@ -68,12 +68,12 @@ describe("CAPEX: график статьи (F.CAPEX.SCHEDULE_WEIGHT)", () => {
 
   it("сумма весов каждой посчитанной статьи = 1 (SCHEDULE_SUM)", () => {
     for (const [id, ws] of Object.entries(w)) if (!totals(r)[id]?.isZero()) expect(sum(ws).sub(1).abs().lt(1e-9), id).toBe(true);
-    expect(r.messages.filter((m) => m.text.includes("SCHEDULE_SUM"))).toEqual([]);
+    expect(r.messages.filter((m) => m.text.includes("вместо 100%"))).toEqual([]);
   });
 
   it("график за горизонтом модели — ошибка SCHEDULE_SUM", () => {
     const short = calculate(project([{ item_id: "EXTERNAL_NETWORKS", rate: 400, price_date: "2025-12-31" }]), { horizonMonths: 3 }, ["F.CAPEX.SCHEDULE_WEIGHT"]);
-    expect(short.messages).toContainEqual(expect.objectContaining({ severity: "error", text: expect.stringContaining("SCHEDULE_SUM") }));
+    expect(short.messages).toContainEqual(expect.objectContaining({ severity: "error", text: expect.stringContaining("вместо 100%. Проверьте, что график не выходит за срок расчёта") }));
   });
 });
 
@@ -142,7 +142,7 @@ describe("CAPEX: индекс, НДС, платёж", () => {
   });
 });
 
-describe("CAPEX: Дербеневская в режиме совместимости", () => {
+describe("CAPEX: Дербеневская в расчёте «как в исходном Excel»", () => {
   // горизонт — до последнего квартала CF1 (AS = 4 кв 2035: там кончаются ряды маркетинга и брокериджа)
   const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 121 });
   const cash = series(r, "F.CAPEX.ITEM_CASH");

@@ -116,7 +116,7 @@ function manualPace(p: Product, m: ManualPace | null | undefined, date: IsoDate[
       else lost = lost.add(part);
     }
   });
-  if (!lost.isZero()) throw new CalcError(`«${p.key}»: ручной темп выходит за горизонт модели на ${fmt(lost)} ${unitName(p)}`, "SALES.PACE");
+  if (!lost.isZero()) throw new CalcError(`«${p.key}»: ручной темп выходит за срок расчёта на ${fmt(lost)} ${unitName(p)}`, "SALES.PACE");
   return out;
 }
 
@@ -140,40 +140,59 @@ export function F_SALES_SOLD_AREA(ctx: FormulaContext): RowSeries {
     const rowPace = pace.find((r) => r.name === p.key);
     if (!rowPace) throw new CalcError(`Заполните темп продаж для «${p.key}»`, "SALES.PACE");
     const stock = stockOf(p);
-    // Режим совместимости: ряд исходника как есть (Excel не ограничивает продажи запасом и периодом)
+    // Расчёт «как в исходном Excel»: ряд исходника как есть (Excel не ограничивает продажи запасом и периодом)
     if (legacy) {
-      if (rowPace.method !== "ручной") throw new CalcError(`«${p.key}»: в режиме совместимости темп — ручной ряд исходника`, "SALES.PACE");
+      if (rowPace.method !== "ручной") throw new CalcError(`«${p.key}»: в расчёте «как в исходном Excel» темп — ручной ряд исходника`, "SALES.PACE");
       const sold = manualPace(p, rowPace.manual, date);
       const total = sold.reduce((s, x) => s.add(x), ZERO);
       if (stock !== null && total.gt(stock.mul(ONE.add(tol)))) {
-        ctx.message("warning", `«${p.key}»: по темпу исходника продано ${fmt(total)} ${unitName(p)} при запасе ${fmt(stock)} ${unitName(p)} — в обычном режиме продажи ограничены запасом`, "SALES.PACE", `SALES.OVER_STOCK:${p.key}`);
+        const u = unitName(p);
+        ctx.message("warning", `По плану продаж ${p.key} получается ${fmt(total.trunc())} ${u}, а построено ${fmt(stock)} ${u}. В расчёте «как в исходном Excel» лишние ${fmt(total.trunc().sub(stock))} ${u} остаются в расчёте, как в Excel; в расчёте сервиса они в расчёт не попадают. Уменьшите темп или проверьте площадь ${p.key} в ТЭПах.`, "SALES.PACE", `SALES.OVER_STOCK:${p.key}`);
       }
       out[p.key] = sold;
       continue;
     }
-    if (stock === null) throw new CalcError(`«${p.key}»: заполните запас к продаже (${p.pieces ? "stock_units, шт" : "stock_area, м²"})`, "SALES.PRODUCTS");
+    if (stock === null) throw new CalcError(`«${p.key}»: заполните, сколько построено к продаже (${p.pieces ? "шт" : "м²"})`, "SALES.PRODUCTS");
     if (!PACE_METHODS.includes(rowPace.method)) throw new CalcError(`«${p.key}»: неизвестный способ темпа «${rowPace.method}»`, "SALES.PACE");
     const manual = rowPace.method === "ручной" ? manualPace(p, rowPace.manual, date) : null;
     const value = rowPace.value;
-    if (rowPace.method !== "ручной" && (typeof value !== "number" || value < 0)) throw new CalcError(`«${p.key}»: заполните темп (value) — неотрицательное число`, "SALES.PACE");
+    if (rowPace.method !== "ручной" && (typeof value !== "number" || value < 0)) throw new CalcError(`«${p.key}»: заполните темп — неотрицательное число`, "SALES.PACE");
     if (rowPace.method === "доля_остатка" && (value as number) > 1) throw new CalcError(`«${p.key}»: доля остатка в месяц — не больше 1`, "SALES.PACE");
     const ddu = (p.row.sale_channel_before_rnv ?? CHANNEL_DDU) === CHANNEL_DDU;
     let remaining = stock;
-    let cut = ZERO;
+    // сколько из ручного плана не продано: сверх построенного и в месяцы, когда продавать нельзя
+    let overStock = ZERO;
+    let offPeriod = ZERO;
+    // ручной план до первого разрешённого месяца переносится на него (квартал старта продаж — целиком)
+    let carry = ZERO;
+    let started = false;
     const sold = date.map((_, t) => {
       const allowed = (ddu && presale?.[p.phaseIndex]?.[t] === 1) || postRnv?.[p.phaseIndex]?.[t] === 1;
-      const want = manual ? (manual[t] as Decimal) : rowPace.method === "доля_остатка" ? remaining.mul(value as number) : new Decimal(value as number);
+      let want = manual ? (manual[t] as Decimal) : rowPace.method === "доля_остатка" ? remaining.mul(value as number) : new Decimal(value as number);
       if (!allowed) {
-        cut = cut.add(manual ? want : ZERO);
+        if (manual && !started) carry = carry.add(want);
+        else offPeriod = offPeriod.add(manual ? want : ZERO);
         return ZERO;
       }
+      if (!started) {
+        started = true;
+        want = want.add(carry);
+      }
       const s = Decimal.min(want, remaining);
-      if (manual) cut = cut.add(want.sub(s));
+      if (manual) overStock = overStock.add(want.sub(s));
       remaining = remaining.sub(s);
       return s;
     });
-    if (manual && cut.gt(stock.mul(tol))) ctx.message("warning", `«${p.key}»: из ручного темпа не продано ${fmt(cut)} ${unitName(p)} — месяцы вне периода продаж очереди или сверх запаса`, "SALES.PACE");
-    if (remaining.gt(stock.mul(tol))) ctx.message("warning", `«${p.key}»: к концу горизонта модели не продано ${fmt(remaining)} ${unitName(p)} из ${fmt(stock)}`, "SALES.PACE");
+    const u = unitName(p);
+    if (manual && overStock.gt(stock.mul(tol))) {
+      const plan = manual.reduce((a, x) => a.add(x), ZERO).sub(offPeriod).trunc();
+      ctx.message("warning", `По плану продаж ${p.key} получается ${fmt(plan)} ${u}, а построено ${fmt(stock)} ${u}. Лишние ${fmt(plan.sub(stock))} ${u} в расчёт не попали. Уменьшите темп или проверьте площадь ${p.key} в ТЭПах.`, "SALES.PACE", `SALES.OVER_STOCK:${p.key}`);
+    }
+    const left = remaining.gt(stock.mul(tol)) ? remaining.toDecimalPlaces(0) : null;
+    if (manual && offPeriod.gt(stock.mul(tol))) {
+      const cutText = `по плану продаж ${fmt(offPeriod.toDecimalPlaces(0))} ${u} приходится на месяцы, когда продавать нельзя, и в расчёт не попали`;
+      ctx.message("warning", left ? `«${p.key}»: не продано к концу расчёта ${fmt(left)} ${u} — ${cutText}. Сдвиньте план продаж или проверьте даты старта продаж и ввода дома.` : `«${p.key}»: ${cutText}. Сдвиньте план продаж или проверьте даты старта продаж и ввода дома.`, "SALES.PACE");
+    } else if (left) ctx.message("warning", `«${p.key}»: не продано к концу расчёта ${fmt(left)} ${u}. Увеличьте темп или горизонт расчёта.`, "SALES.PACE");
     out[p.key] = sold;
   }
   return out;
@@ -199,7 +218,7 @@ function stageTest(stage: string): ((progress: Decimal, afterRnv: boolean) => bo
   return (x) => x.gte(share);
 }
 
-/** Режим совместимости: рост цены ступенькой (SALES.LEGACY_PRICE_GROWTH). */
+/** Расчёт «как в исходном Excel»: рост цены ступенькой (SALES.LEGACY_PRICE_GROWTH). */
 interface LegacyGrowth {
   rate: number;
   step_months: number;
@@ -226,7 +245,7 @@ export function F_SALES_PRICE(ctx: FormulaContext): RowSeries {
     const raw = ctx.require<LegacyGrowth | LegacyGrowth[]>("SALES.LEGACY_PRICE_GROWTH");
     const g = Array.isArray(raw) ? raw[0] : raw;
     if (!g || typeof g.rate !== "number" || !Number.isInteger(g.step_months) || g.step_months < 1) {
-      throw new CalcError("Рост цены исходника: нужны rate (доля за период) и step_months (целое ≥ 1)", "SALES.LEGACY_PRICE_GROWTH");
+      throw new CalcError("Рост цены исходника: нужны рост за период (доля) и длина периода в месяцах (целое ≥ 1)", "SALES.LEGACY_PRICE_GROWTH");
     }
     const k = ONE.add(g.rate);
     for (const p of list) {
@@ -303,7 +322,7 @@ export function F_SALES_CASH_IN(ctx: FormulaContext): CashIn {
   const value = ctx.formula<RowSeries>("F.SALES.CONTRACT_VALUE");
   const mix = ctx.require<MixRow[]>("SALES.PAYMENT_MIX");
   if (!Array.isArray(mix)) throw new CalcError("Структура оплат: нужен список строк по продуктам", "SALES.PAYMENT_MIX");
-  // Режим совместимости: ДДУ — сделки по дату из исходника (CF1!F8:AS8), поступления после SALES.LEGACY_CASH_IN_END
+  // Расчёт «как в исходном Excel»: ДДУ — сделки по дату из исходника (CF1!F8:AS8), поступления после SALES.LEGACY_CASH_IN_END
   // в CF не попадают (CF1!F15:AH15) — Excel один в один
   const legacy = ctx.mode === "legacy";
   const date = legacy ? ctx.formula<IsoDate[]>("F.TIME.DATE") : [];
@@ -346,7 +365,7 @@ export function F_SALES_CASH_IN(ctx: FormulaContext): CashIn {
     const revenue = Object.values(value).reduce((s, v) => s.add(sum(v)), ZERO);
     ctx.message(
       "warning",
-      `Строка доходов CF1 обрывается после ${fmtQuarter(cashEnd as string)}: ${fmt(lost)} руб. выручки в денежный поток не попадают (в CF ${fmt(revenue.sub(lost))} руб. против ${fmt(revenue)} руб. по плану продаж). Совместимость повторяет исходник, в обычном режиме учитываются все поступления`,
+      `Строка доходов CF1 обрывается после ${fmtQuarter(cashEnd as string)}: ${fmt(lost)} руб. выручки в денежный поток не попадают (в CF ${fmt(revenue.sub(lost))} руб. против ${fmt(revenue)} руб. по плану продаж). Расчёт «как в исходном Excel» повторяет исходник, в расчёте сервиса учитываются все поступления`,
       "SALES.LEGACY_CASH_IN_END",
       "SALES.CASH_IN_CUT",
     );

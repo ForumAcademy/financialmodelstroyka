@@ -37,7 +37,7 @@ describe("модель проекта в интерфейсе", () => {
     expect(provisionalHorizon(demo)).toBe(118);
   });
 
-  it("раскрытие эскроу: в совместимости — дата исходника, в обычном режиме — РНВ + 3 месяца, и перенос РНВ его сдвигает", () => {
+  it("раскрытие эскроу: в расчёте «как в исходном Excel» — дата исходника, в расчёте сервиса — РНВ + 3 месяца, и перенос РНВ его сдвигает", () => {
     const rows = demo.input.values["TIME.MILESTONES"] as { phase: number; rnv_date: string }[];
     const moved = { ...demo, input: { ...demo.input, values: { ...demo.input.values, "TIME.MILESTONES": rows.map((r) => (r.phase === 1 ? { ...r, rnv_date: "2029-12-31" } : r)) } } };
     const release = (p: DemoProject) => {
@@ -47,7 +47,7 @@ describe("модель проекта в интерфейсе", () => {
     };
     expect(release(demo)).toBe("2031-09-30");
     expect(release(moved)).toBe("2031-09-30");
-    // обычный режим: только флаги (для полного расчёта у демо-проекта нет вводных обычного режима)
+    // расчёт сервиса: только флаги (для полного расчёта у демо-проекта нет вводных расчёта сервиса)
     const normal = (p: DemoProject) => {
       const r = calculate({ ...p.input, mode: "normal" }, { horizonMonths: provisionalHorizon(p) ?? 0 }, ["F.TIME.FLAG_ESCROW_RELEASE"]).formulas;
       const t = (r["F.TIME.FLAG_ESCROW_RELEASE"]?.value as number[][])[0]!.indexOf(1);

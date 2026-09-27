@@ -114,6 +114,17 @@ for f in forms:
     terms = f.get("terms")
     if terms is not None and not (isinstance(terms, dict) and all(isinstance(k, str) and k.strip() and isinstance(v, str) and v.strip() for k, v in terms.items())):
         errors.append(f"формула {f['id']}: terms — словарь «обозначение: расшифровка» с непустыми строками")
+    plain = f.get("plain")
+    if not isinstance(plain, dict) or not plain.get("title") or not plain.get("how"):
+        errors.append(f"формула {f['id']}: нет plain.title / plain.how — пояснения для панели «Как посчитано»")
+    else:
+        if re.search(r"[A-Za-z]", plain["how"]):
+            errors.append(f"формула {f['id']}: plain.how — без обозначений, кодов и английских слов")
+        for token in re.findall(r"\{([^}]+)\}", plain.get("example") or ""):
+            ref = token.split("|")[0]
+            ref = f["id"] + ref[1:] if ref.startswith("=") else ref
+            if not any(ref == k or ref.startswith(k + ".") for k in known):
+                errors.append(f"формула {f['id']}: plain.example — неизвестная ссылка {{{token}}}")
     if f.get("status") == "needs_verification":
         warns.append(f"формула {f['id']}: needs_verification")
 

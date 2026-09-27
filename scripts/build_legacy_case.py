@@ -42,7 +42,7 @@ for it in capex:
         entry["manual_schedule_quarterly"] = {"cf_row": sched_rows[0], "values_F_to_AS": series(cf, sched_rows[0], 6, 45),
                                               "sum": num(sum(series(cf, sched_rows[0], 6, 45)))}
     elif (it["base"] == "формула" or it["schedule_rule"] == "follow_sales") and lg.get("cf_rows"):
-        # статья со своей формулой или от выручки без ряда «темп»: суммы CF1 по кварталам (распределение исходника для режима совместимости)
+        # статья со своей формулой или от выручки без ряда «темп»: суммы CF1 по кварталам (распределение исходника для расчёта «как в исходном Excel»)
         r = lg["cf_rows"][0]
         entry["cf_amounts_quarterly"] = {"cf_row": r, "values_F_to_AS": series(cf, r, 6, 45), "sum": num(sum(series(cf, r, 6, 45)))}
     capex_legacy.append(entry)
@@ -138,7 +138,7 @@ case = {
         "price_growth_quarterly": ps["E30"].value,
     },
     "capex_legacy": capex_legacy,
-    # Ячейки исходника для проверок режима совместимости (расхождения внутри Excel → предупреждения)
+    # Ячейки исходника для проверок расчёта «как в исходном Excel» (расхождения внутри Excel → предупреждения)
     "legacy_checks": {
         "tep": {"apt_area_C22": t["C22"].value, "psn_stock_C23": t["C23"].value, "saleable_area_C35": t["C35"].value,
                 "saleable_area_C35_formula": wf["ТЭПы"]["C35"].value if str(wf["ТЭПы"]["C35"].value).startswith("=") else None,
@@ -174,7 +174,7 @@ case = {
 }
 
 case["reconciliation_targets"] = {
-    "_how": "Ядро в режиме совместимости (квартальный ручной темп из sales_legacy, рост цены 2%/кв, цены из ТЭП) обязано воспроизвести эти числа исходника с точностью 1 руб / 0,01 м². Эти значения исходника считаются арифметически верными.",
+    "_how": "Ядро в расчёте «как в исходном Excel» (квартальный ручной темп из sales_legacy, рост цены 2%/кв, цены из ТЭП) обязано воспроизвести эти числа исходника с точностью 1 руб / 0,01 м². Эти значения исходника считаются арифметически верными.",
     "F.TEP.APT_TYPE_AREA_sum": round(t["E44"].value, 3),
     "F.TEP.PARKING_REQUIRED_by_legacy_norm": 2785,
     "F.TEP.LANDSCAPE_AREA": round(t["C29"].value, 3),

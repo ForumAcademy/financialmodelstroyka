@@ -12,7 +12,7 @@ function undeclared(r: ResultSet): string[] {
 }
 
 describe("след расчёта совпадает с depends_on спецификации", () => {
-  it("Дербеневская (концепция, режим совместимости)", () => {
+  it("Дербеневская (концепция, расчёт «как в исходном Excel»)", () => {
     const r = calculate(legacyInput(loadCase("derbenevskaya_legacy")), { horizonMonths: 120 });
     expect(Object.keys(r.formulas).length).toBeGreaterThan(10);
     expect(undeclared(r)).toEqual([]);

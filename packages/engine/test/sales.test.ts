@@ -14,7 +14,7 @@ const nums = (xs: Decimal[] | undefined) => (xs ?? []).map((x) => Number(x.toFix
 // Горизонт — до 4 кв 2035 (последний столбец CF1!AS: там кончаются ряды маркетинга и брокериджа): t = 0 — декабрь 2025
 const LEGACY_HORIZON = 121;
 
-describe("SALES: Дербеневская в режиме совместимости", () => {
+describe("SALES: Дербеневская в расчёте «как в исходном Excel»", () => {
   const c = loadCase("derbenevskaya_legacy");
   const r = calculate(legacyInput(c), { horizonMonths: LEGACY_HORIZON }, [...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]), "F.SALES.REVENUE_TOTAL"]);
   const lc = c.legacy_checks as LegacyChecks;
@@ -44,7 +44,7 @@ describe("SALES: Дербеневская в режиме совместимос
 
   it("ПСН продано больше запаса, как в исходнике, — с предупреждением", () => {
     expect(sum(rows(r, "F.SALES.SOLD_AREA").ПСН as Decimal[]).toNumber()).toBeCloseTo(10888.608, 6);
-    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", formulaId: "F.SALES.SOLD_AREA", text: expect.stringMatching(/«ПСН»: по темпу исходника продано 10\s888,61 м² при запасе 10\s322 м²/) }));
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", formulaId: "F.SALES.SOLD_AREA", text: expect.stringMatching(/^По плану продаж ПСН получается 10\s888 м², а построено 10\s322 м²\. В расчёте «как в исходном Excel» лишние 566 м² остаются в расчёте/) }));
     expect(r.messages.filter((m) => m.formulaId === "F.SALES.SOLD_AREA")).toHaveLength(1);
   });
 
@@ -85,7 +85,7 @@ describe("SALES: Дербеневская в режиме совместимос
   });
 });
 
-describe("SALES: Дербеневская в обычном режиме", () => {
+describe("SALES: Дербеневская в расчёте сервиса", () => {
   const c = loadCase("derbenevskaya_legacy");
   const base = legacyInput(c);
   const r = calculate(
@@ -103,7 +103,7 @@ describe("SALES: Дербеневская в обычном режиме", () =>
 
   it("ПСН продано не больше запаса 10 322 м² (исходник 10 888,6 м²)", () => {
     expect(sum(rows(r, "F.SALES.SOLD_AREA").ПСН as Decimal[]).toNumber()).toBeCloseTo(10322, 6);
-    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", text: expect.stringContaining("«ПСН»: из ручного темпа не продано") }));
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", text: expect.stringMatching(/^По плану продаж ПСН получается 10\s888 м², а построено 10\s322 м²\. Лишние 566 м² в расчёт не попали\./) }));
   });
 });
 
@@ -133,7 +133,7 @@ const project = (extra: Record<string, unknown> = {}) => ({
   },
 });
 
-describe("SALES и ESCROW: правила обычного режима", () => {
+describe("SALES и ESCROW: правила расчёта сервиса", () => {
   const r = calculate(project(), { horizonMonths: 10 }, ["F.SALES.REVENUE_TOTAL", "F.SALES.END_PRICE", "F.SALES.WAVG_PRICE", "F.ESC.COVERAGE"]);
   const sold = rows(r, "F.SALES.SOLD_AREA");
   const price = rows(r, "F.SALES.PRICE");

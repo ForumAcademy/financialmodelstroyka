@@ -49,7 +49,7 @@ function manualScheduleEnd(project: DemoProject, monthsTo: (d: string) => number
 
 /**
  * Что считать: итоговые формулы (корни графа) + показатели ТЭП и участка, которые показываются на любой стадии,
- * даже если бюджет их не читает (в режиме совместимости суммы статей берутся из исходника, а не ставка × площадь).
+ * даже если бюджет их не читает (в расчёте «как в исходном Excel» суммы статей берутся из исходника, а не ставка × площадь).
  */
 const TARGETS: FormulaId[] = [
   ...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]),
@@ -79,14 +79,41 @@ export function computeProject(project: DemoProject): ProjectModel {
   return { result, horizon, missing };
 }
 
-/** Предупреждения режима совместимости: расхождения исходного Excel, которые совместимость повторяет как есть. */
+const otherModeCache = new WeakMap<DemoProject, ProjectModel | null>();
+
+/**
+ * Пара расчётов «расчёт «как в исходном Excel» / расчёт сервиса» для проекта из исходного Excel: текущий расчёт и
+ * расчёт того же проекта в другом режиме. null — проект не из Excel или другой режим не считается.
+ */
+export function modePair(project: DemoProject, current: ProjectModel): { legacy: ProjectModel; normal: ProjectModel; normalProject: DemoProject } | null {
+  if (!project.legacyCase) return null;
+  if (!otherModeCache.has(project)) {
+    let other: ProjectModel | null;
+    try {
+      other = computeProject({ ...project, input: { ...project.input, mode: project.input.mode === "legacy" ? "normal" : "legacy" } });
+    } catch {
+      other = null;
+    }
+    otherModeCache.set(project, other);
+  }
+  const other = otherModeCache.get(project);
+  if (!other) return null;
+  return project.input.mode === "legacy"
+    ? { legacy: current, normal: other, normalProject: { ...project, input: { ...project.input, mode: "normal" } } }
+    : { legacy: other, normal: current, normalProject: project };
+}
+
+/** Предупреждения расчёта «как в исходном Excel»: расхождения исходного Excel, которые расчёт «как в исходном Excel» повторяет как есть. */
 export function compatWarnings(project: DemoProject, m: ProjectModel) {
   return project.input.mode === "legacy" ? m.result.messages.filter((x) => x.severity === "warning" && x.key) : [];
 }
 
-/** Вопросы к данным по предупреждениям совместимости: только у проектов из исходного Excel в режиме совместимости. */
+/** Вопросы к данным по предупреждениям расчёта «как в исходном Excel»: только у проектов из исходного Excel, в любом режиме. */
 export function projectQuestions(project: DemoProject, m: ProjectModel): DataQuestion[] {
-  return project.input.mode === "legacy" && project.legacyCase ? dataQuestions(project.legacyCase, project.input, m.result) : [];
+  if (!project.legacyCase) return [];
+  if (project.input.mode === "legacy") return dataQuestions(project.legacyCase, project.input, m.result);
+  const pair = modePair(project, m);
+  return pair ? dataQuestions(project.legacyCase, { ...project.input, mode: "legacy" }, pair.legacy.result) : [];
 }
 
 /** Этап плана, на котором появится формула (по её модулю). */

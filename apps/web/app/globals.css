@@ -162,7 +162,7 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .input-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
 .input-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(20,30,50,.04); }
 .input-group.wide { grid-column: 1 / -1; }
-/* в широком блоке обычные поля — в две колонки той же ширины, что и в соседних блоках */
+/* в широком блоке простые поля — в две колонки той же ширины, что и в соседних блоках */
 .input-group.wide .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 0; }
 .input-group.wide .field.wide { grid-column: 1 / -1; }
 .input-group h3 { margin: 0; padding: 9px 14px; background: var(--group-head); border-bottom: 1px solid var(--border); color: var(--accent); font-size: 12px; font-weight: 700; }
@@ -291,7 +291,9 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .field-marks .nolink-badge, .field-marks .changed { margin-left: 0; }
 .field .change-form { grid-column: 1 / -1; }
 
-/* Предупреждения режима совместимости */
+/* Предупреждения расчёта «как в исходном Excel» */
+.mode-switch { margin: 4px 0 12px; }
+.mode-switch .seg { margin-bottom: 4px; }
 .compat-warnings { background: var(--need-bg); border: 1px solid #efd9a6; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
 
 .compat-warnings ol { margin: 8px 0 4px; padding-left: 22px; }
@@ -309,12 +311,19 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .tab-count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--need-bg); color: var(--warn); font-size: 11px; font-weight: 600; text-align: center; }
 .issues-toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
 .issues-table { width: 100%; border-collapse: collapse; }
-.issues-table th, .issues-table td { border-bottom: 1px solid var(--grid); padding: 8px; text-align: left; vertical-align: top; }
+.issues-table th, .issues-table td { border-bottom: 1px solid var(--grid); padding: 8px; text-align: left; vertical-align: top; overflow-wrap: break-word; }
 .issues-table th { font-size: 11px; text-transform: uppercase; color: var(--muted); }
 .issues-table .issue-no { width: 36px; color: var(--muted); font-weight: 600; }
-.issues-table .issue-question { font-weight: 600; width: 220px; }
-.issues-table td:nth-child(4) { width: 170px; }
-.issues-table td:nth-child(6) { width: 170px; }
+.issues-table .issue-main { min-width: 320px; }
+.issues-table .issue-question { font-weight: 600; margin-bottom: 4px; }
+.issues-table .issue-summary { margin: 0 0 4px; }
+.issues-table td:nth-child(3) { width: 150px; }
+.issues-table td:nth-child(4) { width: 230px; }
+.issues-table td:nth-child(5) { width: 170px; }
+.issue-notes { margin: 4px 0; padding: 6px 8px; list-style: none; background: var(--need-bg); border-radius: 6px; }
+.issue-notes li + li { margin-top: 6px; }
+.issue-detail { margin: 2px 0 4px; font-size: 12px; color: var(--muted); }
+.issue-detail summary { cursor: pointer; color: var(--accent); }
 .issues-table .nowrap { white-space: nowrap; width: 110px; }
 .issues-table tr.stale td { color: var(--muted); }
 .impact-amount { font-weight: 600; white-space: nowrap; }
@@ -332,8 +341,32 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
   .issues-table thead { display: none; }
   .issues-table, .issues-table tbody, .issues-table tr, .issues-table td { display: block; width: auto !important; }
   .issues-table tr { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; background: var(--surface); }
-  .issues-table td { border: 0; padding: 4px 0; white-space: normal; }
+  .issues-table td { border: 0; padding: 4px 0; white-space: normal; min-width: 0 !important; }
+  .issues-table tr { overflow: hidden; }
   .issues-table td::before { content: attr(data-label); display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 }
 .btn.small { padding: 4px 10px; font-size: 12px; }
 .row-actions { display: flex; gap: 6px; }
+/* Панель «Как посчитано»: пояснение простым языком, пример, формула — в свёрнутом блоке */
+.how-body h3 { margin-top: 18px; }
+.how-warn-now { background: var(--need-bg); border-radius: 6px; padding: 6px 10px 6px 24px; margin: 0; }
+.how-more summary { cursor: pointer; color: var(--accent); font-size: 12px; margin: 4px 0; }
+.how-related { font-size: 13px; margin: 4px 0 0; }
+.how-go { white-space: nowrap; font-weight: 600; }
+.how-table { overflow-x: auto; margin: 4px 0; }
+.how-table table { border-collapse: collapse; font-size: 12px; width: 100%; }
+.how-table th, .how-table td { padding: 3px 4px; border-bottom: 1px solid var(--grid); text-align: right; white-space: nowrap; }
+.how-table th { font-weight: 600; color: var(--muted); white-space: normal; vertical-align: bottom; }
+.how-table th:first-child, .how-table td:first-child { text-align: left; white-space: normal; }
+.how-table tr.total td { font-weight: 700; }
+.how:has(.how-table) { width: min(620px, 100vw); }
+.how-table p { margin: 4px 0 0; }
+.how-folds { margin-top: 14px; border-top: 1px solid var(--grid); }
+.how-fold { border-bottom: 1px solid var(--grid); padding: 7px 0; }
+.how-fold > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; }
+.how-fold > p, .how-fold > ul { margin: 6px 0 2px; }
+.how-check h4 { margin: 12px 0 4px; font-size: 13px; }
+.how-check code { font-size: 11px; }
+
+/* строка, к которой перешли из панели «Как посчитано» */
+.row-flash td { background: var(--need-bg); }

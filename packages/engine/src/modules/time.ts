@@ -105,7 +105,7 @@ export function F_TIME_FLAG_ESCROW_RELEASE(ctx: FormulaContext): number[][] {
   const start = date[0];
   const rows = milestones(ctx);
   if (start === undefined) return rows.map(() => []);
-  // Режим совместимости: одна дата раскрытия для всех очередей, как вбито в исходнике (CF1!AB6)
+  // Расчёт «как в исходном Excel»: одна дата раскрытия для всех очередей, как вбито в исходнике (CF1!AB6)
   if (ctx.mode === "legacy") {
     const d = ctx.require<IsoDate>("TIME.LEGACY_ESCROW_RELEASE_DATE");
     if (!isIsoDate(d)) throw new CalcError("дата раскрытия эскроу — ГГГГ-ММ-ДД", "TIME.LEGACY_ESCROW_RELEASE_DATE");

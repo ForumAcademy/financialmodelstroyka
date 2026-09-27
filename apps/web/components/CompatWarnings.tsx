@@ -227,7 +227,6 @@ type Filter = "all" | "open" | "work";
  */
 export function DiscrepanciesTab({ project, questions, go }: { project: DemoProject; questions: DataQuestion[]; go: (tab: Tab) => void }) {
   const [sub, setSub] = useState<Sub>("active");
-  const [grouped, setGrouped] = useState(true);
   const [sort, setSort] = useState<"impact" | "no">("impact");
   const [filter, setFilter] = useState<Filter>("all");
   const [exporting, setExporting] = useState(false);
@@ -270,9 +269,6 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
             <option value="no">по номеру</option>
           </select>
         </label>
-        <label className="small">
-          <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} /> по блокам
-        </label>
         <button
           className="btn small"
           disabled={exporting}
@@ -290,7 +286,7 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
       </div>
       {shown.length === 0 ? (
         <p className="muted">{sub === "archive" ? "Решённых пунктов пока нет." : "Активных пунктов нет."}</p>
-      ) : grouped ? (
+      ) : (
         BLOCKS.filter((b) => shown.some((i) => blockOf(i) === b.id)).map((b) => (
           <section key={b.id}>
             <h2>
@@ -299,8 +295,6 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
             <Rows project={project} items={shown.filter((i) => blockOf(i) === b.id)} go={go} />
           </section>
         ))
-      ) : (
-        <Rows project={project} items={shown} go={go} />
       )}
     </div>
   );

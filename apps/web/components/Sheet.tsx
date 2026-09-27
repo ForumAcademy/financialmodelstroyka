@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Decimal from "decimal.js";
 import { getParameter, spec, type FormulaId, type ParameterId } from "@fm/spec";
+import { compositeSummary } from "./DataView";
 import { useHow } from "./HowPanel";
 import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from "@/lib/model";
 import { useStore } from "@/lib/store";
@@ -71,7 +72,14 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : String(shown);
 
   let control: ReactNode;
-  if (readonly || (p.kind !== "table" && typeof shown === "object" && shown !== null)) {
+  const summary = compositeSummary(shown);
+  if (summary && (readonly || p.kind !== "table")) {
+    control = (
+      <button className="link ro-link" onClick={() => open({ kind: "param", id })}>
+        {summary} — показать
+      </button>
+    );
+  } else if (readonly || (p.kind !== "table" && typeof shown === "object" && shown !== null)) {
     control = <span className="ro">{fmt.value(shown ?? null)}</span>;
   } else if (p.kind === "table") {
     control = <TableEditor project={project} id={id} />;
@@ -118,7 +126,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
       </button>
       <div className="field-control">
         {control}
-        {p.kind !== "table" || readonly ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" && p.kind !== "table" ? fmt.unit(p.unit) : ""}</span> : null}
+        {p.kind !== "table" || readonly ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" && p.kind !== "table" && !summary ? fmt.unit(p.unit) : ""}</span> : null}
       </div>
     </div>
   );

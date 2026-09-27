@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { getCapexItem, getFormula, getParameter, getSource, spec, type CapexItemId, type FormulaId, type ParameterId, type SourceId } from "@fm/spec";
 import * as fmt from "@/lib/format";
+import { compositeSummary, DataView } from "./DataView";
 import { isParameterIdLike, stageOf } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
@@ -164,9 +165,16 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
   return (
     <>
       <h2>{p.name}</h2>
-      <div className="how-value">
-        {fmt.value(v ?? null)} {v !== null && v !== undefined ? fmt.unit(p.unit) : ""}
-      </div>
+      {compositeSummary(v) ? (
+        <div className="how-table">
+          <div className="muted small">{compositeSummary(v)}</div>
+          <DataView value={v} />
+        </div>
+      ) : (
+        <div className="how-value">
+          {fmt.value(v ?? null)} {v !== null && v !== undefined ? fmt.unit(p.unit) : ""}
+        </div>
+      )}
       <p className="muted small">{origin === "project" ? "Вводное значение проекта" : origin === "region" ? "Из справочника регионов" : "Значение справочника"}</p>
       {project && model(project).missing.has(id) ? (
         <p className="need-legend">

@@ -81,6 +81,17 @@ table.sheet tbody tr.block:first-child td { border-top: 0; }
 .issue-legend label { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--text); cursor: pointer; }
 table.sheet tr.needs-check td { background: #fdf3f1; }
 table.sheet tr.needs-check td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+/* справочные таблицы и составные значения */
+.ro-link { padding-left: 10px; font-weight: 500; }
+.how-table { margin: 6px 0 10px; }
+.how-table .hscroll { margin-top: 4px; }
+table.data-view { width: 100%; }
+table.data-view th, table.data-view td { font-size: 12px; padding: 5px 7px; white-space: normal; overflow-wrap: break-word; }
+.data-kv { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
+.data-kv > div { background: var(--group-head); border-radius: 8px; padding: 6px 12px; }
+.data-kv dt { font-size: 11px; color: var(--muted); }
+.data-kv dd { margin: 0; font-weight: 600; }
+
 /* отметка «проверено» у источника */
 .check-cell { min-width: 170px; }
 .btn.small-btn { padding: 3px 9px; font-size: 12px; border-radius: 6px; }

@@ -445,8 +445,6 @@ capex_legacy:
     - 0
     sum: 1
 - item_id: CITY_CASH_COMPENSATION
-  budget_row: null
-- item_id: CITY_OBJECTS_CONSTRUCTION
   budget_row: 24
   rate_D: 8440.685597
   qty_E: 149281
@@ -495,6 +493,8 @@ capex_legacy:
     - 0
     - 0
     sum: 1.0
+- item_id: CITY_OBJECTS_CONSTRUCTION
+  budget_row: null
 - item_id: IRD
   budget_row: 25
   rate_D: null

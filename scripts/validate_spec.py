@@ -99,6 +99,9 @@ for c in capex:
     check_sources(f"статья {c['item_id']} (НДС)", c.get("vat_source_ids"))
     if c.get("index_type") not in ("investment", "cpi", "none"):
         errors.append(f"статья {c['item_id']}: index_type — investment | cpi | none")
+    # база «доля от другой суммы» уже проиндексирована или растёт вместе с ценой — повторная индексация даёт двойной счёт
+    if c["base"] in ("F.SALES.REVENUE_TOTAL", "F.CAPEX.SMR_TOTAL", "LAND.PURCHASE_PRICE") and c.get("index_type") != "none":
+        errors.append(f"статья {c['item_id']}: база {c['base']} — доля от другой суммы, index_type должен быть none")
 
 known = P | F
 for f in forms:

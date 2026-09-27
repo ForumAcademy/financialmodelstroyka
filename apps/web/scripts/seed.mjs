@@ -17,6 +17,8 @@ const data = {
   capex_legacy: c.capex_legacy,
   // план продаж исходника (legacyCaseInput → SALES.*)
   sales_legacy: c.sales_legacy,
+  // ячейки исходника для проверок совместимости (legacyChecks → предупреждения)
+  legacy_checks: c.legacy_checks,
   timeline_quarters_F_to_AS: c.timeline_quarters_F_to_AS,
 };
 const text = JSON.stringify(data, null, 2) + "\n";

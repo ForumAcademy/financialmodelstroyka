@@ -290,3 +290,11 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .field-marks { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
 .field-marks .nolink-badge, .field-marks .changed { margin-left: 0; }
 .field .change-form { grid-column: 1 / -1; }
+
+/* Предупреждения режима совместимости */
+.compat-warnings { background: var(--need-bg); border: 1px solid #efd9a6; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
+.compat-warnings summary { cursor: pointer; color: var(--warn); font-weight: 500; }
+.compat-warnings ol { margin: 8px 0 4px; padding-left: 22px; }
+.compat-warnings li { margin: 4px 0; }
+.linklike { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; font-size: 12px; }
+.linklike:hover { text-decoration: underline; }

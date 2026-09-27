@@ -1,7 +1,7 @@
 "use client";
 
 import Decimal from "decimal.js";
-import type { FormulaId } from "@fm/spec";
+import type { FormulaId, ParameterId } from "@fm/spec";
 import { Calc, Inputs, pendingStages, toNum, val, type CalcRow } from "../Sheet";
 import { formulaIds } from "./common";
 import { BUDGET_GROUPS, groupCash } from "./BudgetTab";
@@ -68,9 +68,18 @@ export function SalesTab({ project, model }: Props) {
         groups={[
           { title: "Продукты и стартовые цены", params: ["SALES.PRODUCTS"] },
           { title: "Темп продаж", params: ["SALES.PACE"] },
-          project.input.mode === "legacy"
-            ? { title: "Рост цен (как в исходном Excel)", params: ["SALES.LEGACY_PRICE_GROWTH"], note: "В режиме совместимости цена растёт ступенькой, как в исходнике. Рост по рынку и стадиям готовности действует в обычном режиме." }
-            : { title: "Рост цен", params: ["SALES.PRICE_MARKET_GROWTH", "SALES.PRICE_STAGE_UPLIFT"] },
+          ...(project.input.mode === "legacy"
+            ? [
+                { title: "Рост цен (как в исходном Excel)", params: ["SALES.LEGACY_PRICE_GROWTH"] as ParameterId[], note: "В режиме совместимости цена растёт ступенькой, как в исходнике. Рост по рынку и стадиям готовности действует в обычном режиме." },
+                { title: "Поступления в денежный поток (как в исходном Excel)", params: ["SALES.LEGACY_CASH_IN_END"] as ParameterId[], note: "В исходнике строка доходов CF1 обрывается раньше продаж, поэтому часть выручки в денежный поток не попадает. В обычном режиме учитываются все поступления." },
+              ]
+            : [
+                {
+                  title: "Рост цен",
+                  params: ["SALES.PRICE_MARKET_GROWTH", "SALES.PRICE_STAGE_UPLIFT"] as ParameterId[],
+                  note: "Известное допущение: надбавка за стадию считается по готовности СМР всего проекта, а не своей очереди. Если дальние очереди начинают продавать рано, их цена получает надбавку за стройку ближних очередей, и выручка завышается.",
+                },
+              ]),
         ]}
       />
       <Calc model={model} rows={rows} periods stages={pendingStages(model, formulaIds(rows))} />
@@ -96,7 +105,9 @@ export function EscrowTab({ project, model }: Props) {
         model={model}
         groups={[
           { title: "Структура оплат", params: ["SALES.PAYMENT_MIX"] },
-          { title: "Раскрытие", params: ["TIME.ESCROW_RELEASE_LAG_M", "FIN.ESCROW_RESERVE_RATE"] },
+          project.input.mode === "legacy"
+            ? { title: "Эскроу (как в исходном Excel)", params: ["TIME.LEGACY_ESCROW_DEPOSIT_END", "TIME.LEGACY_ESCROW_RELEASE_DATE", "FIN.ESCROW_RESERVE_RATE"], note: "В исходнике сделки идут на эскроу до даты, после которой в CF1 вбиты нули, а раскрытие одной датой для всех очередей проставлено руками. В обычном режиме раскрытие — через лаг после РНВ каждой очереди." }
+            : { title: "Раскрытие", params: ["TIME.ESCROW_RELEASE_LAG_M", "FIN.ESCROW_RESERVE_RATE"] },
         ]}
       />
       <Calc model={model} rows={rows} periods stages={pendingStages(model, formulaIds(rows))} />

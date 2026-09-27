@@ -1,4 +1,4 @@
-import type { ProjectInput } from "@fm/engine";
+import type { CalcMessage, ProjectInput } from "@fm/engine";
 import type { ParameterId } from "@fm/spec";
 
 /** Источник проекта (docs/00, раздел 6): документ проекта (уровень 4) или экспертная оценка (уровень 5). */
@@ -53,6 +53,8 @@ export interface DemoProject {
   changes?: Partial<Record<ParameterId, ValueChange>>;
   specVersion: string;
   updatedAt: string;
+  /** Расхождения внутри исходного Excel (legacyChecks): показываются в режиме совместимости вместе с предупреждениями расчёта. */
+  legacyWarnings?: CalcMessage[];
   /** Примечание к данным (например, допущения при переносе вех исходника). */
   note?: string;
 }

@@ -53,6 +53,7 @@ function manualScheduleEnd(project: DemoProject, monthsTo: (d: string) => number
  */
 const TARGETS: FormulaId[] = [
   ...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]),
+  "F.SALES.REVENUE_TOTAL",
   "F.TEP.PARKING_COUNT",
   "F.TEP.GFA_SPLIT",
   "F.TEP.GFA_TOTAL",
@@ -71,9 +72,15 @@ export interface ProjectModel {
 
 export function computeProject(project: DemoProject): ProjectModel {
   const horizon = provisionalHorizon(project);
-  const result = calculate(project.input, horizon === null ? {} : { horizonMonths: horizon }, TARGETS);
+  const calc = calculate(project.input, horizon === null ? {} : { horizonMonths: horizon }, TARGETS);
+  const result = project.input.mode === "legacy" && project.legacyWarnings ? { ...calc, messages: [...calc.messages, ...project.legacyWarnings] } : calc;
   const missing = new Set(result.messages.filter((m) => m.severity === "error" && m.parameterId).map((m) => m.parameterId as ParameterId));
   return { result, horizon, missing };
+}
+
+/** Предупреждения режима совместимости: расхождения исходного Excel, которые совместимость повторяет как есть. */
+export function compatWarnings(project: DemoProject, m: ProjectModel) {
+  return project.input.mode === "legacy" ? m.result.messages.filter((x) => x.severity === "warning" && x.key) : [];
 }
 
 /** Этап плана, на котором появится формула (по её модулю). */

@@ -7,9 +7,11 @@ import { useHow } from "@/components/HowPanel";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
+import { CompatWarnings } from "@/components/CompatWarnings";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
 import { regionName } from "@/lib/format";
+import { compatWarnings } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 const TABS = [
@@ -74,6 +76,7 @@ function ProjectPage() {
           Выгрузить в Excel
         </button>
       </div>
+      <CompatWarnings warnings={compatWarnings(project, m)} go={(t) => go(t, "calc")} />
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>

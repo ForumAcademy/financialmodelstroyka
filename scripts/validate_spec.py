@@ -38,6 +38,7 @@ S = uniq(src, "id", "sources")
 P = uniq(params, "id", "parameters")
 F = uniq(forms, "id", "formulas")
 C = uniq(capex, "item_id", "capex_items")
+PARAMS = {p["id"]: p for p in params}
 
 for s in src:
     if s["level"] in (1, 2, 3) and not s.get("url"):
@@ -77,6 +78,27 @@ for c in capex:
         errors.append(f"статья {c['item_id']}: база {c['base']} не является ID параметра/формулы")
     if c["base"] == "формула" and c.get("formula") not in F:
         errors.append(f"статья {c['item_id']}: формула {c.get('formula')} не найдена")
+    # НДС и индекс статьи (решение владельца продукта 27.09.2026)
+    vat_options = set((PARAMS.get("TAX.VAT_RATE_OPTIONS") or {}).get("default") or [])
+    def vat_ok(v):
+        return (isinstance(v, (int, float)) and v in vat_options) or (isinstance(v, str) and v == "TAX.VAT_RATE")
+    if not vat_ok(c.get("vat_rate")):
+        errors.append(f"статья {c['item_id']}: vat_rate {c.get('vat_rate')!r} — допустимо TAX.VAT_RATE или значение из TAX.VAT_RATE_OPTIONS")
+    for r in c.get("vat_rules") or []:
+        if not vat_ok(r.get("vat_rate")):
+            errors.append(f"статья {c['item_id']}: vat_rules — недопустимая ставка {r.get('vat_rate')!r}")
+        for pid, val in (r.get("when") or {}).items():
+            if pid not in P:
+                errors.append(f"статья {c['item_id']}: vat_rules.when — параметр {pid} не найден")
+            elif PARAMS[pid].get("options") and val not in PARAMS[pid]["options"]:
+                errors.append(f"статья {c['item_id']}: vat_rules.when — {pid} = {val!r} нет среди вариантов {PARAMS[pid]['options']}")
+        check_sources(f"статья {c['item_id']} (vat_rules)", r.get("source_ids"))
+    share = c.get("vat_taxable_share")
+    if share is not None and not ((isinstance(share, (int, float)) and 0 <= share <= 1) or (isinstance(share, str) and share in P)):
+        errors.append(f"статья {c['item_id']}: vat_taxable_share — доля 0..1 или ID параметра")
+    check_sources(f"статья {c['item_id']} (НДС)", c.get("vat_source_ids"))
+    if c.get("index_type") not in ("investment", "cpi", "none"):
+        errors.append(f"статья {c['item_id']}: index_type — investment | cpi | none")
 
 known = P | F
 for f in forms:

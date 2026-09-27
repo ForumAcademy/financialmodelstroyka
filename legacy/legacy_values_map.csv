@@ -46,7 +46,7 @@ sheet,cell,row_label,value,target_id,verdict,note
 Бюджет,F19,Агентское вознаграждение,0,CAPEX.ITEMS[LAND_AGENT],replace,сумма/ставка вбита числом → ставка × база
 Бюджет,F21,,825124525.273,LAND.RENT_ANNUAL,replace,итог без расчёта
 Бюджет,D22,,5000,LAND.VRI_FEE,replace,5 000 руб/м² без источника
-Бюджет,F24,,1260033986.66,LAND.CITY_OBLIGATIONS,fix,перенести в правообладание
+Бюджет,F24,,1260033986.66,LAND.CITY_OBJECTS_COST,fix,перенести в правообладание; в исходнике одной суммой — отнесено на строительство объектов для города
 Бюджет,F26,,751140673,CAPEX.ITEMS[DESIGN_P],replace,сумма/ставка вбита числом → ставка × база
 Бюджет,D29,,2000000,CAPEX.ITEMS[PREDESIGN],replace,сумма/ставка вбита числом → ставка × база
 Бюджет,E29,,1,CAPEX.ITEMS[PREDESIGN],replace,сумма/ставка вбита числом → ставка × база
@@ -129,8 +129,8 @@ CF1,Q22,"Проставить темп,%",0,CAPEX.ITEMS[LAND_PURCHASE].schedule,
 CF1,K26,"Проставить темп,%",1,CAPEX.ITEMS[LAND_VRI].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
 CF1,N26,"Проставить темп,%",0,CAPEX.ITEMS[LAND_VRI].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
 CF1,O26,"Проставить темп,%",0,CAPEX.ITEMS[LAND_VRI].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
-CF1,M29,"Проставить темп,%",0.5,CAPEX.ITEMS[CITY_OBLIGATIONS].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
-CF1,N29,"Проставить темп,%",0.5,CAPEX.ITEMS[CITY_OBLIGATIONS].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
+CF1,M29,"Проставить темп,%",0.5,CAPEX.ITEMS[CITY_OBJECTS_CONSTRUCTION].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
+CF1,N29,"Проставить темп,%",0.5,CAPEX.ITEMS[CITY_OBJECTS_CONSTRUCTION].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
 CF1,I31,"Проставить темп,%",0,CAPEX.ITEMS[IRD].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
 CF1,J31,"Проставить темп,%",0,CAPEX.ITEMS[IRD].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual
 CF1,K31,"Проставить темп,%",0,CAPEX.ITEMS[IRD].schedule,replace,ручной % распределения → правило графика; ряд сохранён в кейсе как manual

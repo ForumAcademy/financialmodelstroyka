@@ -266,16 +266,78 @@ parameters:
     status: project_input
     legacy: [{cell: "Бюджет!F21", value: 825124525.273, verdict: replace, note: "итоговая сумма за весь срок без расчёта; распределена равномерно на 7,25 года (CF1 строка 24)"}]
 
-  - id: LAND.CITY_OBLIGATIONS
-    name: "Обязательства перед городом (компенсация, передача объектов, КРТ)"
+  - id: LAND.RENT_PAYMENT_FREQ
+    name: "Периодичность арендной платы"
+    unit: enum
+    kind: enum
+    scope: project
+    options: ["ежемесячно", "поквартально авансом", "поквартально по окончании квартала"]
+    default: "поквартально авансом"
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По договору аренды. По умолчанию — поквартально авансом (решение владельца продукта 27.09.2026): платёж за квартал — в первом месяце квартала"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: LAND.RENT_INDEXATION
+    name: "Индексация арендной платы, в год"
+    unit: "доля/год"
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По договору аренды (решение владельца продукта 27.09.2026): годовой процент индексации или пересчёт по региональной методике при изменении кадастровой стоимости"
+    how_to_fill: "Из условий договора аренды; если индексации нет — 0"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  - id: LAND.RENT_END_MILESTONE
+    name: "Веха окончания аренды участка"
+    unit: enum
+    kind: enum
+    scope: project
+    options: ["handover_start", "handover_end", "rnv_date"]
+    default: "handover_start"
+    source_ids: [S_EXPERT, S_PROJECT_DOCS]
+    basis: "Аренда прекращается с даты передачи первого помещения: участок переходит в общую долевую собственность собственников помещений МКД (решение владельца продукта 27.09.2026). По умолчанию — handover_start первой очереди (самая ранняя дата). Правовое основание и дату сверить с договором и юристом"
+    status: needs_verification
+    legacy: [{cell: null, verdict: new}]
+
+  - id: LAND.LESSOR_TYPE
+    name: "Арендодатель участка"
+    unit: enum
+    kind: enum
+    scope: project
+    options: ["государственная/муниципальная", "частная"]
+    default: null
+    source_ids: [S_PROJECT_DOCS, S_NK_149, S_MINFIN_03_07_07_12728]
+    basis: "Определяет НДС арендной платы (статья LAND_TAX_OR_RENT): аренда у органов власти и местного самоуправления — без НДС (пп.17 п.2 ст.149 НК РФ), у частного собственника — НДС по общей ставке"
+    how_to_fill: "По договору аренды; обязателен при LAND.TENURE = аренда"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
+  # Обязательства перед городом разделены на денежную компенсацию и строительство объектов (решение владельца продукта 27.09.2026):
+  # у них разный НДС — платёж в бюджет не облагается, работы подрядчиков облагаются.
+  - id: LAND.CITY_CASH_COMPENSATION
+    name: "Обязательства перед городом: денежная компенсация (платёж в бюджет)"
     unit: руб
     kind: scalar
     scope: project
     default: null
     source_ids: [S_PROJECT_DOCS]
-    basis: "По договору о КРТ / соглашению с городом / ГПЗУ. Это правообладание, а не ПИР"
+    basis: "По договору о КРТ / соглашению с городом / ГПЗУ — сумма, перечисляемая в бюджет. Правообладание, а не ПИР. НДС нет — платёж в бюджет не является реализацией"
     status: project_input
-    legacy: [{cell: "Бюджет!F24", value: 1260033986.66, verdict: fix, note: "была в разделе ПиР; комментарий автора: «перенести в правообладание»"}]
+    legacy: [{cell: null, verdict: new, note: "в исходнике обязательства перед городом — одной суммой (Бюджет!F24), см. LAND.CITY_OBJECTS_COST"}]
+
+  - id: LAND.CITY_OBJECTS_COST
+    name: "Обязательства перед городом: строительство и передача объектов (работы подрядчиков)"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "По договору о КРТ / соглашению с городом / ГПЗУ — стоимость объектов, которые застройщик строит и передаёт городу (школы, сады, дороги). Работы подрядчиков — с НДС"
+    status: project_input
+    legacy: [{cell: "Бюджет!F24", value: 1260033986.66, verdict: fix, note: "была в разделе ПиР одной суммой «обязательства перед городом»; комментарий автора: «перенести в правообладание». Разделение на компенсацию и объекты — по договору; в режиме совместимости вся сумма отнесена сюда"}]
 
   # --- земельный налог ---
 
@@ -697,6 +759,18 @@ parameters:
     status: project_input
     legacy: [{cell: "ТЭПы!C26", value: "=51775+7719", verdict: keep}]
 
+  - id: TEP.APART_COUNT
+    name: "Количество апартаментов по ТЭП архитектора"
+    unit: шт
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_PROJECT_DOCS]
+    basis: "Нужно для норматива машино-мест для апартаментов с единицей «на единицу» (TEP.PARKING_NORM_APART). Из ТЭП архитектора / концепции"
+    how_to_fill: "Обязательно, если в проекте есть апартаменты и норматив региона задан на единицу"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
+
   - id: TEP.STORAGE_COUNT
     name: "Количество кладовых по ТЭП архитектора"
     unit: шт
@@ -845,7 +919,10 @@ parameters:
     scope: region
     default: null
     source_ids: [S_SP_42_2026, S_PROJECT_DOCS]
-    basis: "По региональным НГП для объектов гостиничного назначения (regions.yaml → parking_norm_apart; единица — как в акте региона: на апартамент или на м²). Пока значение региона null — обязательный ручной ввод с документом"
+    columns:
+      - {key: value, unit: "м/м", note: "норматив машино-мест"}
+      - {key: unit, unit: enum, options: ["на единицу", "на 100 м² площади"], note: "единица норматива — как в РНГП региона"}
+    basis: "По региональным НГП для объектов гостиничного назначения (regions.yaml → parking_norm_apart: rule per_unit — на единицу (апартамент), per_100_m2 — на 100 м² площади апартаментов). Значение и единица — из РНГП региона (решение владельца продукта 27.09.2026). Пока значение региона null — обязательный ручной ввод с документом"
     how_to_fill: "Региональные НГП (раздел о гостиницах); приложить документ"
     status: needs_verification
     legacy: [{cell: null, verdict: new}]
@@ -878,8 +955,10 @@ parameters:
       - {key: construction_start, unit: дата}
       - {key: construction_end, unit: дата}
       - {key: rnv_date, unit: дата, note: "РНВ, ст.55 ГрК"}
+      - {key: handover_start, unit: дата, note: "начало передачи помещений по актам — по умолчанию окончание аренды участка (LAND.RENT_END_MILESTONE)"}
       - {key: handover_end, unit: дата, note: "окончание передачи по актам — дата признания финреза для налога на прибыль"}
       - {key: sales_start, unit: дата}
+      - {key: vri_change_date, unit: дата, note: "дата смены ВРИ — одна на проект (берётся самая ранняя заполненная); обязательна, если задана LAND.CADASTRAL_VALUE_AFTER_VRI. С неё — новая кадастровая стоимость и коэффициенты п.15 ст.396 НК РФ; в её месяц платится LAND_VRI. Дата начала применения новой кадастровой стоимости (ст.391 НК РФ) — needs_verification"}
     scope: project
     default: null
     source_ids: [S_GRK_51, S_GRK_55, S_PROJECT_DOCS]
@@ -897,6 +976,28 @@ parameters:
       - {cell: "CF1!AB6:AF6", value: [1, 0, 0, 0, 0], verdict: remove, note: "флаг раскрытия эскроу проставлен руками поверх формулы"}
       - {cell: "CF1!AB8:AS8", value: "0 × 18", verdict: remove, note: "флаг продаж по эскроу перебит руками"}
       - {cell: "CF1!F7:AC7", value: "1..6", verdict: remove, note: "«год строительства» — ручная нумерация, вычисляется"}
+
+  - id: TIME.HORIZON_TAIL_M
+    name: "Запас горизонта после последнего события"
+    unit: мес
+    kind: scalar
+    scope: template
+    default: 3
+    source_ids: [S_EXPERT]
+    basis: "Горизонт вычисляется, не вводится: T_end = max(последняя продажа, раскрытие эскроу последней очереди, полное погашение долга, уплата налога на прибыль за последний год) + 3 месяца (решение владельца продукта 27.09.2026)"
+    status: verified
+    legacy: [{cell: null, verdict: new, note: "в исходнике срок проекта вводился числом (ТЭПы!C5 = 7,25 года, см. TIME.MILESTONES); теперь горизонт вычисляется F.CF.HORIZON"}]
+
+  - id: TIME.HORIZON_WARN_M
+    name: "Порог предупреждения о длинном горизонте"
+    unit: мес
+    kind: scalar
+    scope: template
+    default: 180
+    source_ids: [S_EXPERT]
+    basis: "Если вычисленный горизонт больше 180 месяцев (15 лет) — предупреждение: вероятно, не распродан остаток или не погашен долг (решение владельца продукта 27.09.2026)"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
 
   - id: TIME.ESCROW_RELEASE_LAG_M
     name: "Лаг раскрытия эскроу после РНВ"
@@ -984,15 +1085,27 @@ parameters:
     legacy: [{cell: null, verdict: new}]
 
   - id: CAPEX.COST_INDEX
-    name: "Индекс роста строительных затрат, годовой"
+    name: "Индекс роста строительных затрат (дефлятор инвестиций в основной капитал), годовой"
     unit: "доля/год"
     kind: series
     scope: template
-    default: null
-    source_ids: [S_MINEC_SCENARIO_2027, S_FGISCS]
-    basis: "Дефлятор/индекс МЭР по годам; для СМР — индексы Минстроя (ФГИС ЦС). В исходнике затраты не индексировались"
-    how_to_fill: "Заполняется из прогноза МЭР при актуализации справочника (раз в квартал)"
-    status: needs_verification
+    default: {by_year: {2026: 0.065, 2027: 0.05, 2028: 0.041, 2029: 0.041}, after_last: last}
+    source_ids: [S_MINEC_SCENARIO_2027, S_EXPERT]
+    basis: "Сценарные условия МЭР на 2027–2029 гг., базовый вариант (документ от 21.05.2026): дефлятор инвестиций в основной капитал, % г/г — 2026: 6,5; 2027: 5,0; 2028: 4,1; 2029: 4,1. Применяется к статьям с index_type = investment (СМР, сети, благоустройство, соцобъекты, ПИР, техзаказчик и т. п.). После 2029 — последнее значение: допущение (S_EXPERT), горизонт прогноза МЭР — 2029. В исходнике затраты не индексировались"
+    how_to_fill: "Обновляется из прогноза МЭР при актуализации справочника (раз в квартал)"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
+  - id: CAPEX.OPEX_INDEX
+    name: "Индекс роста операционных затрат (ИПЦ в среднем за год), годовой"
+    unit: "доля/год"
+    kind: series
+    scope: template
+    default: {by_year: {2026: 0.056, 2027: 0.04, 2028: 0.04, 2029: 0.04}, after_last: last}
+    source_ids: [S_MINEC_SCENARIO_2027, S_EXPERT]
+    basis: "Сценарные условия МЭР на 2027–2029 гг., базовый вариант (документ от 21.05.2026): ИПЦ в среднем за год, % — 2026: 5,6; 2027: 4,0; 2028: 4,0; 2029: 4,0. Применяется к статьям с index_type = cpi (содержание застройщика, охрана, маркетинг). После 2029 — последнее значение: допущение (S_EXPERT), горизонт прогноза МЭР — 2029"
+    how_to_fill: "Обновляется из прогноза МЭР при актуализации справочника (раз в квартал)"
+    status: verified
     legacy: [{cell: null, verdict: new}]
 
   # =====================================================================
@@ -1217,6 +1330,17 @@ parameters:
   # TAX — налоги
   # =====================================================================
 
+  - id: TAX.VAT_RATE_OPTIONS
+    name: "Допустимые ставки НДС по статьям бюджета"
+    unit: доля
+    kind: series
+    scope: template
+    default: [0, 0.05, 0.07, 0.22]
+    source_ids: [S_NK_164]
+    basis: "0 — не облагается / не объект; 0,05 и 0,07 — подрядчик на УСН (п.8 ст.164 НК РФ, выбор по договору); 0,22 — общая ставка (п.3 ст.164). Решение владельца продукта 27.09.2026"
+    status: verified
+    legacy: [{cell: null, verdict: new}]
+
   - id: TAX.VAT_RATE
     name: "Ставка НДС"
     unit: доля
@@ -1315,6 +1439,19 @@ parameters:
     basis: "По агентским договорам; платится в месяц сделки (не с лагом)"
     status: expert_allowed
     legacy: [{cell: "Бюджет!D52", value: 0.035, verdict: keep}]
+
+  - id: OPEX.OVERHEAD_VAT_SHARE
+    name: "Доля содержания застройщика, облагаемая НДС"
+    unit: доля
+    kind: scalar
+    scope: project
+    default: null
+    range: [0, 1]
+    source_ids: [S_COMPANY_ACTUALS]
+    basis: "Статья DEVELOPER_OVERHEAD смешанная: ФОТ — без НДС, аренда офиса и услуги — с НДС. Доля облагаемой части — по фактическим затратам компании (уровень 4)"
+    how_to_fill: "Из бюджета управляющей компании: (аренда + услуги с НДС) / всё содержание"
+    status: project_input
+    legacy: [{cell: null, verdict: new}]
 
   - id: OPEX.DEV_FEE_RATE
     name: "Вознаграждение за управление проектом (девелоперский фи), доля"

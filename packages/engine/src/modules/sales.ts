@@ -163,12 +163,20 @@ export function F_SALES_SOLD_AREA(ctx: FormulaContext): RowSeries {
     // сколько из ручного плана не продано: сверх построенного и в месяцы, когда продавать нельзя
     let overStock = ZERO;
     let offPeriod = ZERO;
+    // ручной план до первого разрешённого месяца переносится на него (квартал старта продаж — целиком)
+    let carry = ZERO;
+    let started = false;
     const sold = date.map((_, t) => {
       const allowed = (ddu && presale?.[p.phaseIndex]?.[t] === 1) || postRnv?.[p.phaseIndex]?.[t] === 1;
-      const want = manual ? (manual[t] as Decimal) : rowPace.method === "доля_остатка" ? remaining.mul(value as number) : new Decimal(value as number);
+      let want = manual ? (manual[t] as Decimal) : rowPace.method === "доля_остатка" ? remaining.mul(value as number) : new Decimal(value as number);
       if (!allowed) {
-        offPeriod = offPeriod.add(manual ? want : ZERO);
+        if (manual && !started) carry = carry.add(want);
+        else offPeriod = offPeriod.add(manual ? want : ZERO);
         return ZERO;
+      }
+      if (!started) {
+        started = true;
+        want = want.add(carry);
       }
       const s = Decimal.min(want, remaining);
       if (manual) overStock = overStock.add(want.sub(s));
@@ -182,7 +190,7 @@ export function F_SALES_SOLD_AREA(ctx: FormulaContext): RowSeries {
     }
     const left = remaining.gt(stock.mul(tol)) ? remaining.toDecimalPlaces(0) : null;
     if (manual && offPeriod.gt(stock.mul(tol))) {
-      const cutText = `по плану продаж ${fmt(offPeriod.toDecimalPlaces(0))} ${u} приходится на месяцы, когда продавать ещё нельзя, и в расчёт не попали`;
+      const cutText = `по плану продаж ${fmt(offPeriod.toDecimalPlaces(0))} ${u} приходится на месяцы, когда продавать нельзя, и в расчёт не попали`;
       ctx.message("warning", left ? `«${p.key}»: не продано к концу расчёта ${fmt(left)} ${u} — ${cutText}. Сдвиньте план продаж или проверьте даты старта продаж и ввода дома.` : `«${p.key}»: ${cutText}. Сдвиньте план продаж или проверьте даты старта продаж и ввода дома.`, "SALES.PACE");
     } else if (left) ctx.message("warning", `«${p.key}»: не продано к концу расчёта ${fmt(left)} ${u}. Увеличьте темп или горизонт расчёта.`, "SALES.PACE");
     out[p.key] = sold;

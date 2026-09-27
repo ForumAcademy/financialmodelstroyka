@@ -68,30 +68,9 @@ function NewSourceForm({ projectId, onDone }: { projectId: string; onDone: () =>
   );
 }
 
-function CheckForm({ defaultBy, onSave, onCancel }: { defaultBy: string; onSave: (c: SourceCheck) => void; onCancel: () => void }) {
-  const [by, setBy] = useState(defaultBy);
-  const [comment, setComment] = useState("");
-  return (
-    <div className="check-form">
-      <input placeholder="Кто проверил" value={by} onChange={(e) => setBy(e.target.value)} autoFocus />
-      <input placeholder="Комментарий (редакция, пункт)" value={comment} onChange={(e) => setComment(e.target.value)} />
-      <div className="check-actions">
-        <button className="btn primary small-btn" disabled={!by.trim()} onClick={() => onSave({ by: by.trim(), date: new Date().toISOString().slice(0, 10), comment: comment.trim() || undefined })}>
-          Проверено
-        </button>
-        <button className="link small" onClick={onCancel}>
-          отмена
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function SourcesPage() {
   const search = useSearchParams();
   const { projects, dispatch, sourceChecks, setSourceCheck } = useStore();
-  const [checking, setChecking] = useState<string | null>(null);
-  const [lastBy, setLastBy] = useState("");
   const { open, setProject } = useHow();
   const [q, setQ] = useState(search.get("q") ?? "");
   const [scope, setScope] = useState<Scope>(search.get("project") ? "project" : "all");
@@ -251,36 +230,25 @@ function SourcesPage() {
               <td className="small">{r.usedFor}</td>
               <td className="small check-cell">
                 {r.checked}
-                {r.issue ? (
+                {r.issue === "stale" ? (
                   <div>
-                    <span className="issue-tag" title={r.issue === "unverified" ? "Значение и ссылка ещё не сверены с текстом документа" : `Проверка старше ${REVIEW_PERIOD_MONTHS} месяцев — нужна актуализация`}>
-                      {r.issue === "unverified" ? "не сверен" : "устарел"}
+                    <span className="issue-tag" title={`Проверка старше ${REVIEW_PERIOD_MONTHS} месяцев — выберите «Сверен» после актуализации`}>
+                      устарел
                     </span>
                   </div>
                 ) : null}
-                {r.check ? (
-                  <div className="checked-by" title={r.check.comment ?? ""}>
-                    ✓ проверил {r.check.by}
-                    {r.check.comment ? <div className="muted">{r.check.comment}</div> : null}
-                    <button className="link small" onClick={() => setSourceCheck(r.sourceId!, null)}>
-                      снять отметку
-                    </button>
+                {r.sourceId ? (
+                  <div>
+                    <select
+                      className={`status-select ${r.verified ? "ok" : "bad"}`}
+                      value={r.verified ? "yes" : "no"}
+                      onChange={(e) => setSourceCheck(r.sourceId!, { verified: e.target.value === "yes", date: new Date().toISOString().slice(0, 10) })}
+                      title="Статус сверки источника: при выборе «Сверен» дата проверки становится сегодняшней"
+                    >
+                      <option value="no">Не сверен</option>
+                      <option value="yes">Сверен</option>
+                    </select>
                   </div>
-                ) : null}
-                {r.sourceId && r.issue ? (
-                  checking === r.sourceId ? (
-                    <CheckForm
-                      defaultBy={lastBy}
-                      onCancel={() => setChecking(null)}
-                      onSave={(c) => (setSourceCheck(r.sourceId!, c), setLastBy(c.by), setChecking(null))}
-                    />
-                  ) : (
-                    <div>
-                      <button className="btn small-btn check-btn" onClick={() => setChecking(r.sourceId!)}>
-                        Отметить проверенным
-                      </button>
-                    </div>
-                  )
                 ) : null}
               </td>
               <td className="small">

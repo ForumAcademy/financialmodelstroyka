@@ -34,6 +34,8 @@ export interface SalesRow {
   phase: unknown;
   rnvDate: string | null;
   revenue: Decimal | null;
+  /** Договоры до ввода своей очереди, руб: по ДДУ эти деньги лежат на эскроу до раскрытия. */
+  revenueByRnv: Decimal | null;
   avgPrice: Decimal | null;
 }
 
@@ -78,6 +80,7 @@ export function salesRows(project: DemoProject, m: ProjectModel, legacy: Project
     const beforeRnv = typeof rnv === "string" ? sum(s.filter((_, t) => (dates[t] ?? "") <= rnv)) : null;
     const months = first !== undefined && last !== undefined ? last - first + 1 : 0;
     const revenue = price?.[key] ? s.reduce((a, x, t) => a.add(x.mul(price[key]![t] ?? ZERO)), ZERO) : null;
+    const revenueByRnv = price?.[key] && typeof rnv === "string" ? s.reduce((a, x, t) => ((dates[t] ?? "") <= rnv ? a.add(x.mul(price[key]![t] ?? ZERO)) : a), ZERO) : null;
     return {
       key,
       unit,
@@ -92,6 +95,7 @@ export function salesRows(project: DemoProject, m: ProjectModel, legacy: Project
       phase: row.phase,
       rnvDate: typeof rnv === "string" ? rnv : null,
       revenue,
+      revenueByRnv,
       avgPrice: revenue && !total.isZero() ? revenue.div(total) : null,
     };
   });
@@ -104,7 +108,17 @@ export const pricesFromExcel = (m: ProjectModel) => !m.result.formulas["F.SALES.
  * Итого: площади и доля к вводу — по м² (машино-места и кладовые в штуках не входят; доля — средневзвешенно
  * по площади), выручка — по всем продуктам.
  */
-export function salesTotal(rows: SalesRow[]): { built: Decimal; sold: Decimal; unsold: Decimal; byRnvShare: Decimal | null; revenue: Decimal | null; avgPrice: Decimal | null } {
+export function salesTotal(rows: SalesRow[]): {
+  built: Decimal;
+  sold: Decimal;
+  unsold: Decimal;
+  byRnvShare: Decimal | null;
+  areaRevenue: Decimal | null;
+  areaRevenueByRnv: Decimal | null;
+  revenue: Decimal | null;
+  revenueByRnv: Decimal | null;
+  avgPrice: Decimal | null;
+} {
   const area = rows.filter((r) => r.unit === "м²");
   const built = area.reduce((s, r) => s.add(r.built ?? ZERO), ZERO);
   const sold = area.reduce((s, r) => s.add(r.sold), ZERO);
@@ -115,7 +129,10 @@ export function salesTotal(rows: SalesRow[]): { built: Decimal; sold: Decimal; u
     sold,
     unsold: area.reduce((s, r) => s.add(r.unsold ?? ZERO), ZERO),
     byRnvShare: weighted.length ? weighted.reduce((s, r) => s.add(r.byRnvShare!.mul(r.built!)), ZERO).div(weighted.reduce((s, r) => s.add(r.built!), ZERO)) : null,
+    areaRevenue: area.some((r) => r.revenue) ? areaRevenue : null,
+    areaRevenueByRnv: area.some((r) => r.revenueByRnv) ? area.reduce((s, r) => s.add(r.revenueByRnv ?? ZERO), ZERO) : null,
     revenue: rows.some((r) => r.revenue) ? rows.reduce((s, r) => s.add(r.revenue ?? ZERO), ZERO) : null,
+    revenueByRnv: rows.some((r) => r.revenueByRnv) ? rows.reduce((s, r) => s.add(r.revenueByRnv ?? ZERO), ZERO) : null,
     avgPrice: sold.isZero() || areaRevenue.isZero() ? null : areaRevenue.div(sold),
   };
 }
@@ -180,4 +197,9 @@ export function parkingWarning(m: ProjectModel, legacy: ProjectModel | null): st
   const required = pick("F.TEP.PARKING_REQUIRED");
   if (count === undefined || required === undefined || !new Decimal(count).lt(required)) return null;
   return `Машино-мест ${fmt.num(new Decimal(count), 0)}, а по нормативу нужно ${fmt.num(new Decimal(required), 0)}. Проверьте количество в ТЭПах — от него зависят затраты на паркинг и выручка.`;
+}
+
+/** Подпись продукта: если продукты проекта в разных очередях — с номером очереди. */
+export function rowName(r: SalesRow, rows: SalesRow[]): string {
+  return new Set(rows.map((x) => x.phase)).size > 1 ? `${r.key}, очередь ${String(r.phase)}` : r.key;
 }

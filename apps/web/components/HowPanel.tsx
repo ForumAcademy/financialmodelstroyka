@@ -10,7 +10,7 @@ import { ChangedMark, valueText } from "./Change";
 import { whence } from "@/lib/whence";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { amount, compatDiff, exampleFocus, howExample, inputFields, monthName, shortSource } from "@/lib/how-example";
-import { cellMln, cellPrice, cellQty, cellShare, hasUnsold, parkingWarning, pricesFromExcel, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
+import { cellMln, cellPrice, cellQty, cellShare, hasUnsold, parkingWarning, pricesFromExcel, rowName, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
 import { isParameterIdLike, modePair, stageOf, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import { useStore } from "@/lib/store";
@@ -145,9 +145,11 @@ function WarnList({ items, projectId, open }: { items: Warn[]; projectId: string
 }
 
 function SalesTable({ rows, excelPrices }: { rows: SalesRow[]; excelPrices: boolean }) {
+  const [full, setFull] = useState(false);
   const total = salesTotal(rows);
   const unsold = hasUnsold(rows);
   const rnvTip = (r: SalesRow) => `Очередь ${String(r.phase ?? "—")}, ввод ${r.rnvDate ? fmt.date(r.rnvDate) : "не задан"}`;
+  const star = excelPrices ? "*" : "";
   return (
     <div className="how-table">
       <table>
@@ -157,43 +159,70 @@ function SalesTable({ rows, excelPrices }: { rows: SalesRow[]; excelPrices: bool
             <th>Построено</th>
             {unsold ? <th>Не продано</th> : null}
             <th>Продано к вводу своей очереди, %</th>
-            <th>Темп в месяц</th>
-            <th>Срок продаж, мес</th>
-            <th>Распродано к</th>
-            <th>Выручка, млн руб{excelPrices ? "*" : ""}</th>
-            <th>Средняя цена, руб/м² (м/м — руб/шт){excelPrices ? "*" : ""}</th>
+            <th>Договоры к вводу, млн руб{star}</th>
+            <th>Выручка, млн руб{star}</th>
+            {full ? (
+              <>
+                <th>Темп в месяц</th>
+                <th>Срок продаж, мес</th>
+                <th>Распродано к</th>
+                <th>Средняя цена, руб/м² (м/м — руб/шт){star}</th>
+              </>
+            ) : null}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.key}>
-              <td>{r.key}</td>
+              <td>{rowName(r, rows)}</td>
               <td>{cellQty(r.built, r.unit)}</td>
               {unsold ? <td>{cellQty(r.unsold, r.unit)}</td> : null}
               <td title={rnvTip(r)}>{cellShare(r.byRnvShare)}</td>
-              <td>{cellQty(r.avgPerMonth, r.unit)}</td>
-              <td>{r.months || "—"}</td>
-              <td>{r.soldOut ? monthName(r.soldOut) : "—"}</td>
+              <td>{cellMln(r.revenueByRnv)}</td>
               <td>{cellMln(r.revenue)}</td>
-              <td>{cellPrice(r.avgPrice)}</td>
+              {full ? (
+                <>
+                  <td>{cellQty(r.avgPerMonth, r.unit)}</td>
+                  <td>{r.months || "—"}</td>
+                  <td>{r.soldOut ? monthName(r.soldOut) : "—"}</td>
+                  <td>{cellPrice(r.avgPrice)}</td>
+                </>
+              ) : null}
             </tr>
           ))}
           <tr className="total">
-            <td>Итого без машино-мест</td>
+            <td>Итого по м²</td>
             <td>{cellQty(total.built, "м²")}</td>
             {unsold ? <td>{cellQty(total.unsold, "м²")}</td> : null}
             <td>{cellShare(total.byRnvShare)}</td>
+            <td>{cellMln(total.areaRevenueByRnv)}</td>
+            <td>{cellMln(total.areaRevenue)}</td>
+            {full ? (
+              <>
+                <td />
+                <td />
+                <td />
+                <td>{cellPrice(total.avgPrice)}</td>
+              </>
+            ) : null}
+          </tr>
+          <tr className="total">
+            <td>Выручка всего</td>
             <td />
+            {unsold ? <td /> : null}
             <td />
-            <td />
+            <td>{cellMln(total.revenueByRnv)}</td>
             <td>{cellMln(total.revenue)}</td>
-            <td>{cellPrice(total.avgPrice)}</td>
+            {full ? <td colSpan={4} /> : null}
           </tr>
         </tbody>
       </table>
       <p className="small muted">
-        Выручка в «Итого» — по всем продуктам, включая машино-места. Наведите на долю к вводу, чтобы увидеть очередь и дату её ввода.
-        {excelPrices ? " * Цены исходного Excel: в расчёте сервиса цена не считается, пока не заполнен «Рыночный рост цен, годовой»." : ""}
+        <button className="linklike" onClick={() => setFull(!full)}>
+          {full ? "Свернуть" : "Подробнее: темп, срок продаж, средняя цена"}
+        </button>
+        {" "}Договоры к вводу — по ДДУ эти деньги лежат на эскроу до раскрытия.
+        {excelPrices ? " * По ценам исходного Excel: в расчёте сервиса цена не считается, пока не заполнен «Рыночный рост цен, годовой»." : ""}
       </p>
     </div>
   );

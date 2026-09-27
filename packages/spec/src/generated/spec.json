@@ -1,5 +1,5 @@
 {
-  "specVersion": "c17f7b3a402a",
+  "specVersion": "02d607d1998d",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -10857,7 +10857,7 @@
         "p": "очередь, к которой относится продукт k",
         "pace[k,t]": "темп продаж (SALES.PACE)",
         "remaining[k,t]": "непроданный остаток на конец месяца; remaining[k,−1] = stock[k]",
-        "stock[k]": "запас продукта к продаже (SALES.PRODUCTS: stock_area, для м/м и кладовых — stock_units)",
+        "stock[k]": "построено, площадь продукта к продаже (SALES.PRODUCTS: stock_area, для м/м и кладовых — stock_units)",
         "channel[k]": "как продаётся до РНВ: ДДУ с эскроу или не продаётся (SALES.PRODUCTS)",
         "flag_ddu, flag_dkp": "флаги продаж по ДДУ (от старта продаж до РНВ) и по ДКП (после РНВ) (F.TIME.FLAG_PRESALE, F.TIME.FLAG_POST_RNV)",
         "share[k], per_month[k], values, step_months": "параметры темпа (SALES.PACE: value, manual)"

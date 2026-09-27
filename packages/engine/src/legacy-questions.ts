@@ -153,10 +153,10 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const typed = PACE_ROWS[arg];
       const refs = [typed, arg === "ПСН" ? "ТЭПы!C23" : null].filter(Boolean).join(", ") || "План продаж";
       return {
-        compared: `По плану продаж продаётся ${fmt(s)} м² ${arg}, а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть (${refs}).`,
+        compared: `По плану продаж продаётся ${fmt(s)} м² ${arg}, а построено ${fmt(stock)} м² — на ${fmt(excess)} м² больше (${refs}).`,
         block: "sales",
-        question: `Какой запас ${arg} верный и откуда взят темп продаж?`,
-        explanation: `По плану продаётся ${fmt(s)} м², а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть.${typed ? " Темп введён в файл числами, и ни одна ячейка не даёт эти цифры" : ""} (${refs}).`,
+        question: `Сколько ${arg} построено и откуда взят темп продаж?`,
+        explanation: `По плану продаётся ${fmt(s)} м², а построено ${fmt(stock)} м² — на ${fmt(excess)} м² больше.${typed ? " Темп введён в файл числами, и ни одна ячейка не даёт эти цифры" : ""} (${refs}).`,
         impact: price ? signed(exact.mul(price), "выручка", "завышена", "занижена") : { amount: null, kind: "выручка", text: "выручка завышена" },
         recommendation: `По плану продаж ${arg} получается ${fmt(s)} м², а построено ${fmt(stock)} м². Лишние ${fmt(excess)} м² в расчёт не попадают. Уменьшите темп или проверьте площадь ${arg} в ТЭПах.`,
       };
@@ -167,15 +167,15 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const price = wavg["ПСН"] ?? null;
       const saleable = new Decimal(t.apt_area_C22).add(t.psn_stock_C23);
       return {
-        compared: `Запас ПСН в ТЭПах указан дважды: ${fmt(t.psn_stock_C23)} и ${fmt(t.psn_stock_C48)} м², разница ${fmt(diff.abs())} м² (ТЭПы!C23, C48).`,
+        compared: `Площадь ПСН к продаже в ТЭПах указана дважды: ${fmt(t.psn_stock_C23)} и ${fmt(t.psn_stock_C48)} м², разница ${fmt(diff.abs())} м² (ТЭПы!C23, C48).`,
         threat: price ? `В зависимости от ответа выручка изменится на ±~${fmtRub(diff.abs().mul(price))}.` : "Выручка зависит от ответа, сумму оценить нельзя.",
         block: "sales",
-        question: "Какой запас ПСН и какая продаваемая площадь верны?",
-        explanation: `Запас ПСН указан дважды по-разному: ${fmt(t.psn_stock_C23)} и ${fmt(t.psn_stock_C48)} м². Продаваемая площадь ${fmt(t.saleable_area_C35)} м² введена числом, а квартиры и ПСН вместе дают ${fmt(saleable)} м² (ТЭПы!C23, C48, C35).`,
+        question: "Какая площадь ПСН к продаже и какая продаваемая площадь верны?",
+        explanation: `Площадь ПСН к продаже указана дважды по-разному: ${fmt(t.psn_stock_C23)} и ${fmt(t.psn_stock_C48)} м². Продаваемая площадь ${fmt(t.saleable_area_C35)} м² введена числом, а квартиры и ПСН вместе дают ${fmt(saleable)} м² (ТЭПы!C23, C48, C35).`,
         impact: price
           ? { amount: diff.abs().mul(price), kind: "выручка", text: `выручка: ±~${fmtRub(diff.abs().mul(price))} в зависимости от ответа; продаваемая площадь в суммы не входит` }
           : { amount: null, kind: "выручка", text: "зависит от ответа" },
-        recommendation: `В модели запас ПСН = ${fmt(t.psn_stock_C23)} м² (ТЭПы!C23), продаваемая площадь считается как квартиры + ПСН. Подтвердите запас.`,
+        recommendation: `В модели площадь ПСН к продаже = ${fmt(t.psn_stock_C23)} м² (ТЭПы!C23), продаваемая площадь считается как квартиры + ПСН. Подтвердите площадь ПСН.`,
       };
     }
     if (kind === "LEGACY.MARKETING_F51" && lc) {

@@ -29,4 +29,14 @@ describe("Расхождения с Excel: вопросы и статусы", ()
     const items = issueItems(p, questions.filter((q) => q.key !== "SALES.OVER_STOCK:ПСН"));
     expect(items.find((i) => i.key === "SALES.OVER_STOCK:ПСН")).toMatchObject({ stale: true, status: "work", question: "Какой запас ПСН верный?" });
   });
+
+  it("ручное дополнение к пояснению сохраняется по ключу с автором и не меняет статус", () => {
+    const at = "2026-09-27T11:00:00.000Z";
+    let s = reducer([demo], { type: "issueNote", id: demo.id, key: "LEGACY.MARKETING_F51", no: 3, question: "q", note: { text: "сумма из старой версии плана продаж", author: "Анна", at } });
+    s = reducer(s, { type: "issue", id: demo.id, key: "LEGACY.MARKETING_F51", no: 3, question: "q", event: { status: "work", author: "Анна", at } });
+    const st = s[0]!.issues?.["LEGACY.MARKETING_F51"];
+    expect(st?.notes).toEqual([{ text: "сумма из старой версии плана продаж", author: "Анна", at }]);
+    expect(st?.status).toBe("work");
+    expect(issueItems(s[0]!, questions).find((i) => i.key === "LEGACY.MARKETING_F51")?.stale).toBe(false);
+  });
 });

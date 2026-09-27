@@ -31,7 +31,16 @@ export interface DataQuestion {
   no: number;
   block: QuestionBlock;
   question: string;
-  /** Что смутило систему: 1–3 предложения, ячейки — в конце в скобках. */
+  /**
+   * Пояснение простым языком (2–3 предложения, без формул): что с чем сравнивалось и где (лист!ячейка), на сколько
+   * не сошлось, чем грозит результату и что уточнить. Собирается из compared + threat + question.
+   */
+  summary: string;
+  /** Что с чем сравнивалось, какие значения не сошлись и на сколько; ячейки — в скобках. */
+  compared: string;
+  /** Чем расхождение грозит результату, в рублях, где можно оценить. */
+  threat: string;
+  /** Подробности: почему так вышло в файле; 1–3 предложения, ячейки — в конце в скобках. */
   explanation: string;
   impact: Impact;
   recommendation: string;
@@ -80,6 +89,29 @@ function quarterEnd(text: string): IsoDate | null {
   return `${m[2]}-${String(month).padStart(2, "0")}-${String(last).padStart(2, "0")}` as IsoDate;
 }
 
+/** Чем грозит расхождение — по типу влияния, из суммы «Excel − исправленное». */
+function threatOf(impact: Impact): string {
+  const a = impact.amount;
+  if (!a) return impact.kind === "выручка" ? "Выручка в Excel может быть завышена, сумму оценить нельзя." : "Влияние на суммы оценить нельзя.";
+  if (a.isZero()) return "На суммы не влияет.";
+  const x = fmtRub(a);
+  const more = a.gt(0);
+  switch (impact.kind) {
+    case "выручка":
+      return `Выручка в Excel может быть ${more ? "завышена" : "занижена"} на ~${x}.`;
+    case "расходы":
+      return `Расходы в Excel ${more ? "завышены" : "занижены"} на ~${x}.`;
+    case "расходы в CF":
+      return more
+        ? `В денежный поток Excel попадает на ~${x} расходов больше, чем в бюджете, и он выглядит хуже, чем есть.`
+        : `В денежном потоке Excel не хватает ~${x} расходов, и он выглядит лучше, чем есть.`;
+    case "поступления":
+      return more ? `В денежный поток Excel попадает на ~${x} поступлений больше, чем по плану продаж.` : `В денежный поток Excel не попадает ~${x} поступлений.`;
+    default:
+      return impact.text;
+  }
+}
+
 function signed(excelMinusFixed: Decimal, kind: ImpactKind, more: string, less: string): Impact {
   const text = excelMinusFixed.isZero() ? "не влияет на суммы" : `${kind}: ${excelMinusFixed.gt(0) ? more : less} на ~${fmtRub(excelMinusFixed)}`;
   return { amount: excelMinusFixed, kind, text };
@@ -106,7 +138,8 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
   const itemName = (id: string) => (isCapexItemId(id) ? getCapexItem(id).name : id);
   const lag = Number(input.values["TIME.ESCROW_RELEASE_LAG_M"] ?? getParameter("TIME.ESCROW_RELEASE_LAG_M").default ?? 0) || null;
 
-  const build = (m: CalcMessage): Omit<DataQuestion, "key" | "no" | "formulaId" | "warning"> => {
+  type Built = Omit<DataQuestion, "key" | "no" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
+  const build = (m: CalcMessage): Built => {
     const key = m.key as string;
     const [kind, arg = ""] = key.split(":");
 
@@ -116,10 +149,12 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const excess = s.sub(stock);
       const price = wavg[arg] ?? null;
       const typed = PACE_ROWS[arg];
+      const refs = [typed, arg === "ПСН" ? "ТЭПы!C23" : null].filter(Boolean).join(", ") || "План продаж";
       return {
+        compared: `По плану продаж продаётся ${fmt(s)} м² ${arg}, а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть (${refs}).`,
         block: "sales",
         question: `Какой запас ${arg} верный и откуда взят темп продаж?`,
-        explanation: `По плану продаётся ${fmt(s)} м², а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть.${typed ? " Темп введён в файл числами, и ни одна ячейка не даёт эти цифры" : ""} (${[typed, arg === "ПСН" ? "ТЭПы!C23" : null].filter(Boolean).join(", ") || "План продаж"}).`,
+        explanation: `По плану продаётся ${fmt(s)} м², а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть.${typed ? " Темп введён в файл числами, и ни одна ячейка не даёт эти цифры" : ""} (${refs}).`,
         impact: price ? signed(excess.mul(price), "выручка", "завышена", "занижена") : { amount: null, kind: "выручка", text: "выручка завышена" },
         recommendation: "В обычном режиме продажи ограничены запасом. Вероятно, темп подобран под старую версию запаса: подтвердите запас и темп.",
       };
@@ -130,6 +165,8 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const price = wavg["ПСН"] ?? null;
       const saleable = new Decimal(t.apt_area_C22).add(t.psn_stock_C23);
       return {
+        compared: `Запас ПСН в ТЭПах указан дважды: ${fmt(t.psn_stock_C23)} и ${fmt(t.psn_stock_C48)} м², разница ${fmt(diff.abs())} м² (ТЭПы!C23, C48).`,
+        threat: price ? `В зависимости от ответа выручка изменится на ±~${fmtRub(diff.abs().mul(price))}.` : "Выручка зависит от ответа, сумму оценить нельзя.",
         block: "sales",
         question: "Какой запас ПСН и какая продаваемая площадь верны?",
         explanation: `Запас ПСН указан дважды по-разному: ${fmt(t.psn_stock_C23)} и ${fmt(t.psn_stock_C48)} м². Продаваемая площадь ${fmt(t.saleable_area_C35)} м² введена числом, а квартиры и ПСН вместе дают ${fmt(saleable)} м² (ТЭПы!C23, C48, C35).`,
@@ -143,7 +180,9 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const b = lc.budget;
       const rev = nsum(lc.sales_plan.revenue_row25_from_1q2026);
       const byRate = rev.mul(b.marketing_rate_D51);
+      const diff = new Decimal(b.marketing_F51).sub(byRate);
       return {
+        compared: `Маркетинг в бюджете введён числом ${fmtRub(b.marketing_F51)}, а ${fmtShare(new Decimal(b.marketing_rate_D51))} от выручки по плану продаж дают ${fmtRub(byRate)} — на ${fmtRub(diff)} ${diff.gt(0) ? "меньше" : "больше"} (Бюджет!F51, План продаж строка 25).`,
         block: "budget",
         question: "Откуда взята сумма маркетинга в бюджете?",
         explanation: `Маркетинг введён числом ${fmtRub(b.marketing_F51)}, а не как ${fmtShare(new Decimal(b.marketing_rate_D51))} от выручки. Такое число получается из выручки ${fmtRub(new Decimal(b.marketing_F51).div(b.marketing_rate_D51))}, которой в файле нет: по плану продаж выручка ${fmtRub(rev)} (Бюджет!F51).`,
@@ -155,6 +194,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const b = lc.budget;
       const product = new Decimal(b.contingency_E42).mul(b.contingency_D42);
       return {
+        compared: `Резерв в бюджете — ${fmtRub(b.contingency_F42)}: площадь сложена со ставкой. Если их перемножить, получится ${fmtRub(product)} (Бюджет!F42).`,
         block: "budget",
         question: "Правильно ли посчитан резерв на непредвиденные расходы?",
         explanation: `Площадь сложена со ставкой вместо умножения: ${fmt(Math.round(b.contingency_E42))} + ${fmt(Math.round(b.contingency_D42))} = ${fmt(Math.round(b.contingency_F42))} ₽. При умножении получается ${fmtRub(product)} (Бюджет!F42).`,
@@ -168,8 +208,10 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const share = amount.isZero() ? ZERO : inCf.div(amount);
       const name = itemName(arg);
       const impact = signed(inCf.sub(amount), "расходы в CF", "завышены", "занижены");
+      const compared = `В бюджете «${name}» — ${fmtRub(amount)}, а в денежный поток CF1 попадает ${inCf.isZero() ? "0 ₽" : `${fmtRub(inCf)} (${fmtShare(share)})`}, разница ${fmtRub(inCf.sub(amount))} (${cells(arg)}).`;
       if (arg === "MARKETING") {
         return {
+          compared,
           block: "cf",
           question: "Какую сумму маркетинга считать верной: из бюджета или из CF?",
           explanation: `В бюджете маркетинг ${fmtRub(amount)}, а в CF1 платежи считаются как 3,5% от выручки по кварталам и дают ${fmtRub(inCf)} — ${fmtShare(share)} бюджета. Связано с №3 и №11 (${cells(arg)}).`,
@@ -179,6 +221,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       }
       if (arg === "BROKERAGE") {
         return {
+          compared,
           block: "cf",
           question: "Почему в денежный поток попадает только часть брокериджа?",
           explanation: `Брокеридж в бюджете ${fmtRub(amount)}, а в CF1 — ${fmtRub(inCf)} (${fmtShare(share)}). Ссылки строки брокериджа сначала сдвинуты на 7 кварталов, потом идут без сдвига, поэтому 7 кварталов продаж остаются без брокериджа. Связано с №11 (${cells(arg)}).`,
@@ -190,6 +233,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         const lg = budgetRow(arg);
         const hasRow = Boolean(lg?.manual_schedule_quarterly || lg?.cf_amounts_quarterly);
         return {
+          compared,
           block: "cf",
           question: `Должна ли статья «${name}» попадать в денежный поток?`,
           explanation: `В бюджете статья стоит ${fmtRub(amount)}, но в CF1 её платежей нет: ${hasRow ? "доли графика не проставлены" : "для неё нет строки"}. Расход есть в бюджете, но не уменьшает денежный поток (${cells(arg)}).`,
@@ -198,6 +242,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         };
       }
       return {
+        compared,
         block: "cf",
         question: `Почему «${name}» в денежном потоке ${share.gt(1) ? "больше" : "меньше"}, чем в бюджете?`,
         explanation: `Доли графика в CF1 в сумме дают ${fmtShare(share)}, а не 100%: в CF попадает ${fmtRub(inCf)} при бюджете ${fmtRub(amount)}${arg === "CONTINGENCY" ? "; сама сумма резерва тоже под вопросом, см. №4" : ""} (${cells(arg)}).`,
@@ -210,6 +255,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const end = input.values["SALES.LEGACY_CASH_IN_END"];
       const lastSale = quarters[lastNonZero(lc.sales_plan.revenue_row25_from_1q2026)];
       return {
+        compared: `По плану продаж выручка ${fmtRub(revenue)}, а в денежный поток CF1 попадает ${fmtRub(inCf)} — на ${fmtRub(inCf.sub(revenue))} ${inCf.lt(revenue) ? "меньше" : "больше"} (CF1 строка 15, План продаж строка 25).`,
         block: "cf",
         question: `Почему в денежный поток не попадает выручка${typeof end === "string" ? ` после ${fmtQuarter(end)}` : ""}?`,
         explanation: `Строка доходов CF1 ссылается на план продаж только${typeof end === "string" ? ` до ${fmtQuarter(end)}` : " до части кварталов"}, а продажи идут${lastSale ? ` до ${fmtQuarter(lastSale)}` : " дольше"}. В CF попадает ${fmtRub(inCf)} вместо ${fmtRub(revenue)} (CF1 строка 15, План продаж строка 25).`,
@@ -222,7 +268,11 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const b0 = lc.cf1.brokerage_row78.findIndex((v) => v !== 0);
       const monthsInQuarter = 3;
       const moved = sum(cash.MARKETING).add(sum(cash.BROKERAGE));
+      const firstSale = quarters[s0];
+      const firstPay = quarters[b0];
       return {
+        compared: `Первые продажи идут в ${firstSale ? fmtQuarter(firstSale) : "первом квартале продаж"}, а платежи по маркетингу и брокериджу в CF1 начинаются в ${firstPay ? fmtQuarter(firstPay) : "более позднем квартале"} — на ${b0 - s0} кв. позже (План продаж строка 25, CF1 строки 78 и 79).`,
+        threat: `~${fmtRub(moved)} расходов в Excel платятся на ~${(b0 - s0) * monthsInQuarter} мес. позже, поэтому потребность в финансировании в Excel может быть занижена.`,
         block: "cf",
         question: "Когда на самом деле платятся маркетинг и брокеридж?",
         explanation: `В CF1 платежи по маркетингу и брокериджу начинаются на ${b0 - s0} кварталов позже первых продаж. Брокеридж обычно платится при сделке, маркетинг — до продаж или вместе с ними (CF1 строки 78 и 79).`,
@@ -237,6 +287,8 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const months = planned && typeof released === "string" && isIsoDate(released) ? monthDiff(released, planned) : null;
       const dep = deposits.reduce((s, d) => s.add(sum(d)), ZERO);
       return {
+        compared: `В ТЭПах эскроу раскрывается «${text}», а в CF1 раскрытие стоит вручную${typeof released === "string" ? ` в ${fmtQuarter(released)}` : ""}${months ? ` — на ${Math.abs(months)} мес. ${months > 0 ? "раньше" : "позже"}` : ""} (ТЭПы!C12, CF1 строки 6 и 8).`,
+        threat: `~${fmtRub(dep)} эскроу приходят ${months && months < 0 ? "позже" : "раньше"}, чем по ТЭПам, поэтому проценты по проектному финансированию в Excel могут быть ${months && months < 0 ? "завышены" : "занижены"}.`,
         block: "escrow",
         question: `Когда раскрывается эскроу — ${typeof released === "string" ? fmtQuarter(released) : "по CF1"} или ${text}?`,
         explanation: `В ТЭПах срок записан текстом «${text}», формулы его не видят. В CF1 раскрытие стоит вручную${typeof released === "string" ? ` в ${fmtQuarter(released)}` : ""}, а взносы после этой даты обнулены (ТЭПы!C12, CF1 строки 6 и 8).`,
@@ -249,6 +301,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       };
     }
     return {
+      compared: m.text,
       block: m.formulaId.startsWith("F.SALES.") ? "sales" : m.formulaId.startsWith("F.ESC.") ? "escrow" : m.formulaId.startsWith("F.FIN.") ? "fin" : "budget",
       question: "Что в этом месте файла верно?",
       explanation: m.text,
@@ -261,12 +314,18 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
   const known = Math.max(...Object.values(NUMBERS));
   const extra = warnings.map((m) => m.key as string).filter((k) => !(k in NUMBERS)).sort();
   return warnings
-    .map((m) => ({
-      key: m.key as string,
-      no: NUMBERS[m.key as string] ?? known + 1 + extra.indexOf(m.key as string),
-      formulaId: m.formulaId,
-      warning: m.text,
-      ...build(m),
-    }))
+    .map((m) => {
+      const b = build(m);
+      const threat = b.threat ?? threatOf(b.impact);
+      return {
+        key: m.key as string,
+        no: NUMBERS[m.key as string] ?? known + 1 + extra.indexOf(m.key as string),
+        formulaId: m.formulaId,
+        warning: m.text,
+        ...b,
+        threat,
+        summary: [b.compared, threat, b.question].join(" "),
+      };
+    })
     .sort((a, b) => a.no - b.no);
 }

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useReducer, type ReactNode } from "react";
 import { spec, type ParameterId } from "@fm/spec";
-import type { DemoProject, IssueEvent, ProjectSource, Seed, ValueChange } from "./types";
+import type { DemoProject, IssueEvent, IssueNote, ProjectSource, Seed, ValueChange } from "./types";
 import { computeProject, type ProjectModel } from "./model";
 import type { SourceCheck } from "./sources";
 
@@ -18,7 +18,8 @@ type Action =
   | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null }
   | { type: "change"; id: string; param: ParameterId; before: unknown; value: unknown; why: string; url?: string; author: string }
   | { type: "revert"; id: string; param: ParameterId }
-  | { type: "issue"; id: string; key: string; no: number; question: string; event: IssueEvent };
+  | { type: "issue"; id: string; key: string; no: number; question: string; event: IssueEvent }
+  | { type: "issueNote"; id: string; key: string; no: number; question: string; note: IssueNote };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -90,7 +91,13 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
     case "issue":
       return map((p) => {
         const prev = p.issues?.[a.key];
-        const state = { status: a.event.status, history: [...(prev?.history ?? []), a.event], no: a.no, question: a.question };
+        const state = { ...prev, status: a.event.status, history: [...(prev?.history ?? []), a.event], no: a.no, question: a.question };
+        return touch(p, { issues: { ...p.issues, [a.key]: state } });
+      });
+    case "issueNote":
+      return map((p) => {
+        const prev = p.issues?.[a.key];
+        const state = { status: prev?.status ?? "open", history: prev?.history ?? [], no: a.no, question: a.question, notes: [...(prev?.notes ?? []), a.note] };
         return touch(p, { issues: { ...p.issues, [a.key]: state } });
       });
     case "linkSource":

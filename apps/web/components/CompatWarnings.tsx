@@ -99,6 +99,74 @@ function StatusCell({ project, item }: { project: DemoProject; item: IssueItem }
   );
 }
 
+/** Автоматическое пояснение пункта + ручные дополнения к нему (кто, когда) и подробности «почему так в файле». */
+function Explanation({ project, item }: { project: DemoProject; item: IssueItem }) {
+  const { dispatch } = useStore();
+  const [adding, setAdding] = useState(false);
+  const [text, setText] = useState("");
+  const [author, setAuthor] = useState(savedAuthor);
+  const notes = item.state?.notes ?? [];
+  const save = () => {
+    if (!text.trim() || !author.trim()) return;
+    try {
+      localStorage.setItem(AUTHOR_KEY, author.trim());
+    } catch {
+      /* имя автора — только удобство */
+    }
+    dispatch({ type: "issueNote", id: project.id, key: item.key, no: item.no, question: item.question, note: { text: text.trim(), author: author.trim(), at: new Date().toISOString() } });
+    setText("");
+    setAdding(false);
+  };
+  return (
+    <>
+      <div className="issue-question">{item.question}</div>
+      {item.q ? (
+        <p className="issue-summary">
+          {item.q.compared} {item.q.threat}
+        </p>
+      ) : (
+        <p className="muted">Не воспроизводится: после обновления исходника расхождение пропало. Статус сохранён.</p>
+      )}
+      {notes.length ? (
+        <ul className="issue-notes">
+          {notes.map((n, k) => (
+            <li key={k}>
+              <span className="small muted">
+                Дополнение · {n.author} · {new Date(n.at).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })}
+              </span>
+              <div>{n.text}</div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {item.q ? (
+        <details className="issue-detail">
+          <summary>Почему так в файле</summary>
+          {item.q.explanation}
+        </details>
+      ) : null}
+      {adding ? (
+        <div className="issue-status-form">
+          <textarea placeholder="Что добавить к пояснению" value={text} onChange={(e) => setText(e.target.value)} rows={2} autoFocus />
+          {savedAuthor() ? null : <input placeholder="Ваше имя" value={author} onChange={(e) => setAuthor(e.target.value)} />}
+          <div className="row-actions">
+            <button className="btn small primary" disabled={!text.trim() || !author.trim()} onClick={save}>
+              Сохранить
+            </button>
+            <button className="btn small" onClick={() => setAdding(false)}>
+              Отмена
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button className="linklike small" onClick={() => setAdding(true)}>
+          Дополнить пояснение
+        </button>
+      )}
+    </>
+  );
+}
+
 function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]; go: (t: Tab) => void }) {
   const { open } = useHow();
   return (
@@ -106,8 +174,7 @@ function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]
       <thead>
         <tr>
           <th>№</th>
-          <th>Вопрос</th>
-          <th>Что смутило систему</th>
+          <th>Вопрос и пояснение</th>
           <th>Влияние</th>
           <th>Рекомендация</th>
           <th>Статус</th>
@@ -120,10 +187,9 @@ function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]
             <td data-label="№" className="issue-no">
               {i.no}
             </td>
-            <td data-label="Вопрос" className="issue-question">
-              {i.question}
+            <td data-label="Вопрос и пояснение" className="issue-main">
+              <Explanation project={project} item={i} />
             </td>
-            <td data-label="Что смутило систему">{i.q ? i.q.explanation : <span className="muted">Не воспроизводится: после обновления исходника расхождение пропало. Статус сохранён.</span>}</td>
             <td data-label="Влияние">{i.q ? <Impact q={i.q} /> : "—"}</td>
             <td data-label="Рекомендация">{i.q?.recommendation ?? "—"}</td>
             <td data-label="Статус">

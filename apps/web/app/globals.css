@@ -381,6 +381,8 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .status-badge { display: inline-block; padding: 0 7px; border-radius: 10px; font-size: 11px; line-height: 18px; white-space: nowrap; }
 .status-unverified { background: var(--need-bg); color: var(--warn); }
 .status-approved { background: #e8f5ec; color: #2d6a3e; }
+.status-check { background: #fdecea; color: var(--danger); }
+.not-accounted { border: 1px solid #ecd9a8; background: var(--need-bg); border-radius: 8px; padding: 8px 14px; margin: 10px 0; }
 .assumptions-table { table-layout: fixed; width: 100%; min-width: 860px; }
 .assumptions-table th:nth-child(1) { width: 24%; }
 .assumptions-table th:nth-child(2) { width: 20%; }

@@ -7,7 +7,7 @@
 import Decimal from "decimal.js";
 import { fmtRub, type DataQuestion, type Impact, type ProjectInput, type QuestionBlock, type ResultSet } from "@fm/engine";
 import { getParameter, spec, type CapexItemId, type FormulaId, type ParameterId } from "@fm/spec";
-import { assumptionValueText, GROUP_TAB, isConfirmed, standardKey, versionOf, type AssumptionItem, type AssumptionVersion } from "./assumptions";
+import { assumptionValueText, GROUP_TAB, isConfirmed, standardKey, statusText, versionOf, type AssumptionItem, type AssumptionVersion } from "./assumptions";
 import type { DemoProject } from "./types";
 
 /** Разница в 1 процентный пункт — шаг, в котором показано влияние доли. */
@@ -138,7 +138,7 @@ export function standardQuestions(project: DemoProject, input: ProjectInput, res
     .map((item) => {
       const b = build(item, result, fallback);
       const tab = GROUP_TAB[item.group];
-      const status = item.status === "approved" ? "в справочнике оно утверждено" : "в справочнике оно ещё не проверено";
+      const status = item.status === "approved" ? "в справочнике оно утверждено" : item.status === "check" ? `в справочнике помечено «${statusText(item)}»` : "в справочнике оно ещё не проверено";
       const confirmed = isConfirmed(project, item.param) ? "Для этого проекта его подтвердили финансисты" : "Для этого проекта оно не подтверждено";
       const compared = `В проекте используется стандартное значение компании: ${b.what} (справочник допущений, версия ${v.version}). ${confirmed}, ${status}.`;
       const threat = `${b.impact.text[0]!.toUpperCase()}${b.impact.text.slice(1)}.`;

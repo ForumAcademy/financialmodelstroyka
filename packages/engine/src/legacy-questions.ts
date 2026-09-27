@@ -202,12 +202,12 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       const b = lc.budget;
       const product = new Decimal(b.contingency_E42).mul(b.contingency_D42);
       return {
-        compared: `Резерв в бюджете — ${fmtRub(b.contingency_F42)}: площадь сложена со ставкой. Если их перемножить, получится ${fmtRub(product)} (Бюджет!F42).`,
+        compared: `Резерв в бюджете Excel — ${fmtRub(b.contingency_F42)}: площадь сложена со ставкой. Если их перемножить, как задумал автор, получится ${fmtRub(product)} (Бюджет!F42).`,
         block: "budget",
         question: "Правильно ли посчитан резерв на непредвиденные расходы?",
         explanation: `Площадь сложена со ставкой вместо умножения: ${fmt(Math.round(b.contingency_E42))} + ${fmt(Math.round(b.contingency_D42))} = ${fmt(Math.round(b.contingency_F42))} ₽. При умножении получается ${fmtRub(product)} (Бюджет!F42).`,
         impact: signed(new Decimal(b.contingency_F42).sub(product), "расходы", "завышены", "занижены"),
-        recommendation: "Считать как площадь × ставку; подтвердить, что ставка резерва — 10% от ставок СМР. В расчёте сервиса резерв считается от стоимости СМР по ставке справочника.",
+        recommendation: "Подтвердить, что резерв — площадь × ставку, а ставка — 10% от ставок СМР. В расчёте сервиса резерв — 2% стоимости СМР по методике Минстроя 421/пр.",
       };
     }
     if (kind === "CAPEX.SCHEDULE_SUM") {

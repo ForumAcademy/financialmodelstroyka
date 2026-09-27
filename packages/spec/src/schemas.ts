@@ -271,8 +271,8 @@ export const formulaSchema = z
 
 /** Раздел справочника допущений; порядок значений в версии задаёт номера вопросов к данным. */
 export const ASSUMPTION_GROUPS = ["sales", "budget", "escrow", "fin"] as const;
-/** unverified — «не проверено», approved — «утверждено». */
-export const ASSUMPTION_STATUSES = ["unverified", "approved"] as const;
+/** unverified — «не проверено», check — «проверить …» (что именно — в поле check), approved — «утверждено». */
+export const ASSUMPTION_STATUSES = ["unverified", "check", "approved"] as const;
 
 export const assumptionItemSchema = z
   .object({
@@ -281,6 +281,8 @@ export const assumptionItemSchema = z
     /** null — стандарта нет, значение вводится в проекте. */
     value: z.unknown().refine((v) => v !== undefined, "нужно поле value (null — стандарта нет)"),
     status: z.enum(ASSUMPTION_STATUSES),
+    /** Для статуса check: что проверить («условия банка»). */
+    check: z.string().min(1).optional(),
     from: z
       .object({
         text: z.string().min(1),

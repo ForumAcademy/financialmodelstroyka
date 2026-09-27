@@ -15,7 +15,27 @@ export type AssumptionItem = SpecAssumptionItem;
 export const SPEC_ASSUMPTIONS: AssumptionVersion[] = spec.assumptions;
 
 export const GROUP_LABEL: Record<AssumptionItem["group"], string> = { sales: "Продажи", budget: "Бюджет", escrow: "Эскроу", fin: "Финансирование" };
-export const STATUS_LABEL: Record<AssumptionItem["status"], string> = { unverified: "не проверено", approved: "утверждено" };
+export const STATUS_LABEL: Record<AssumptionItem["status"], string> = { unverified: "не проверено", check: "проверить", approved: "утверждено" };
+
+/** Статус значения словами: «проверить условия банка». */
+export const statusText = (i: Pick<AssumptionItem, "status" | "check">) => (i.status === "check" && i.check ? `проверить ${i.check}` : STATUS_LABEL[i.status]);
+
+/**
+ * «Проверить перед релизом»: пустые значения справочника (в расчёте не учтены, нулём не считаются) и значения со
+ * статусом «проверить …».
+ */
+export function releaseChecks(v: AssumptionVersion): { item: AssumptionItem; what: string }[] {
+  return v.items
+    .filter((i) => i.value === null || i.value === undefined || i.status === "check")
+    .map((item) => ({ item, what: item.value === null || item.value === undefined ? "не задано — в расчёте не учтено" : statusText(item) }));
+}
+
+/** Пустые значения справочника, которые проект не ввёл сам: на дашборде — «не учтено». */
+export function notAccounted(project: DemoProject, versions: AssumptionVersion[]): ParameterId[] {
+  const v = versionOf(versions, project.assumptionsVersion);
+  if (!v) return [];
+  return v.items.filter((i) => (i.value === null || i.value === undefined) && (project.input.values[i.param] === undefined || project.input.values[i.param] === null)).map((i) => i.param);
+}
 
 /** Вкладка проекта, где вводится значение раздела справочника. */
 export const GROUP_TAB: Record<AssumptionItem["group"], { id: "sales" | "budget" | "escrow" | "cf"; label: string }> = {

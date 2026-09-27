@@ -101,7 +101,7 @@ out.append("\n## Справочник допущений компании (compa
            "Стандартные значения для нового проекта без исходного Excel. Проект запоминает версию, на которой создан; "
            "изменения справочника переходят в проект только по кнопке «Обновить» в проекте.\n")
 GROUP_LABEL = {"sales": "Продажи", "budget": "Бюджет", "escrow": "Эскроу", "fin": "Финансирование"}
-STATUS_LABEL = {"unverified": "не проверено", "approved": "утверждено"}
+STATUS_LABEL = {"unverified": "не проверено", "check": "проверить", "approved": "утверждено"}
 PNAME = {p["id"]: p["name"] for p in params}
 def a_value(v):
     if v is None:
@@ -116,7 +116,7 @@ for v in assumptions:
         frm = it["from"]
         frm_t = f"[{esc(frm['text'])}]({frm['url']})" if frm.get("url") else f"{esc(frm['text'])} *(нет ссылки)*"
         note = f"<br>{esc(it['note'])}" if it.get("note") else ""
-        out.append(f"| {GROUP_LABEL[it['group']]} | `{it['param']}` {esc(PNAME.get(it['param'], ''))} | {a_value(it['value'])} | {STATUS_LABEL[it['status']]} | {frm_t}{note} |\n")
+        out.append(f"| {GROUP_LABEL[it['group']]} | `{it['param']}` {esc(PNAME.get(it['param'], ''))} | {a_value(it['value'])} | {STATUS_LABEL[it['status']] + (' ' + esc(it['check']) if it.get('check') else '')} | {frm_t}{note} |\n")
 (ROOT / "docs" / "04_parameters.md").write_text("".join(out), encoding="utf-8")
 
 # ---------------- sources

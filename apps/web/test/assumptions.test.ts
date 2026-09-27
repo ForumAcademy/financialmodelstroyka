@@ -74,4 +74,16 @@ describe("справочник допущений компании", () => {
     expect(gross(computeProject(p, changed).result)).toBe(gross(excel));
     expect(gross(computeProject(demo).result)).toBe(gross(excel));
   });
+
+  it("резерв на непредвиденные: в «Расчёте сервиса» 2% СМР, в «Как в исходном Excel» — сумма из Бюджет!F42", () => {
+    const reserve = (p: DemoProject) => {
+      const f = computeProject(p).result.formulas;
+      const items = f["F.CAPEX.ITEM_TOTAL"]?.value as Record<string, Decimal>;
+      return { reserve: items.CONTINGENCY!, smr: f["F.CAPEX.SMR_TOTAL"]?.value as Decimal };
+    };
+    const legacy = reserve({ ...demo, input: { ...demo.input, mode: "legacy" } });
+    expect(legacy.reserve.toNumber()).toBeCloseTo(202840, 0);
+    const normal = reserve({ ...demo, input: { ...demo.input, mode: "normal" } });
+    expect(normal.reserve.div(normal.smr).toNumber()).toBeCloseTo(0.02, 6);
+  });
 });

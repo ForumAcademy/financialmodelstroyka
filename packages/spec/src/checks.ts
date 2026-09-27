@@ -128,6 +128,7 @@ export function checkAssumptions(spec: Pick<SpecData, "parameters" | "assumption
         continue;
       }
       if (p.scope === "region") errors.push(`${owner}: ${item.param} — региональный параметр, его значения в regions.yaml`);
+      if (item.status === "check" && !item.check) errors.push(`${owner}: ${item.param} — статус check без поля check (что проверить)`);
       const problem = assumptionValueProblem(p, item.value);
       if (problem) errors.push(`${owner}: ${item.param} — ${problem}`);
     }

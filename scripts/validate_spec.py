@@ -11,6 +11,7 @@
   8. Контрольные примеры формул (где заданы) пересчитываются.
   9. Справочник допущений компании (company_assumptions.yaml): версии по порядку, параметры существуют и не региональные,
      значения подходят параметру (число в диапазоне / таблица со столбцами параметра).
+Перед релизом (предупреждения): пустые значения справочника допущений и значения со статусом check.
 Предупреждения (не ошибки): статусы needs_verification, источники verified: false.
 """
 import csv, re, sys
@@ -230,12 +231,19 @@ for i, v in enumerate(assumptions):
             continue
         if PARAMS[pid]["scope"] == "region":
             errors.append(f"{owner}: {pid} — региональный параметр, его значения в regions.yaml")
-        if it.get("status") not in ("unverified", "approved"):
-            errors.append(f"{owner}: {pid} — status: unverified | approved")
+        if it.get("status") not in ("unverified", "check", "approved"):
+            errors.append(f"{owner}: {pid} — status: unverified | check | approved")
+        if it.get("status") == "check" and not it.get("check"):
+            errors.append(f"{owner}: {pid} — статус check без поля check (что проверить)")
         if it.get("group") not in ("sales", "budget", "escrow", "fin"):
             errors.append(f"{owner}: {pid} — group: sales | budget | escrow | fin")
         if not (it.get("from") or {}).get("text"):
             errors.append(f"{owner}: {pid} — нет from.text («Откуда»)")
+        if i == len(assumptions) - 1:
+            if it.get("value") is None:
+                warns.append(f"проверить перед релизом: {pid} — в справочнике допущений не задано, в расчёте не учтено")
+            elif it.get("status") == "check":
+                warns.append(f"проверить перед релизом: {pid} — {it['check']}")
         prob = assumption_problem(PARAMS[pid], it.get("value"))
         if prob:
             errors.append(f"{owner}: {pid} — {prob}")

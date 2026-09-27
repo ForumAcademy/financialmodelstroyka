@@ -12,7 +12,9 @@ import {
   GROUP_LABEL,
   isConfirmed,
   latest,
+  releaseChecks,
   STATUS_LABEL,
+  statusText,
   versionOf,
   type AssumptionItem,
   type AssumptionVersion,
@@ -128,6 +130,7 @@ function EditForm({ item, onDone }: { item: AssumptionItem; onDone: () => void }
         Статус{" "}
         <select value={status} onChange={(e) => setStatus(e.target.value as AssumptionItem["status"])}>
           <option value="unverified">{STATUS_LABEL.unverified}</option>
+          {item.check ? <option value="check">{statusText({ status: "check", check: item.check })}</option> : null}
           <option value="approved">{STATUS_LABEL.approved}</option>
         </select>
       </label>
@@ -162,7 +165,7 @@ function ItemRow({ item }: { item: AssumptionItem }) {
       </td>
       <td className={`a-value ${long ? "wrap" : ""}`}>{assumptionValueText(item.param, item.value)}</td>
       <td>
-        <span className={`status-badge status-${item.status}`}>{STATUS_LABEL[item.status]}</span>
+        <span className={`status-badge status-${item.status}`}>{statusText(item)}</span>
       </td>
       <td className="small">
         {item.from.text}
@@ -232,6 +235,25 @@ function ApproveFromProjects({ current }: { current: AssumptionVersion }) {
   );
 }
 
+/** «Проверить перед релизом»: пустые значения и значения со статусом «проверить …». */
+function ReleaseChecks({ current }: { current: AssumptionVersion }) {
+  const list = releaseChecks(current);
+  if (!list.length) return null;
+  return (
+    <section className="assumptions-update">
+      <b>Проверить перед релизом: {list.length}</b>
+      <ul className="small">
+        {list.map(({ item, what }) => (
+          <li key={item.param}>
+            {getParameter(item.param).name} — {what}
+          </li>
+        ))}
+      </ul>
+      <div className="small muted">Пустые значения нулём не считаются: в проекте они отмечены на дашборде как не учтённые, пока их не введут.</div>
+    </section>
+  );
+}
+
 function History({ versions }: { versions: AssumptionVersion[] }) {
   return (
     <ul className="version-list">
@@ -248,7 +270,7 @@ function History({ versions }: { versions: AssumptionVersion[] }) {
                   <li key={d.param}>
                     {getParameter(d.param).name}:{" "}
                     {d.valueChanged ? `${assumptionValueText(d.param, d.before?.value)} → ${assumptionValueText(d.param, d.after?.value)}` : null}
-                    {d.before?.status !== d.after?.status && d.after ? `${d.valueChanged ? "; " : ""}${STATUS_LABEL[d.before?.status ?? "unverified"]} → ${STATUS_LABEL[d.after.status]}` : null}
+                    {d.before?.status !== d.after?.status && d.after ? `${d.valueChanged ? "; " : ""}${d.before ? statusText(d.before) : STATUS_LABEL.unverified} → ${statusText(d.after)}` : null}
                     {!d.valueChanged && d.before?.status === d.after?.status ? "изменено «Откуда»" : null}
                   </li>
                 ))}
@@ -266,7 +288,7 @@ export default function AssumptionsPage() {
   const current = latest(assumptions);
   const groups = (Object.keys(GROUP_LABEL) as AssumptionItem["group"][]).filter((g) => current.items.some((i) => i.group === g));
   const behind = projects.filter((p) => !p.archived && (p.assumptionsVersion ?? 0) < current.version);
-  const unverified = current.items.filter((i) => i.status === "unverified" && i.value !== null).length;
+  const unverified = current.items.filter((i) => i.status !== "approved" && i.value !== null).length;
   return (
     <main className="page">
       <div className="page-head">
@@ -291,6 +313,7 @@ export default function AssumptionsPage() {
           </>
         ) : null}
       </p>
+      <ReleaseChecks current={current} />
       <ApproveFromProjects current={current} />
       {groups.map((g) => (
         <section key={g}>

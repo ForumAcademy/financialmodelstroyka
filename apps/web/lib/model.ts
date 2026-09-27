@@ -27,8 +27,31 @@ function excelAssumptionValues(c: LegacyCase, versions: AssumptionVersion[]): Pa
 export function effectiveInput(project: DemoProject, versions: AssumptionVersion[] = SPEC_ASSUMPTIONS): ProjectInput {
   const standard = standardValues(versionOf(versions, project.assumptionsVersion));
   const legacy = project.input.mode === "legacy" && project.legacyCase;
-  const values = legacy ? { ...excelAssumptionValues(project.legacyCase as LegacyCase, versions), ...project.input.values } : project.input.values;
+  const values = legacy
+    ? { ...excelAssumptionValues(project.legacyCase as LegacyCase, versions), ...project.input.values }
+    : project.legacyCase
+      ? serviceCapex(project.input.values, project.legacyCase)
+      : project.input.values;
   return { ...project.input, values, standard };
+}
+
+/**
+ * Статьи, которые в расчёте сервиса у проекта из Excel считаются по справочнику, а не суммой исходника: резерв —
+ * ставка справочника (2% по методике Минстроя 421/пр) × стоимость СМР, график — по СМР (решение владельца продукта
+ * 27.09.2026). Если сумму статьи изменили в проекте, остаётся она.
+ */
+const SERVICE_BY_RATE = ["CONTINGENCY"];
+
+function serviceCapex(values: ProjectInput["values"], c: LegacyCase): ProjectInput["values"] {
+  const rows = values["CAPEX.ITEMS"];
+  if (!Array.isArray(rows)) return values;
+  const excel = new Map((c.capex_legacy ?? []).map((x) => [x.item_id, x.amount_F]));
+  const next = rows.map((r) => {
+    const row = r as { item_id?: string; base?: string; rate?: number };
+    const byExcel = row.item_id && SERVICE_BY_RATE.includes(row.item_id) && row.base === "фикс" && row.rate === excel.get(row.item_id);
+    return byExcel ? { item_id: row.item_id } : r;
+  });
+  return { ...values, "CAPEX.ITEMS": next };
 }
 
 /** Действующее значение параметра в проекте: своё → стандарт компании → значение по умолчанию. */
@@ -104,6 +127,8 @@ export interface ProjectModel {
   standard: Partial<Record<ParameterId, unknown>>;
   /** Версии справочника допущений, с которыми посчитан проект. */
   versions: AssumptionVersion[];
+  /** Входные данные, с которыми посчитан проект (своё + стандарт; для проекта из Excel — с поправками режима). */
+  input: ProjectInput;
 }
 
 export function computeProject(project: DemoProject, versions: AssumptionVersion[] = SPEC_ASSUMPTIONS): ProjectModel {
@@ -112,7 +137,7 @@ export function computeProject(project: DemoProject, versions: AssumptionVersion
   const calc = calculate(input, horizon === null ? {} : { horizonMonths: horizon }, TARGETS);
   const result = project.input.mode === "legacy" && project.legacyWarnings ? { ...calc, messages: [...calc.messages, ...project.legacyWarnings] } : calc;
   const missing = new Set(result.messages.filter((m) => m.severity === "error" && m.parameterId).map((m) => m.parameterId as ParameterId));
-  return { result, horizon, missing, standard: input.standard ?? {}, versions };
+  return { result, horizon, missing, standard: input.standard ?? {}, versions, input };
 }
 
 const otherModeCache = new WeakMap<DemoProject, { versions: AssumptionVersion[]; model: ProjectModel | null }>();

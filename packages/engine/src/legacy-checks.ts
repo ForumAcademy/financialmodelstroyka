@@ -7,7 +7,7 @@
  */
 import Decimal from "decimal.js";
 import type { LegacyCase } from "./legacy";
-import { fmt, fmtShare } from "./lib/format";
+import { fmt, fmtQuarter, fmtShare } from "./lib/format";
 import type { CalcMessage } from "./types";
 
 const firstNonZero = (xs: number[]) => xs.findIndex((v) => v !== 0);
@@ -59,13 +59,16 @@ export function legacyChecks(c: LegacyCase): CalcMessage[] {
     });
   }
 
-  // Дата раскрытия эскроу — текст; флаги CF1!F6:AS6 вбиты руками
-  if (typeof tep.escrow_release_C12 === "string" && cf1.escrow_release_row6_typed.length > 0) {
+  // Две даты раскрытия эскроу: текст в ТЭПы!C12 и единица, вбитая руками в CF1 строке 6
+  const quarters = c.timeline_quarters_F_to_AS ?? [];
+  const released = quarters[cf1.escrow_release_row6.findIndex((v) => v === 1)];
+  const depositEnd = cf1.escrow_deposit_row8.findIndex((v) => v === 0);
+  if (typeof tep.escrow_release_C12 === "string" && cf1.escrow_release_row6_typed.length > 0 && released) {
     warn({
       formulaId: "F.TIME.FLAG_ESCROW_RELEASE",
       parameterId: "TIME.LEGACY_ESCROW_RELEASE_DATE",
       key: "LEGACY.ESCROW_DATE",
-      text: `Дата раскрытия эскроу ТЭПы!C12 = «${tep.escrow_release_C12}» записана текстом: формулы CF1!F6:AS6 сравнивают с ней дату и не срабатывают. Раскрытие проставлено руками (CF1, ${cf1.escrow_release_row6_typed.length} ячеек строки 6), взносы на эскроу обрезаны вбитыми нулями в строке 8`,
+      text: `В исходнике две даты раскрытия эскроу. ТЭПы!C12 «Срок окончания ПФ» = «${tep.escrow_release_C12}» записан текстом, и формулы CF1!F6:AS6 (=IF(F2=$D$6,…)) с ним не срабатывают. Фактически CF1 раскрывает эскроу в ${fmtQuarter(released)}: единица в строке 6 вбита руками, а взносы на эскроу обрезаны вбитыми нулями${depositEnd >= 0 && quarters[depositEnd] ? ` с ${fmtQuarter(quarters[depositEnd] as string)}` : ""} (строка 8). Совместимость повторяет расчёт CF1 — ${fmtQuarter(released)}`,
     });
   }
 
@@ -75,7 +78,7 @@ export function legacyChecks(c: LegacyCase): CalcMessage[] {
       formulaId: "F.CAPEX.ITEM_TOTAL",
       parameterId: "CAPEX.ITEMS",
       key: "LEGACY.CONTINGENCY_F42",
-      text: `Резерв Бюджет!F42 ${budget.contingency_F42_formula} = ${fmt(budget.contingency_F42)} руб.: сложены площадь ${fmt(budget.contingency_E42)} м² и ставка ${fmt(budget.contingency_D42)} руб./м²; произведение — ${fmt(new Decimal(budget.contingency_E42).mul(budget.contingency_D42))} руб.`,
+      text: `Резерв Бюджет!F42 ${budget.contingency_F42_formula} = ${fmt(budget.contingency_F42)}: сложены площадь E42 = ${fmt(budget.contingency_E42)} м² и ставка D42 = ${fmt(budget.contingency_D42)} руб./м² (10% от ставок СМР D32:D34). Единицы разные, но результат учтён в бюджете как рубли; произведение — ${fmt(new Decimal(budget.contingency_E42).mul(budget.contingency_D42))} руб.`,
     });
   }
   return out;

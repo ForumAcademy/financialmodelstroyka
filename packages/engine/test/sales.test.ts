@@ -38,7 +38,7 @@ describe("SALES: Дербеневская в режиме совместимос
     const cf1 = lc.cf1.revenue_row15.reduce((a, b) => a + b, 0);
     expect(sum(Object.values(cash.total).flat()).sub(cf1).abs().lt(1)).toBe(true);
     expect(sum(Object.values(cash.total).flat()).toFixed(2)).toBe("117514091710.14");
-    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", key: "SALES.CASH_IN_CUT", text: expect.stringMatching(/после 31\.03\.2033 \(616\s196\s314,37 руб\.\)/) }));
+    expect(r.messages).toContainEqual(expect.objectContaining({ severity: "warning", key: "SALES.CASH_IN_CUT", text: expect.stringMatching(/обрывается после 1 кв 2033: 616\s196\s314,37 руб\. выручки.*в CF 117\s514\s091\s710,14 руб\. против 118\s130\s288\s024,5 руб\./) }));
     expect(r.messages.filter((m) => m.formulaId === "F.SALES.CASH_IN")).toHaveLength(1);
   });
 

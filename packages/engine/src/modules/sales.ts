@@ -10,7 +10,7 @@ import Decimal from "decimal.js";
 import type { FormulaContext } from "../context";
 import { CalcError } from "../context";
 import { isIsoDate, monthDiff, yearOf, type IsoDate } from "../lib/dates";
-import { fmt, fmtDate, parsePercent } from "../lib/format";
+import { fmt, fmtQuarter, parsePercent } from "../lib/format";
 import { growth } from "./capex";
 import { milestone, milestones, type MilestoneRow } from "./time";
 
@@ -343,7 +343,13 @@ export function F_SALES_CASH_IN(ctx: FormulaContext): CashIn {
     ddu[p.key] = toEscrow;
   }
   if (!lost.isZero()) {
-    ctx.message("warning", `Поступления от продаж после ${fmtDate(cashEnd as string)} (${fmt(lost)} руб.) в денежный поток не попали: так считает исходник — в обычном режиме они учитываются`, "SALES.LEGACY_CASH_IN_END", "SALES.CASH_IN_CUT");
+    const revenue = Object.values(value).reduce((s, v) => s.add(sum(v)), ZERO);
+    ctx.message(
+      "warning",
+      `Строка доходов CF1 обрывается после ${fmtQuarter(cashEnd as string)}: ${fmt(lost)} руб. выручки в денежный поток не попадают (в CF ${fmt(revenue.sub(lost))} руб. против ${fmt(revenue)} руб. по плану продаж). Совместимость повторяет исходник, в обычном режиме учитываются все поступления`,
+      "SALES.LEGACY_CASH_IN_END",
+      "SALES.CASH_IN_CUT",
+    );
   }
   return { total, ddu };
 }

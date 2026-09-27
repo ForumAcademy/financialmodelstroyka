@@ -14,6 +14,7 @@ type Action =
   | { type: "value"; id: string; param: ParameterId; value: unknown }
   | { type: "addSource"; id: string; source: ProjectSource }
   | { type: "removeSource"; id: string; sourceId: string }
+  | { type: "renameSource"; id: string; sourceId: string; title: string }
   | { type: "linkSource"; id: string; param: ParameterId; sourceId: string | null }
   | { type: "change"; id: string; param: ParameterId; before: unknown; value: unknown; why: string; url?: string; author: string }
   | { type: "revert"; id: string; param: ParameterId };
@@ -56,6 +57,8 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
           paramSources: Object.fromEntries(Object.entries(p.paramSources).filter(([, v]) => v !== a.sourceId)),
         }),
       );
+    case "renameSource":
+      return map((p) => touch(p, { sources: p.sources.map((s) => (s.id === a.sourceId ? { ...s, title: a.title } : s)) }));
     case "change":
       return map((p) => {
         const own = p.input.values[a.param];

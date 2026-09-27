@@ -146,7 +146,13 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .view-switch { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .view-switch .seg { margin-bottom: 0; }
 .view-switch .seg button { padding: 7px 22px; font-size: 14px; }
-.sheet-page[data-view="inputs"] > :not(.inputs):not(.view-switch) { display: none; }
+.sheet-page[data-view="inputs"] > :not(.inputs):not(.view-switch):not(.documents) { display: none; }
+.view-switch[hidden] { display: none; }
+.documents { display: flex; flex-direction: column; gap: 12px; }
+.documents > p { margin: 0; max-width: 860px; }
+.doc-upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.doc-author { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; width: 220px; }
+.docs-table td { vertical-align: top; }
 .sheet-page[data-view="calc"] > .inputs { display: none; }
 
 /* Вводные: каждая группа — отдельная карточка с заголовком, поля — строками с разделителями */

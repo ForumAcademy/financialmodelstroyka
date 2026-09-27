@@ -349,7 +349,8 @@ export function F_SALES_END_PRICE(ctx: FormulaContext): Record<string, Decimal |
   const sold = ctx.formula<RowSeries>("F.SALES.SOLD_AREA");
   const out: Record<string, Decimal | null> = {};
   for (const [key, s] of Object.entries(sold)) {
-    const last = s.findLastIndex((x) => !x.isZero());
+    let last = s.length - 1;
+    while (last >= 0 && (s[last] as Decimal).isZero()) last--;
     out[key] = last < 0 ? null : ((price[key] as Decimal[])[last] as Decimal);
   }
   return out;

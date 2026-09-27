@@ -31,10 +31,10 @@ export function whence(id: ParameterId, project?: DemoProject | null): Whence {
   if (project) {
     const change = project.changes?.[id];
     const doc = project.sources.find((s) => s.id === project.paramSources[id]);
-    if (change) return { text: change.why, url: change.url || doc?.url || null, kind: "changed" };
+    if (change) return { text: change.why, url: change.url || doc?.url || doc?.file?.url || null, kind: "changed" };
     const own = project.input.values[id];
     if (own !== undefined && own !== null) {
-      return doc ? { text: doc.title, url: doc.url || null, kind: "project" } : { text: "документ не указан", url: null, kind: "project" };
+      return doc ? { text: doc.title, url: doc.url || doc.file?.url || null, kind: "project" } : { text: "документ не указан", url: null, kind: "project" };
     }
   }
   return referenceWhence(id);

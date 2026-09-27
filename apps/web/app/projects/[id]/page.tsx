@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useHow } from "@/components/HowPanel";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
+import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
 import { regionName } from "@/lib/format";
@@ -18,6 +19,7 @@ const TABS = [
   { id: "escrow", label: "Эскроу" },
   { id: "cf", label: "CF" },
   { id: "dashboard", label: "Дашборд" },
+  { id: "docs", label: "Документы" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
@@ -80,7 +82,8 @@ function ProjectPage() {
         ))}
       </nav>
       <div className="sheet-page" data-view={view}>
-        <div className="view-switch">
+        {tab === "docs" ? <DocumentsTab project={project} /> : null}
+        <div className="view-switch" hidden={tab === "docs"}>
           <div className="seg">
             <button className={view === "inputs" ? "on" : ""} onClick={() => go(tab, "inputs")}>
               Вводные

@@ -268,7 +268,7 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
             ))}
           </select>
           <p className="small">
-            <Link href={`/sources?project=${project.id}&new=1`}>+ Добавить источник проекта</Link>
+            <Link href={`/projects/${project.id}?tab=docs`}>+ Загрузить документ</Link> · <Link href={`/sources?project=${project.id}&new=1`}>добавить ссылку или экспертную оценку</Link>
           </p>
         </>
       ) : null}

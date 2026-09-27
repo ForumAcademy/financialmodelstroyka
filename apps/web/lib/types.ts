@@ -13,6 +13,16 @@ export interface ProjectSource {
   rationale?: string;
   min?: string;
   max?: string;
+  /** Загруженный файл (раздел «Документы»). До этапов 7–8 живёт в памяти браузера до перезагрузки страницы. */
+  file?: ProjectFile;
+}
+
+/** Файл документа проекта: url — ссылка на файл в памяти браузера (URL.createObjectURL). */
+export interface ProjectFile {
+  name: string;
+  size: number;
+  type: string;
+  url: string;
 }
 
 /** Изменение значения в проекте (решение владельца продукта 27.09.2026): комментарий «почему» обязателен. */

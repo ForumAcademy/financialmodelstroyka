@@ -286,7 +286,7 @@ export function F_CAPEX_SCHEDULE_WEIGHT(ctx: FormulaContext): Series {
         ctx.message("warning", `«${item.name}»: в денежный поток попадает ${fmtShare(sum)} суммы бюджета — так в исходнике; в расчёте сервиса график равен 100%`, "CAPEX.ITEMS", `CAPEX.SCHEDULE_SUM:${item.id}`);
         return;
       }
-      ctx.message("error", `«${item.name}»: сумма долей графика в горизонте модели ${fmtShare(sum)} вместо 100% — график выходит за горизонт или ручной ряд не равен 100% (SCHEDULE_SUM)`, "CAPEX.ITEMS");
+      ctx.message("error", `«${item.name}»: в денежный поток за срок расчёта попадает ${fmtShare(sum)} суммы статьи вместо 100%. Проверьте, что график не выходит за срок расчёта и ручной ряд в сумме даёт 100%.`, "CAPEX.ITEMS");
     }
   };
   for (const item of all) {

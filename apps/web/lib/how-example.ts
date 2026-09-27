@@ -1,5 +1,5 @@
 /**
- * Панель «Как посчитано»: одна строка примера на цифрах текущего проекта, разница с режимом совместимости,
+ * Панель «Как посчитано»: одна строка примера на цифрах текущего проекта, строка «В исходном Excel»,
  * поля ввода, которые влияют на результат, и короткие названия источников.
  * Пример: своё описание для показателей-рядов (продажи, эскроу, бюджет, даты) → шаблон plain.example из
  * formulas.yaml с подстановкой {ID}, {ID.ключ|единица} и {=} (результат) → результат коротко.
@@ -344,7 +344,7 @@ function generic(c: Ctx, id: FormulaId): string | null {
   return `В проекте: ${shown.join("; ")}${rows.length > shown.length ? `; ещё ${rows.length - shown.length}` : ""}.`;
 }
 
-/** Продукт, на котором построен пример (для строки режима совместимости). */
+/** Продукт, на котором построен пример (для строки «В исходном Excel»). */
 export function exampleFocus(project: DemoProject, m: ProjectModel): string | null {
   return pickProduct(context(project, m));
 }
@@ -400,7 +400,7 @@ export function compatDiff(id: FormulaId, legacy: ProjectModel, normal: ProjectM
   return `В исходном Excel ${rows[0]!.text}.`;
 }
 
-/** Служебные поля: по смыслу не меняют результат показателя или нужны только для совместимости с Excel. */
+/** Служебные поля: по смыслу не меняют результат показателя или нужны только для расчёта «как в исходном Excel». */
 const TECHNICAL = new Set<string>(["GEN.MODEL_START_DATE", "GEN.PROJECT_NAME", "GEN.REPORT_STEP", "GEN.PROJECT_STAGE", "CAPEX.SCHEDULE_SUM_TOLERANCE"]);
 
 /** «Что влияет»: поля, которые вводит пользователь, — ближайшие к показателю по следу расчёта, не больше limit. */

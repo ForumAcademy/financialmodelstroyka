@@ -119,7 +119,7 @@ export function F_TEP_APART_AREA(ctx: FormulaContext): Decimal {
     ctx.message("warning", `Апартаменты (${fmt(area)} м²) исключены: по ГПЗУ проекта размещение объектов гостиничного назначения / апартаментов не подтверждено`, "GPZU.APART_ALLOWED");
     const codes = ctx.param<string[]>("LAND.VRI_CODES") ?? [];
     if (codes.includes("4.7")) {
-      ctx.message("info", "ВРИ участка включает код 4.7 «Гостиничное обслуживание» — как правило это означает, что ГПЗУ допускает апартаменты. Проверьте ГПЗУ", "GPZU.APART_ALLOWED");
+      ctx.message("info", "ВРИ участка включает код 4.7 «Гостиничное обслуживание» — это означает, что ГПЗУ допускает апартаменты. Проверьте ГПЗУ", "GPZU.APART_ALLOWED");
     }
     return ZERO;
   }

@@ -91,7 +91,7 @@ def value_target(sheet, row, col):
             res = (f"CAPEX.ITEMS[{budget_row_to_item[row]}]", "replace", "сумма/ставка вбита числом → ставка × база")
         if res is not None and c == "F" and row in budget_row_to_item:
             # расчёт «как в исходном Excel»: сумма статьи — с НДС (CAPEX.LEGACY_AMOUNTS_WITH_VAT)
-            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера как правило ведутся с НДС")
+            res = (res[0], res[1], res[2] + "; допущение (S_EXPERT): сумма с НДС — в исходнике не указано; принято, т.к. бюджеты девелопера ведутся с НДС (экспертное допущение)")
         if res is not None:
             return res
     if sheet == "CF1":

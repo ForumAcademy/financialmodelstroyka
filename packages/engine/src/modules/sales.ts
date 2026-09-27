@@ -116,7 +116,7 @@ function manualPace(p: Product, m: ManualPace | null | undefined, date: IsoDate[
       else lost = lost.add(part);
     }
   });
-  if (!lost.isZero()) throw new CalcError(`«${p.key}»: ручной темп выходит за горизонт модели на ${fmt(lost)} ${unitName(p)}`, "SALES.PACE");
+  if (!lost.isZero()) throw new CalcError(`«${p.key}»: ручной темп выходит за срок расчёта на ${fmt(lost)} ${unitName(p)}`, "SALES.PACE");
   return out;
 }
 
@@ -152,11 +152,11 @@ export function F_SALES_SOLD_AREA(ctx: FormulaContext): RowSeries {
       out[p.key] = sold;
       continue;
     }
-    if (stock === null) throw new CalcError(`«${p.key}»: заполните запас к продаже (${p.pieces ? "stock_units, шт" : "stock_area, м²"})`, "SALES.PRODUCTS");
+    if (stock === null) throw new CalcError(`«${p.key}»: заполните, сколько построено к продаже (${p.pieces ? "шт" : "м²"})`, "SALES.PRODUCTS");
     if (!PACE_METHODS.includes(rowPace.method)) throw new CalcError(`«${p.key}»: неизвестный способ темпа «${rowPace.method}»`, "SALES.PACE");
     const manual = rowPace.method === "ручной" ? manualPace(p, rowPace.manual, date) : null;
     const value = rowPace.value;
-    if (rowPace.method !== "ручной" && (typeof value !== "number" || value < 0)) throw new CalcError(`«${p.key}»: заполните темп (value) — неотрицательное число`, "SALES.PACE");
+    if (rowPace.method !== "ручной" && (typeof value !== "number" || value < 0)) throw new CalcError(`«${p.key}»: заполните темп — неотрицательное число`, "SALES.PACE");
     if (rowPace.method === "доля_остатка" && (value as number) > 1) throw new CalcError(`«${p.key}»: доля остатка в месяц — не больше 1`, "SALES.PACE");
     const ddu = (p.row.sale_channel_before_rnv ?? CHANNEL_DDU) === CHANNEL_DDU;
     let remaining = stock;
@@ -237,7 +237,7 @@ export function F_SALES_PRICE(ctx: FormulaContext): RowSeries {
     const raw = ctx.require<LegacyGrowth | LegacyGrowth[]>("SALES.LEGACY_PRICE_GROWTH");
     const g = Array.isArray(raw) ? raw[0] : raw;
     if (!g || typeof g.rate !== "number" || !Number.isInteger(g.step_months) || g.step_months < 1) {
-      throw new CalcError("Рост цены исходника: нужны rate (доля за период) и step_months (целое ≥ 1)", "SALES.LEGACY_PRICE_GROWTH");
+      throw new CalcError("Рост цены исходника: нужны рост за период (доля) и длина периода в месяцах (целое ≥ 1)", "SALES.LEGACY_PRICE_GROWTH");
     }
     const k = ONE.add(g.rate);
     for (const p of list) {

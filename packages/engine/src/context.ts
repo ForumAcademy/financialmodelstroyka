@@ -122,7 +122,7 @@ export class Engine {
       this.failed.add(id);
       if (e instanceof MissingInputError) {
         const p = getParameter(e.parameterId);
-        this.push({ severity: "error", formulaId: id, parameterId: e.parameterId, text: `Заполните «${p.name}» (${p.id})` });
+        this.push({ severity: "error", formulaId: id, parameterId: e.parameterId, text: `Заполните «${p.name}»` });
       } else if (e instanceof CalcError) {
         this.push({ severity: "error", formulaId: id, text: e.message, ...(e.parameterId ? { parameterId: e.parameterId } : {}) });
       } else if (!(e instanceof DependencyError)) {

@@ -133,6 +133,21 @@ export function needHint(id: ParameterId): string {
 
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
   const missing = groups.flatMap((g) => g.params).filter((id) => model.missing.has(id)).length;
+  // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; обычные ставятся парами,
+  // блок без соседа в строке тоже растягивается на всю ширину.
+  const hasTable = (g: InputGroup) => g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template");
+  const full = new Set<number>();
+  for (let i = 0; i < groups.length; ) {
+    if (hasTable(groups[i]!)) {
+      full.add(i);
+      i += 1;
+    } else if (i + 1 < groups.length && !hasTable(groups[i + 1]!)) {
+      i += 2;
+    } else {
+      full.add(i);
+      i += 1;
+    }
+  }
   return (
     <section className="inputs">
       <h2 className="part-title">Вводные</h2>
@@ -142,8 +157,8 @@ export function Inputs({ project, model, groups }: { project: DemoProject; model
         </p>
       ) : null}
       <div className="input-groups">
-        {groups.map((g) => (
-          <div key={g.title} className={`input-group ${g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template") ? "wide" : ""}`}>
+        {groups.map((g, i) => (
+          <div key={g.title} className={`input-group ${full.has(i) ? "wide" : ""}`}>
             <h3>{g.title}</h3>
             {g.note ? <p className="group-note">{g.note}</p> : null}
             <div className="fields">

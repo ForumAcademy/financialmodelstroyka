@@ -72,6 +72,10 @@ table.sheet .num { text-align: right; white-space: nowrap; font-variant-numeric:
 table.sheet tr.block td { background: var(--group-head); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--accent); border-top: 14px solid var(--surface); border-bottom: 1px solid var(--border); padding-top: 8px; padding-bottom: 8px; }
 table.sheet tr.block td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
 table.sheet tbody tr.block:first-child td { border-top: 0; }
+.block-count { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 9px; background: var(--surface); color: var(--muted); font-size: 11px; letter-spacing: 0; }
+.section-seg { flex-wrap: wrap; }
+.section-seg .block-count { background: var(--block); }
+.block-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 12px; margin-top: 2px; }
 table.sheet tr.total td { border-top: 1px solid var(--border); background: #fafbfc; }
 table.sheet tr.total td { font-weight: 700; }
 table.sheet tr.grand td { border-top: 2px solid var(--text); }
@@ -108,6 +112,13 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .tabs button { border: 1px solid transparent; border-bottom: 0; background: none; padding: 9px 20px; font: inherit; color: var(--muted); cursor: pointer; border-radius: 8px 8px 0 0; white-space: nowrap; }
 .tabs button.on { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: 600; margin-bottom: -1px; }
 .sheet-page { background: var(--surface); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 10px 10px; padding: 18px; display: flex; flex-direction: column; gap: 22px; }
+
+/* Переключатель «Вводные | Расчёт»: на экране одно из двух */
+.view-switch { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.view-switch .seg { margin-bottom: 0; }
+.view-switch .seg button { padding: 7px 22px; font-size: 14px; }
+.sheet-page[data-view="inputs"] > :not(.inputs):not(.view-switch) { display: none; }
+.sheet-page[data-view="calc"] > .inputs { display: none; }
 
 /* Вводные: каждая группа — отдельная карточка с заголовком, поля — строками с разделителями */
 .part-title { display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 0 0 12px; }

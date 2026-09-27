@@ -45,6 +45,8 @@ function ProjectPage() {
   }
   const m = model(project);
   const tab = (TABS.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
+  const view = search.get("view") === "calc" ? "calc" : "inputs";
+  const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
 
   return (
     <main className="page wide">
@@ -72,12 +74,23 @@ function ProjectPage() {
       </div>
       <nav className="tabs">
         {TABS.map((t) => (
-          <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => router.replace(`/projects/${project.id}?tab=${t.id}`, { scroll: false })}>
+          <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>
             {t.label}
           </button>
         ))}
       </nav>
-      <div className="sheet-page">
+      <div className="sheet-page" data-view={view}>
+        <div className="view-switch">
+          <div className="seg">
+            <button className={view === "inputs" ? "on" : ""} onClick={() => go(tab, "inputs")}>
+              Вводные
+            </button>
+            <button className={view === "calc" ? "on" : ""} onClick={() => go(tab, "calc")}>
+              Расчёт
+            </button>
+          </div>
+          <span className="small muted">{view === "inputs" ? "Исходные данные листа: голубые поля можно менять" : "Что посчитано из вводных. Нажмите на строку, чтобы увидеть формулу и источники"}</span>
+        </div>
         {tab === "tep" ? <TepTab project={project} model={m} /> : null}
         {tab === "budget" ? <BudgetTab project={project} model={m} /> : null}
         {tab === "sales" ? <SalesTab project={project} model={m} /> : null}

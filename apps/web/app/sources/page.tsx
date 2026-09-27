@@ -102,6 +102,7 @@ function SourcesPage() {
       searchText: `${s.title} ${s.author} ${p.name}`.toLowerCase(),
     })),
   );
+  const [section, setSection] = useState<string | null>(null);
   const rows = [...projectRows, ...(scope === "project" ? [] : globalRows)].filter((r) => !q || r.searchText.includes(q.toLowerCase()));
 
   return (
@@ -131,6 +132,16 @@ function SourcesPage() {
           </select>
         ) : null}
       </div>
+      <div className="seg section-seg">
+        <button className={section === null ? "on" : ""} onClick={() => setSection(null)}>
+          Все разделы
+        </button>
+        {SECTIONS.map((sec) => (
+          <button key={sec.title} className={section === sec.title ? "on" : ""} onClick={() => setSection(sec.title)}>
+            {sec.title} <span className="block-count">{rows.filter((r) => sec.levels.includes(r.level)).length}</span>
+          </button>
+        ))}
+      </div>
       {adding && project ? <NewSourceForm projectId={project.id} onDone={() => setAdding(false)} /> : null}
       <div className="hscroll">
       <table className="sheet">
@@ -145,7 +156,17 @@ function SourcesPage() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
+          {SECTIONS.filter((sec) => section === null || sec.title === section).map((sec) => {
+            const list = rows.filter((r) => sec.levels.includes(r.level));
+            if (!list.length) return null;
+            return [
+              <tr key={sec.title} className="block">
+                <td colSpan={6}>
+                  {sec.title} <span className="block-count">{list.length}</span>
+                  <div className="block-hint">{sec.hint}</div>
+                </td>
+              </tr>,
+              ...list.map((r) => (
             <tr key={r.key}>
               <td>
                 {r.title}
@@ -187,7 +208,9 @@ function SourcesPage() {
                 )}
               </td>
             </tr>
-          ))}
+                        )),
+            ];
+          })}
           {rows.length === 0 ? (
             <tr>
               <td colSpan={6} className="muted">
@@ -202,6 +225,14 @@ function SourcesPage() {
     </main>
   );
 }
+
+/** Подразделы — по уровню достоверности источника (docs/00, раздел 6). */
+const SECTIONS: { title: string; levels: number[]; hint: string }[] = [
+  { title: "Законодательство", levels: [1], hint: "Законы, постановления, нормативы и своды правил" },
+  { title: "Статистика и аналитика", levels: [2, 3], hint: "Госстатистика и госсервисы (Росстат, ЦБ, ФНС, ЕИСЖС), рыночные и аналитические отчёты" },
+  { title: "Экспертные данные", levels: [5], hint: "Экспертные оценки: с автором, обоснованием и диапазоном min–max" },
+  { title: "Документы компании и проекта", levels: [4], hint: "ГПЗУ, ППТ, договоры, сметы, ТЭП архитектора и другие документы по проекту" },
+];
 
 export default function Page() {
   return (

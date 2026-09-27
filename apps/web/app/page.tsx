@@ -81,45 +81,41 @@ export default function ProjectsPage() {
           Архив
         </button>
       </div>
-      <table className="sheet">
-        <thead>
-          <tr>
-            <th>Название ЖК</th>
-            <th>Регион</th>
-            <th>Стадия</th>
-            <th className="num">Выручка, млрд руб.</th>
-            <th className="num">NPV, млн руб.</th>
-            <th className="num">IRR акционера</th>
-            <th>Обновлено</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((p) => (
-            <tr key={p.id}>
-              <td>
-                <Link href={`/projects/${p.id}`}>{p.name}</Link>
-              </td>
-              <td>{regionName(p)}</td>
-              <td>{String(p.input.values["GEN.PROJECT_STAGE"] ?? "—")}</td>
-              <td className="num" title="Расчёт — этап 4">—</td>
-              <td className="num" title="Расчёт — этап 6">—</td>
-              <td className="num" title="Расчёт — этап 6">—</td>
-              <td>{updated(p.updatedAt)}</td>
-              <td className="menu-cell">
+      <div className="project-cards">
+        {list.map((p) => (
+          <article key={p.id} className="project-card" onClick={() => router.push(`/projects/${p.id}`)}>
+            <div className="pc-head">
+              <div>
+                <Link href={`/projects/${p.id}`} className="pc-name" onClick={(e) => e.stopPropagation()}>
+                  {p.name}
+                </Link>
+                <div className="pc-meta">
+                  {p.input.values["GEN.REGION_CODE"] ? regionName(p) : "регион не указан"} · {String(p.input.values["GEN.PROJECT_STAGE"] ?? "стадия не указана")}
+                </div>
+              </div>
+              <div onClick={(e) => e.stopPropagation()}>
                 <RowMenu project={p} />
-              </td>
-            </tr>
-          ))}
-          {list.length === 0 ? (
-            <tr>
-              <td colSpan={8} className="muted">
-                {archived ? "В архиве пусто" : "Проектов нет"}
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+              </div>
+            </div>
+            <dl className="pc-kpi">
+              <div title="Расчёт — этап 4">
+                <dt>Выручка, млрд руб.</dt>
+                <dd>—</dd>
+              </div>
+              <div title="Расчёт — этап 6">
+                <dt>NPV, млн руб.</dt>
+                <dd>—</dd>
+              </div>
+              <div title="Расчёт — этап 6">
+                <dt>IRR акционера</dt>
+                <dd>—</dd>
+              </div>
+            </dl>
+            <div className="pc-foot">Обновлено {updated(p.updatedAt)}</div>
+          </article>
+        ))}
+        {list.length === 0 ? <p className="muted">{archived ? "В архиве пусто" : "Проектов нет"}</p> : null}
+      </div>
       <p className="footnote">Демо-режим: проекты и изменения хранятся до перезагрузки страницы (хранение — этап 7). Выручка, NPV и IRR появятся после этапов 4–6.</p>
     </main>
   );

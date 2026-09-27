@@ -117,7 +117,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
       </button>
       <div className="field-control">
         {control}
-        {p.kind !== "table" && p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" ? <span className="unit">{fmt.unit(p.unit)}</span> : null}
+        {p.kind !== "table" ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" ? fmt.unit(p.unit) : ""}</span> : null}
       </div>
     </div>
   );
@@ -126,18 +126,20 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
   return (
     <section className="inputs">
-      <h2>Вводные</h2>
-      {groups.map((g) => (
-        <div key={g.title} className="input-group">
-          <h3>{g.title}</h3>
-          {g.note ? <p className="small muted">{g.note}</p> : null}
-          <div className="fields">
-            {g.params.map((id) => (
-              <Field key={id} project={project} model={model} id={id} />
-            ))}
+      <h2 className="part-title">Вводные</h2>
+      <div className="input-groups">
+        {groups.map((g) => (
+          <div key={g.title} className={`input-group ${g.params.some((id) => getParameter(id).kind === "table") ? "wide" : ""}`}>
+            <h3>{g.title}</h3>
+            {g.note ? <p className="group-note">{g.note}</p> : null}
+            <div className="fields">
+              {g.params.map((id) => (
+                <Field key={id} project={project} model={model} id={id} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </section>
   );
 }
@@ -236,7 +238,7 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
   return (
     <section className="calc">
       <div className="calc-head">
-        <h2>{title}</h2>
+        <h2 className="part-title">{title}</h2>
         {periods ? (
           <div className="seg">
             {(Object.keys(PERIOD_LABEL) as Period[]).map((p) => (

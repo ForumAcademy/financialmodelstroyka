@@ -11,6 +11,7 @@
   --input: #eaf2fc;
   --input-border: #b9cfe8;
   --block: #f1f3f6;
+  --group-head: #edf2f8;
   --danger: #c2412d;
   --warn: #9a6a12;
   color-scheme: light;
@@ -66,11 +67,27 @@ table.sheet { width: 100%; border-collapse: collapse; background: var(--surface)
 table.sheet th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); background: #fafbfc; border-bottom: 1px solid var(--border); padding: 7px 9px; white-space: nowrap; }
 table.sheet td { border-bottom: 1px solid var(--grid); padding: 6px 9px; vertical-align: top; }
 table.sheet .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-table.sheet tr.block td { background: var(--block); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #4b5563; }
+table.sheet tr.block td { background: var(--group-head); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--accent); border-top: 14px solid var(--surface); border-bottom: 1px solid var(--border); padding-top: 8px; padding-bottom: 8px; }
+table.sheet tr.block td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+table.sheet tbody tr.block:first-child td { border-top: 0; }
+table.sheet tr.total td { border-top: 1px solid var(--border); background: #fafbfc; }
 table.sheet tr.total td { font-weight: 700; }
 table.sheet tr.grand td { border-top: 2px solid var(--text); }
 table.sheet tr.clickable { cursor: pointer; }
 table.sheet tr.clickable:hover td { background: #f5f8fc; }
+/* Проекты — карточки */
+.project-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.project-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(20,30,50,.04); transition: border-color .15s, box-shadow .15s; }
+.project-card:hover { border-color: var(--input-border); box-shadow: 0 4px 14px rgba(20,30,50,.08); }
+.pc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.pc-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.pc-name:hover { color: var(--accent); }
+.pc-meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.pc-kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0; }
+.pc-kpi > div { background: var(--group-head); border-radius: 8px; padding: 8px 10px; }
+.pc-kpi dt { font-size: 11px; color: var(--muted); }
+.pc-kpi dd { margin: 2px 0 0; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pc-foot { font-size: 12px; color: var(--muted); border-top: 1px solid var(--grid); padding-top: 8px; }
 .menu-cell { width: 40px; text-align: right; }
 .menu-wrap { position: relative; display: inline-block; }
 .menu { position: absolute; right: 0; top: 26px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.08); z-index: 10; min-width: 200px; padding: 4px; text-align: left; }
@@ -80,7 +97,7 @@ table.sheet tr.clickable:hover td { background: #f5f8fc; }
 .hscroll { overflow-x: auto; border-radius: 6px; }
 .sticky { position: sticky; left: 0; background: inherit; z-index: 1; min-width: 260px; }
 table.calc-table td.sticky { background: var(--surface); }
-table.calc-table tr.block td.sticky { background: var(--block); }
+table.calc-table tr.block td.sticky { background: var(--group-head); }
 
 /* Проект */
 .project-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; gap: 16px; }
@@ -90,13 +107,20 @@ table.calc-table tr.block td.sticky { background: var(--block); }
 .tabs button.on { background: var(--surface); border-color: var(--border); color: var(--text); font-weight: 600; margin-bottom: -1px; }
 .sheet-page { background: var(--surface); border: 1px solid var(--border); border-top: 0; border-radius: 0 0 10px 10px; padding: 18px; display: flex; flex-direction: column; gap: 22px; }
 
-/* Вводные */
-.inputs { background: #fbfcfe; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
-.input-group + .input-group { margin-top: 6px; }
-.input-group h3 { margin-top: 10px; }
-.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 6px 18px; }
-.field { display: grid; grid-template-columns: 1fr 170px; align-items: center; gap: 8px; min-height: 32px; }
-.field.wide { grid-column: 1 / -1; grid-template-columns: 1fr; }
+/* Вводные: каждая группа — отдельная карточка с заголовком, поля — строками с разделителями */
+.part-title { display: flex; align-items: center; gap: 8px; font-size: 17px; margin: 0 0 12px; }
+.part-title::before { content: ""; width: 4px; height: 18px; border-radius: 2px; background: var(--accent); }
+.inputs { background: #f3f6fa; border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.input-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 14px; align-items: start; }
+.input-group { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 2px rgba(20,30,50,.04); }
+.input-group.wide { grid-column: 1 / -1; }
+.input-group h3 { margin: 0; padding: 9px 14px; background: var(--group-head); border-bottom: 1px solid var(--border); color: var(--accent); font-size: 12px; font-weight: 700; }
+.group-note { margin: 0; padding: 8px 14px; font-size: 12px; color: var(--muted); background: #fffdf5; border-bottom: 1px solid var(--grid); }
+.fields { display: flex; flex-direction: column; }
+.field { display: grid; grid-template-columns: 1fr 190px; align-items: center; gap: 12px; min-height: 40px; padding: 5px 14px; border-bottom: 1px solid var(--grid); }
+.field:last-child { border-bottom: 0; }
+.field:nth-child(even) { background: #fbfcfd; }
+.field.wide { grid-template-columns: 1fr; padding: 10px 14px; }
 .field-label { border: 0; background: none; text-align: left; font: inherit; color: var(--text); cursor: pointer; padding: 0; }
 .field-label:hover { color: var(--accent); text-decoration: underline; }
 .field-control { display: flex; align-items: center; gap: 6px; }
@@ -105,15 +129,19 @@ table.calc-table tr.block td.sticky { background: var(--block); }
 .field-control .ro { color: var(--text); font-weight: 500; }
 .field.readonly .field-control .ro { color: var(--muted); }
 .need { border-color: var(--danger) !important; box-shadow: 0 0 0 1px var(--danger); }
-.table-editor { overflow-x: auto; }
+.input-group, .fields, .field, .field-control { min-width: 0; }
+.field.wide .field-control { display: block; }
+.table-editor { overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
 .table-editor table { border-collapse: collapse; }
 .table-editor th { font-size: 11px; font-weight: 600; color: var(--muted); text-align: left; padding: 3px 6px; white-space: nowrap; }
 .table-editor td { padding: 2px 4px; }
 .table-editor input, .table-editor select { background: var(--input); border-color: var(--input-border); width: 130px; padding: 4px 6px; }
+.table-editor input[type="date"] { width: 138px; }
+.table-editor td:first-child input { width: 64px; }
 
 /* Расчёт */
 .calc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.calc-head h2 { margin: 0; }
+.calc-head .part-title { margin: 0; }
 .stage-note { font-size: 12px; color: var(--muted); background: var(--block); border-radius: 6px; padding: 6px 10px; margin: 0 0 10px; }
 .charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .chart { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
@@ -148,9 +176,13 @@ table.calc-table tr.block td.sticky { background: var(--block); }
 .f-body { padding: 4px 14px 12px; }
 
 @media (max-width: 900px) {
-  .topbar-inner { gap: 14px; padding: 0 16px; }
+  .topbar-inner { gap: 12px; padding: 0 12px; }
+  .brand { font-size: 15px; white-space: nowrap; }
+  .topbar nav { overflow-x: auto; }
+  .topbar nav a { padding: 6px 7px; font-size: 13px; }
   .page { padding: 16px; }
-  .field { grid-template-columns: 1fr 140px; }
+  .field { grid-template-columns: 1fr 150px; }
+  .input-groups { grid-template-columns: 1fr; }
   .charts { grid-template-columns: 1fr; }
   .project-head { flex-direction: column; align-items: flex-start; }
 }

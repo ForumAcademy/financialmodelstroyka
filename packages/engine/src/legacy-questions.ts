@@ -144,9 +144,11 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
     const [kind, arg = ""] = key.split(":");
 
     if (kind === "SALES.OVER_STOCK") {
-      const s = sum(sold[arg]);
+      // площади — целыми м² (с отбрасыванием дробной части лотов, как в аудите исходника); влияние — по точной разнице
+      const s = sum(sold[arg]).floor();
       const stock = new Decimal(arg === "ПСН" && lc ? lc.tep.psn_stock_C23 : 0);
       const excess = s.sub(stock);
+      const exact = sum(sold[arg]).sub(stock);
       const price = wavg[arg] ?? null;
       const typed = PACE_ROWS[arg];
       const refs = [typed, arg === "ПСН" ? "ТЭПы!C23" : null].filter(Boolean).join(", ") || "План продаж";
@@ -155,8 +157,8 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
         block: "sales",
         question: `Какой запас ${arg} верный и откуда взят темп продаж?`,
         explanation: `По плану продаётся ${fmt(s)} м², а в наличии ${fmt(stock)} м² — на ${fmt(excess)} м² больше, чем есть.${typed ? " Темп введён в файл числами, и ни одна ячейка не даёт эти цифры" : ""} (${refs}).`,
-        impact: price ? signed(excess.mul(price), "выручка", "завышена", "занижена") : { amount: null, kind: "выручка", text: "выручка завышена" },
-        recommendation: "В обычном режиме продажи ограничены запасом. Вероятно, темп подобран под старую версию запаса: подтвердите запас и темп.",
+        impact: price ? signed(exact.mul(price), "выручка", "завышена", "занижена") : { amount: null, kind: "выручка", text: "выручка завышена" },
+        recommendation: `Продажи ограничены запасом: по введённому темпу продаётся больше, чем построено (${arg}: ${fmt(s)} м² при запасе ${fmt(stock)} м²). Проверьте темп продаж или площадь в ТЭПах.`,
       };
     }
     if (kind === "LEGACY.PSN_STOCK" && lc) {

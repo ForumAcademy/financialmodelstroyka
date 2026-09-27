@@ -26,6 +26,10 @@ for it in capex:
         cf_row_to_item.setdefault(r, it["item_id"])
 
 # ---------------------------------------------------------------- значения
+
+# ТЭПы!C48, C49: одно пояснение на обе ячейки (решение владельца продукта 27.09.2026)
+NOTE_C48_C49 = "ТЭПы!C49 = 5 200 и C48 = 10 332 не соответствуют текущим ТЭПам. C49 — ровно 127 м/м × 40,945 м², при этом в файле 862 машино-места (ТЭПы!C27). C48 на 10 м² больше площади ПСН в C23 (10 322). C49 в расчётах не участвует (только План продаж!D16). Вероятно, значения из модели Финляндского ЖК, не обновлённые под этот участок. Вопрос автору: откуда 5 200 и 10 332 и нужны ли они."
+
 def value_target(sheet, row, col):
     c = gl(col)
     T = {
@@ -59,11 +63,11 @@ def value_target(sheet, row, col):
                 "I": ("TEP.PARKING_NORM", "keep", "совпадает с ПП Москвы 2118-ПП"),
             }.get(c, ("TEP.APT_MIX", "clarify", ""))
         if row == 48:
-            return {"C": ("TEP.COMM_AREA", "remove", "10 332 vs 10 322 в C23 — опечатка"),
+            return {"C": ("TEP.COMM_AREA", "clarify", NOTE_C48_C49),
                     "D": ("SALES.PRODUCTS", "keep", "средняя площадь лота ПСН"),
                     "G": ("SALES.PRODUCTS", "keep", "цена ПСН руб/м²")}.get(c)
         if row == 49:
-            return {"C": ("TEP.PARKING_AREA_PER_SPACE", "remove", "5 200 = 127 м/м × 40,945 м² — остаток прежней версии, в расчётах не участвует"),
+            return {"C": ("TEP.PARKING_AREA_PER_SPACE", "clarify", NOTE_C48_C49),
                     "D": ("TEP.PARKING_AREA_PER_SPACE", "keep", ""),
                     "G": ("SALES.PRODUCTS", "fix", "цена м/м в руб/м² × 40,945")}.get(c)
         if row == 50:

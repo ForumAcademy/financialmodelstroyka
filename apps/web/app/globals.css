@@ -146,7 +146,7 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .view-switch { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .view-switch .seg { margin-bottom: 0; }
 .view-switch .seg button { padding: 7px 22px; font-size: 14px; }
-.sheet-page[data-view="inputs"] > :not(.inputs):not(.view-switch):not(.documents) { display: none; }
+.sheet-page[data-view="inputs"] > :not(.inputs):not(.view-switch):not(.documents):not(.discrepancies) { display: none; }
 .view-switch[hidden] { display: none; }
 .documents { display: flex; flex-direction: column; gap: 12px; }
 .documents > p { margin: 0; max-width: 860px; }
@@ -293,8 +293,17 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 
 /* Предупреждения режима совместимости */
 .compat-warnings { background: var(--need-bg); border: 1px solid #efd9a6; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
-.compat-warnings summary { cursor: pointer; color: var(--warn); font-weight: 500; }
+
 .compat-warnings ol { margin: 8px 0 4px; padding-left: 22px; }
 .compat-warnings li { margin: 4px 0; }
 .linklike { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; font-size: 12px; }
 .linklike:hover { text-decoration: underline; }
+.discrepancies { display: flex; flex-direction: column; gap: 16px; }
+.discrepancies > p { margin: 0; max-width: 860px; }
+.discrepancies section h2 { margin-bottom: 6px; }
+.discrepancy-table { width: 100%; border-collapse: collapse; }
+.discrepancy-table th, .discrepancy-table td { border-bottom: 1px solid var(--grid); padding: 6px 8px; text-align: left; vertical-align: top; }
+.discrepancy-table th { font-size: 11px; text-transform: uppercase; color: var(--muted); }
+.discrepancy-table td:first-child { width: 36px; color: var(--muted); }
+.discrepancy-table .nowrap { white-space: nowrap; width: 130px; }
+.tab-count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--need-bg); color: var(--warn); font-size: 11px; font-weight: 600; text-align: center; }

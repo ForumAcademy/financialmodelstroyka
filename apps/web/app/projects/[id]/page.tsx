@@ -7,7 +7,7 @@ import { useHow } from "@/components/HowPanel";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
-import { CompatWarnings } from "@/components/CompatWarnings";
+import { CompatBanner, DiscrepanciesTab } from "@/components/CompatWarnings";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
 import { regionName } from "@/lib/format";
@@ -15,6 +15,7 @@ import { compatWarnings } from "@/lib/model";
 import { useStore } from "@/lib/store";
 
 const TABS = [
+  { id: "issues", label: "Расхождения с Excel" },
   { id: "tep", label: "ТЭП" },
   { id: "budget", label: "Бюджет" },
   { id: "sales", label: "План продаж" },
@@ -48,6 +49,7 @@ function ProjectPage() {
     );
   }
   const m = model(project);
+  const warnings = compatWarnings(project, m);
   const tab = (TABS.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
   const view = search.get("view") === "calc" ? "calc" : "inputs";
   const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
@@ -76,17 +78,19 @@ function ProjectPage() {
           Выгрузить в Excel
         </button>
       </div>
-      <CompatWarnings warnings={compatWarnings(project, m)} go={(t) => go(t, "calc")} />
+      {tab === "issues" ? null : <CompatBanner count={warnings.length} open={() => go("issues", view)} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>
             {t.label}
+            {t.id === "issues" && warnings.length ? <span className="tab-count">{warnings.length}</span> : null}
           </button>
         ))}
       </nav>
       <div className="sheet-page" data-view={view}>
         {tab === "docs" ? <DocumentsTab project={project} /> : null}
-        <div className="view-switch" hidden={tab === "docs"}>
+        {tab === "issues" ? <DiscrepanciesTab warnings={warnings} legacy={project.input.mode === "legacy"} go={(t) => go(t, "calc")} /> : null}
+        <div className="view-switch" hidden={tab === "docs" || tab === "issues"}>
           <div className="seg">
             <button className={view === "inputs" ? "on" : ""} onClick={() => go(tab, "inputs")}>
               Вводные

@@ -55,7 +55,7 @@ export function CompatBanner({ open, total, go }: { open: number; total: number;
 
 function Impact({ q }: { q: DataQuestion }) {
   const a = q.impact.amount;
-  const timing = q.impact.kind === "сроки денег";
+  const timing = q.impact.kind === "сроки денег" || q.impact.kind === "зависит";
   return (
     <>
       {a && !a.isZero() ? <div className="impact-amount">{timing ? `~${fmtRub(a)}` : `${a.gt(0) ? "+" : "−"}${fmtRub(a)}`}</div> : null}
@@ -165,7 +165,7 @@ function Explanation({ project, item }: { project: DemoProject; item: IssueItem 
       ) : null}
       {item.q ? (
         <details className="issue-detail">
-          <summary>Почему так в файле</summary>
+          <summary>{item.q.parameterId ? "Откуда значение" : "Почему так в файле"}</summary>
           {item.q.explanation}
         </details>
       ) : null}
@@ -226,8 +226,8 @@ function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]
                     {TAB_LABEL[TAB_OF_BLOCK[i.q.block]]}
                   </button>
                   <br />
-                  <button className="linklike" onClick={() => i.q && open({ kind: "formula", id: i.q.formulaId })}>
-                    как посчитано
+                  <button className="linklike" onClick={() => i.q && open(i.q.parameterId ? { kind: "param", id: i.q.parameterId } : { kind: "formula", id: i.q.formulaId })}>
+                    {i.q.parameterId ? "значение" : "как посчитано"}
                   </button>
                 </>
               ) : (
@@ -254,7 +254,9 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   const [sort, setSort] = useState<"impact" | "no">("impact");
   const [filter, setFilter] = useState<Filter>("all");
   const [exporting, setExporting] = useState(false);
-  if (!project.legacyCase) return <p className="muted discrepancies">Расхождения с исходным Excel есть только у проектов, загруженных из Excel.</p>;
+  if (!project.legacyCase && questions.length === 0 && !Object.keys(project.issues ?? {}).length) {
+    return <p className="muted discrepancies">Вопросов нет: проект не загружен из Excel и не использует неподтверждённых стандартных значений компании.</p>;
+  }
   const all = issueItems(project, questions);
   const active = all.filter((i) => i.status !== "done");
   const archive = all.filter((i) => i.status === "done");
@@ -265,7 +267,10 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   return (
     <div className="discrepancies">
       <p className="small muted">
-        Ошибки и нестыковки, найденные в исходном Excel. Расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше.
+        {project.legacyCase
+          ? "Ошибки и нестыковки, найденные в исходном Excel: расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше. "
+          : ""}
+        Стандартные значения компании, которые проект использует без подтверждения, тоже здесь: статус «Решено» отмечает значение как подтверждённое финансистами.
       </p>
       <div className="issues-toolbar">
         <div className="seg">

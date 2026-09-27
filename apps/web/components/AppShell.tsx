@@ -20,6 +20,9 @@ function Header() {
           <Link href="/" className={on("/") ? "on" : ""}>
             Проекты
           </Link>
+          <Link href="/assumptions" className={on("/assumptions") ? "on" : ""}>
+            Допущения
+          </Link>
           <Link href="/sources" className={on("/sources") ? "on" : ""}>
             Источники
           </Link>

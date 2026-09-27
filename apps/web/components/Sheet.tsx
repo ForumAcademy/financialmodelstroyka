@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Decimal from "decimal.js";
 import { getParameter, spec, type FormulaId, type ParameterId } from "@fm/spec";
-import { ChangedMark, NoLink, useChange } from "./Change";
+import { ChangedMark, NoLink, SourceMark, useChange } from "./Change";
 import { compositeSummary } from "./DataView";
 import { useHow } from "./HowPanel";
 import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from "@/lib/model";
@@ -39,8 +39,8 @@ const COLUMN_LABEL: Record<string, string> = {
   area_share: "Доля площади",
   avg_area: "Ср. площадь, м²",
   product: "Продукт",
-  stock_area: "Запас, м²",
-  stock_units: "Запас, шт",
+  stock_area: "Построено к продаже, м²",
+  stock_units: "Построено к продаже, шт",
   start_price: "Стартовая цена",
   price_date: "Дата цены",
   sale_channel_before_rnv: "Канал до РНВ",
@@ -83,7 +83,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   const p = getParameter(id);
   const own = project.input.values[id];
   const traced = model.result.parameters[id];
-  const shown = own ?? traced?.value ?? p.default;
+  const shown = own ?? traced?.value ?? model.standard[id] ?? p.default;
   const summary = compositeSummary(shown);
   // Любое значение проекта можно изменить (с комментарием «почему»); ряды и таблицы справочника смотрятся в карточке.
   const reference = p.scope === "template";
@@ -104,7 +104,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   } else if (readonly || (p.kind !== "table" && typeof shown === "object" && shown !== null)) {
     control = <span className="ro">{fmt.value(shown ?? null)}</span>;
   } else if (p.kind === "table") {
-    control = <TableEditor project={project} id={id} />;
+    control = <TableEditor project={project} id={id} value={shown} />;
   } else if (id === "GEN.REGION_CODE") {
     control = (
       <select className={need ? "need" : ""} value={text} onChange={(e) => commit(e.target.value)}>
@@ -144,11 +144,12 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
       <div className="field-head">
         <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
           {p.name}
-          {reference && !project.changes?.[id] ? <span className="tag">справочник</span> : null}
+          {reference && !project.changes?.[id] && !model.standard[id] ? <span className="tag">справочник</span> : null}
           {need ? <span className="need-badge">Заполните</span> : null}
         </button>
         {hasValue || project.changes?.[id] ? (
           <div className="field-marks">
+            {hasValue ? <SourceMark project={project} id={id} /> : null}
             {hasValue ? <NoLink project={project} id={id} /> : null}
             <ChangedMark project={project} id={id} />
           </div>
@@ -248,11 +249,12 @@ function cellSummary(v: object): string {
   return fmt.value(v);
 }
 
-function TableEditor({ project, id }: { project: DemoProject; id: ParameterId }) {
+/** value — значение, которое действует в проекте: своё значение проекта или стандарт компании. */
+function TableEditor({ project, id, value }: { project: DemoProject; id: ParameterId; value: unknown }) {
   const { dispatch } = useStore();
   const p = getParameter(id);
   const columns = (p.columns ?? []).filter((c) => c.key !== "source_ids");
-  const raw = project.input.values[id];
+  const raw = value;
   const change = useChange(project, id, raw);
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {
     // Значение в формате исходного Excel (расчёт «как в исходном Excel») — только просмотр, понятными словами.
@@ -282,9 +284,15 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
   const cell = (r: number, key: string, raw: string, unit: string) => {
     const next = rows.map((row, i) => (i === r ? { ...row, [key]: parseInput(unit === "дата" ? "date" : "scalar", unit, raw) } : row));
     const old = rows[r]?.[key];
-    (old === null || old === undefined || old === "" ? fill : set)(next);
+    // Стандарт компании меняется только с комментарием «почему», даже пустая ячейка.
+    const own = project.input.values[id] !== undefined && project.input.values[id] !== null;
+    (own && (old === null || old === undefined || old === "") ? fill : set)(next);
   };
-  const addRow = () => fill([...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}]);
+  const addRow = () => {
+    const next = [...rows, id === "TIME.MILESTONES" ? { phase: rows.length + 1 } : {}];
+    if (rows.length && (project.input.values[id] === undefined || project.input.values[id] === null)) set(next);
+    else fill(next);
+  };
   return (
     <div className="table-editor">
       <table className={id === "TIME.MILESTONES" ? "fit" : ""} data-param={id}>
@@ -325,7 +333,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
                   </td>
                 );
               })}
-              <td>
+              <td className="col-del">
                 <button className="icon" aria-label="Удалить строку" onClick={() => set(rows.filter((_, i) => i !== r))}>
                   ×
                 </button>

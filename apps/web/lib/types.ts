@@ -81,6 +81,11 @@ export interface DemoProject {
   /** Изменённые в проекте значения: что было, что стало, кто, когда и почему. Справочник не меняется. */
   changes?: Partial<Record<ParameterId, ValueChange>>;
   specVersion: string;
+  /**
+   * Версия справочника допущений компании, на которой создан проект (или до которой обновлён по кнопке «Обновить»).
+   * Её стандартные значения действуют там, где у проекта нет своих.
+   */
+  assumptionsVersion?: number;
   updatedAt: string;
   /** Расхождения внутри исходного Excel (legacyChecks): показываются в расчёте «как в исходном Excel» вместе с предупреждениями расчёта. */
   legacyWarnings?: CalcMessage[];

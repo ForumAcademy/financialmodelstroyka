@@ -7,6 +7,7 @@ import { useHow } from "@/components/HowPanel";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
+import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
 import { issueCounts } from "@/lib/issues";
 import { TepTab } from "@/components/tabs/TepTab";
@@ -65,6 +66,8 @@ function ProjectPage() {
   const m = model(project);
   const questions = projectQuestions(project, m);
   const counts = issueCounts(project, questions);
+  // Строка над вкладками в расчёте «как в исходном Excel» — только расхождения Excel, без стандартных значений компании
+  const excelCounts = issueCounts(project, questions.filter((q) => !q.parameterId));
   const tab = (TABS.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
   const view = search.get("view") === "calc" ? "calc" : "inputs";
   const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
@@ -94,7 +97,8 @@ function ProjectPage() {
         </button>
       </div>
       {project.legacyCase ? <ModeSwitch project={project} /> : null}
-      {tab === "issues" || project.input.mode !== "legacy" ? null : <CompatBanner open={counts.open} total={counts.total} go={() => go("issues", view)} />}
+      <AssumptionsUpdate project={project} />
+      {tab === "issues" || project.input.mode !== "legacy" ? null : <CompatBanner open={excelCounts.open} total={excelCounts.total} go={() => go("issues", view)} />}
       <nav className="tabs">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>

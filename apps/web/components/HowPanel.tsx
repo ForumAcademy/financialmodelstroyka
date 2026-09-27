@@ -8,6 +8,7 @@ import * as fmt from "@/lib/format";
 import { compositeSummary, DataView } from "./DataView";
 import { ChangedMark, valueText } from "./Change";
 import { whence } from "@/lib/whence";
+import { valueSource } from "@/lib/assumptions";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { amount, compatDiff, exampleFocus, howExample, inputFields, monthName, shortSource } from "@/lib/how-example";
 import { cellMln, cellPrice, cellQty, cellShare, hasUnsold, parkingWarning, pricesFromExcel, rowName, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
@@ -432,17 +433,19 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
 }
 
 function ParamView({ id, projectId }: { id: ParameterId; projectId: string | null }) {
-  const { projects, model, dispatch } = useStore();
+  const { projects, model, dispatch, assumptions } = useStore();
   const project = projects.find((p) => p.id === projectId);
   const p = getParameter(id);
   const traced = project ? model(project).result.parameters[id] : undefined;
   const own = project?.input.values[id];
-  const v = traced?.value ?? own ?? p.default;
-  const origin = traced?.origin ?? (own !== undefined && own !== null ? "project" : "template");
+  const standard = project ? model(project).standard[id] : undefined;
+  const v = traced?.value ?? own ?? standard ?? p.default;
+  const origin = traced?.origin ?? (own !== undefined && own !== null ? "project" : standard !== undefined ? "standard" : "template");
+  const source = project ? valueSource(project, id, assumptions) : null;
   const linked = project ? project.sources.find((s) => s.id === project.paramSources[id]) : undefined;
   const usedBy = spec.formulas.filter((f) => (f.depends_on as string[]).includes(id));
   const change = project?.changes?.[id];
-  const w = whence(id, project);
+  const w = whence(id, project, assumptions);
   // Типы проектных источников (документы проекта, экспертная оценка) — не документы, в список не выводятся.
   const refDocs = p.source_ids.filter((sid) => getSource(sid).scope === "global");
   return (
@@ -462,7 +465,11 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
       <p className="muted small">
         {change
           ? "Изменено в проекте — справочник не менялся"
-          : origin === "project"
+          : source === "standard"
+            ? `Стандарт компании (справочник допущений, версия ${project?.assumptionsVersion}). Для проекта не подтверждено: подтвердите в «Расхождениях» или замените, указав, почему`
+            : source === "confirmed"
+              ? `Стандарт компании (справочник допущений, версия ${project?.assumptionsVersion}), подтверждено финансистами для этого проекта`
+              : origin === "project"
           ? "Введено в проекте"
           : origin === "region"
             ? "Из справочника регионов — подставляется по региону проекта"

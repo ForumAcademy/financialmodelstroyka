@@ -1,7 +1,8 @@
 "use client";
 
+import { notAccounted } from "@/lib/assumptions";
 import Decimal from "decimal.js";
-import type { FormulaId, ParameterId } from "@fm/spec";
+import { getParameter, type FormulaId, type ParameterId } from "@fm/spec";
 import { Calc, Inputs, pendingStages, toNum, val, type CalcRow } from "../Sheet";
 import { formulaIds } from "./common";
 import { BUDGET_GROUPS, groupCash } from "./BudgetTab";
@@ -197,8 +198,14 @@ export function DashboardTab({ project, model }: Props) {
     { label: "LLCR", unit: "коэф", formula: "F.KPI.LLCR" },
   ];
   const stages = pendingStages(model, formulaIds(rows));
+  const missed = notAccounted(project, model.versions);
   return (
     <>
+      {missed.length ? (
+        <div className="not-accounted small">
+          <b>Не учтено в расчёте:</b> {missed.map((id) => getParameter(id).name).join("; ")}. Значений нет ни в проекте, ни в справочнике допущений — это не ноль. Введите их на вкладках проекта или в справочнике.
+        </div>
+      ) : null}
       <Inputs project={project} model={model} groups={[{ title: "Оценка", params: ["GEN.VALUATION_DATE"] }]} />
       <Calc model={model} rows={rows} stages={stages} title="Показатели" />
       <section className="charts">

@@ -4,7 +4,7 @@ import Decimal from "decimal.js";
 import { getFormula, getParameter, isFormulaId, isParameterId, spec, type ParameterId } from "@fm/spec";
 import { useHow } from "../HowPanel";
 import { Inputs, val, type InputGroup } from "../Sheet";
-import type { ProjectModel } from "@/lib/model";
+import { modePair, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import * as fmt from "@/lib/format";
 
@@ -36,7 +36,28 @@ type ItemRow = { item_id: string; base?: string; rate?: number | null };
 
 export function BudgetTab({ project, model }: { project: DemoProject; model: ProjectModel }) {
   const { open } = useHow();
-  const rows = new Map(((project.input.values["CAPEX.ITEMS"] as ItemRow[] | undefined) ?? []).filter((r) => typeof r === "object").map((r) => [r.item_id, r]));
+  // строки статей, с которыми посчитан проект (в расчёте сервиса резерв проекта из Excel считается по ставке)
+  const rows = new Map(((model.input.values["CAPEX.ITEMS"] as ItemRow[] | undefined) ?? []).filter((r) => typeof r === "object").map((r) => [r.item_id, r]));
+  // База статьи-доли для сравнения суммы Excel со ставкой: из текущего расчёта, иначе из другого режима проекта
+  const other = modePair(project, model);
+  const baseAmount = (base: string): Decimal | null => {
+    if (!isFormulaId(base)) return null;
+    const pick = (m: ProjectModel | undefined) => {
+      const v = m ? val(m, base) : undefined;
+      if (v instanceof Decimal) return v;
+      if (v && typeof v === "object" && "gross" in v) return (v as { gross: Decimal }).gross;
+      return null;
+    };
+    return pick(model) ?? pick(other ? (project.input.mode === "legacy" ? other.normal : other.legacy) : undefined);
+  };
+  const BASE_WORD: Record<string, string> = { "F.SALES.REVENUE_TOTAL": "выручки", "F.CAPEX.SMR_TOTAL": "СМР" };
+  /** Сумма Excel у статьи-доли → расчётная доля от базы (сумма ÷ база), чтобы сравнить со ставкой нового проекта. */
+  const impliedShare = (c: (typeof spec.capexItems)[number], amount: Decimal | undefined): string | null => {
+    if (!c.rate_param || rows.get(c.item_id)?.base !== "фикс" || !amount || !BASE_WORD[c.base]) return null;
+    const b = baseAmount(c.base);
+    return b && !b.isZero() ? `≈ ${fmt.share(amount.div(b).toNumber())} ${BASE_WORD[c.base]}` : null;
+  };
+  const intent = project.input.mode === "legacy" ? project.legacyCase?.legacy_checks?.budget : undefined;
   const totals = val<Partial<Record<string, Decimal>>>(model, "F.CAPEX.ITEM_TOTAL") ?? {};
   const cash = val<Series>(model, "F.CAPEX.ITEM_CASH") ?? {};
   const grand = val<Decimal>(model, "F.CAPEX.TOTAL");
@@ -80,7 +101,7 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
           <h2 className="part-title">Расчёт</h2>
         </div>
         <p className="stage-note">
-          Сумма — ставка × база в ценах даты расценки. «В CF» — платежи по графику статьи с индексом цен и НДС. Маркетинг и брокеридж считаются от выручки — появятся на этапе 4.
+          Сумма — ставка × база в ценах даты расценки. «В CF» — платежи по графику статьи с индексом цен и НДС. У статей-долей, заданных суммой из Excel, под ставкой — сумма, делённая на базу.
           {project.input.mode === "legacy" ? " Расчёт «как в исходном Excel»: суммы статей, ручные графики и земельные платежи — из исходного Excel, без индексации цен." : ""}
         </p>
         <div className="hscroll">
@@ -110,7 +131,16 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
                   return (
                     <tr key={c.item_id} className="clickable" onClick={() => open({ kind: "capex", id: c.item_id })}>
                       <td>{c.name}</td>
-                      <td>{rate(c.item_id, c.rate_param)}</td>
+                      <td>
+                        {rate(c.item_id, c.rate_param)}
+                        {impliedShare(c, totals[c.item_id]) ? <div className="small muted" title="Сумма статьи, делённая на базу: для сравнения со ставкой справочника допущений">{impliedShare(c, totals[c.item_id])}</div> : null}
+                        {c.item_id === "CONTINGENCY" && intent ? (
+                          <div className="small muted" title="Бюджет!F42 складывает площадь со ставкой; автор задумывал произведение">
+                            по замыслу автора: {fmt.num(new Decimal(intent.contingency_D42).mul(intent.contingency_E42), 0)}
+                            {impliedShare(c, new Decimal(intent.contingency_D42).mul(intent.contingency_E42)) ? ` (${impliedShare(c, new Decimal(intent.contingency_D42).mul(intent.contingency_E42))})` : ""}
+                          </div>
+                        ) : null}
+                      </td>
                       <td className="small">{baseName(base)}</td>
                       <td className="num">{volume(base)}</td>
                       <td className="num">{money(totals[c.item_id])}</td>

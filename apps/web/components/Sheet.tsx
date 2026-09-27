@@ -185,7 +185,7 @@ function TableEditor({ project, id }: { project: DemoProject; id: ParameterId })
                 const v = row[c.key];
                 const text = v === null || v === undefined ? "" : String(v);
                 return (
-                  <td key={c.key}>
+                  <td key={c.key} className={`col-${c.key}`}>
                     {c.options ? (
                       <select value={text} onChange={(e) => cell(r, c.key, e.target.value, "текст")}>
                         <option value="">—</option>

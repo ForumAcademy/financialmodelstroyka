@@ -137,7 +137,8 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .table-editor td { padding: 2px 4px; }
 .table-editor input, .table-editor select { background: var(--input); border-color: var(--input-border); width: 130px; padding: 4px 6px; }
 .table-editor input[type="date"] { width: 138px; }
-.table-editor td:first-child input { width: 64px; }
+.table-editor td.col-phase input { width: 64px; }
+.table-editor td.col-type_name input, .table-editor td.col-product input { width: 190px; }
 
 /* Расчёт */
 .calc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }

@@ -7,30 +7,25 @@ import { StoreProvider } from "@/lib/store";
 import type { Seed } from "@/lib/types";
 import { HowPanelProvider } from "./HowPanel";
 
+/** Разделы справочника: стандартные значения, формулы, источники, история версий. */
+const REFERENCE = ["/assumptions", "/formulas", "/sources"];
+
 function Header() {
   const path = usePathname();
-  const on = (href: string) => (href === "/" ? path === "/" || path.startsWith("/projects") : path.startsWith(href));
+  const reference = REFERENCE.some((r) => path.startsWith(r));
   return (
     <header className="topbar">
-      <div className="topbar-inner">
-        <Link href="/" className="brand">
-          Финмодель ЖК
+      <Link href="/" className="brand">
+        Финмодель ЖК
+      </Link>
+      <nav>
+        <Link href="/" className={reference ? "" : "on"}>
+          Проекты
         </Link>
-        <nav>
-          <Link href="/" className={on("/") ? "on" : ""}>
-            Проекты
-          </Link>
-          <Link href="/assumptions" className={on("/assumptions") ? "on" : ""}>
-            Допущения
-          </Link>
-          <Link href="/sources" className={on("/sources") ? "on" : ""}>
-            Источники
-          </Link>
-          <Link href="/formulas" className={on("/formulas") ? "on" : ""}>
-            Формулы
-          </Link>
-        </nav>
-      </div>
+        <Link href="/assumptions" className={reference ? "on" : ""}>
+          Справочник
+        </Link>
+      </nav>
     </header>
   );
 }

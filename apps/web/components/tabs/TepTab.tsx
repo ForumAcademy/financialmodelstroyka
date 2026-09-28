@@ -1,13 +1,12 @@
 "use client";
 
 import Decimal from "decimal.js";
-import { Calc, Inputs, val, type CalcRow } from "../Sheet";
-import { tepGroups } from "@/lib/tab-inputs";
+import { Calc, val, type CalcRow } from "../Sheet";
 import type { ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 
-export function TepTab({ project, model }: { project: DemoProject; model: ProjectModel }) {
-  const groups = tepGroups(project);
+/** Что посчитано из вводных ТЭП: площади, квартирография, машино-места, благоустройство. */
+export function TepCalc({ project, model }: { project: DemoProject; model: ProjectModel }) {
 
   const mix = (project.input.values["TEP.APT_MIX"] as { type_name?: string }[] | undefined) ?? [];
   const typeArea = val<Decimal[]>(model, "F.TEP.APT_TYPE_AREA");
@@ -51,10 +50,5 @@ export function TepTab({ project, model }: { project: DemoProject; model: Projec
     { label: "Наземная парковка", unit: "м2", formula: "F.TEP.LANDSCAPE_AREA", total: land?.ground_parking },
   ];
 
-  return (
-    <>
-      <Inputs project={project} model={model} groups={groups} />
-      <Calc model={model} rows={rows} />
-    </>
-  );
+  return <Calc model={model} rows={rows} title="Итоги площадей" />;
 }

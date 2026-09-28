@@ -79,3 +79,9 @@ export function regionName(p: DemoProject): string {
   const code = p.input.values["GEN.REGION_CODE"];
   return typeof code === "string" && isRegionCode(code) ? getRegion(code).name : "—";
 }
+
+/** Класс жилья проекта; не указан — null. */
+export function housingClass(p: DemoProject): string | null {
+  const v = p.input.values["GEN.HOUSING_CLASS"];
+  return typeof v === "string" && v.trim() ? v : null;
+}

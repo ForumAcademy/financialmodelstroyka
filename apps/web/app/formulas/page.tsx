@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ReferenceShell } from "@/components/ReferenceShell";
 import { Fragment, Suspense, useEffect, useState } from "react";
 import { getFormula, getParameter, getSource, isFormulaId, isParameterId, spec, type SpecFormula } from "@fm/spec";
 import { unit } from "@/lib/format";
-import { Hint } from "@/components/Hint";
 
 /** Разделы — как вкладки проекта (листы Excel). */
 const SECTIONS: { title: string; modules: string[] }[] = [
@@ -117,9 +117,9 @@ function FormulasPage() {
   const list = inSection(section);
 
   return (
-    <main className="page wide">
-      <div className="page-head">
-        <h1>Формулы</h1>
+    <ReferenceShell active="formulas">
+      <div className="work-head">
+        <h2>Формулы</h2>
       </div>
       <div className="toolbar">
         <input className="search" placeholder="Поиск по названию, формуле и обозначениям…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -133,8 +133,7 @@ function FormulasPage() {
       </nav>
       <div className="sheet-page">
         <p className="small muted" style={{ margin: 0 }}>
-          Нажмите на строку — обоснование и источники
-          <Hint text="В расшифровке строки — обоснование, отклонённые варианты, источники и где используется формула. В колонке «Формула» — только математика; пояснения, обозначения и значения из модели — в расшифровке. «Вводное» — значение, которое вводится в проекте или берётся из справочника; «расчёт» — результат другой формулы." />
+          Нажмите на строку, чтобы увидеть обоснование, отклонённые варианты, источники и где используется формула. В колонке «Формула» — только математика; пояснения, обозначения и значения из модели — в расшифровке. «Вводное» — значение, которое вводится в проекте или берётся из справочника; «расчёт» — результат другой формулы.
         </p>
         <div className="hscroll">
           <table className="sheet formulas-table">
@@ -200,7 +199,7 @@ function FormulasPage() {
           </table>
         </div>
       </div>
-    </main>
+    </ReferenceShell>
   );
 }
 

@@ -5,7 +5,6 @@ import Decimal from "decimal.js";
 import { getParameter, type FormulaId } from "@fm/spec";
 import { Calc, Inputs, pendingStages, toNum, val, type CalcRow } from "../Sheet";
 import { formulaIds } from "./common";
-import { Hint } from "../Hint";
 import { groupCash } from "./BudgetTab";
 import { BUDGET_GROUPS, cfGroups, dashboardGroups, escrowGroups, salesGroups } from "@/lib/tab-inputs";
 import type { ProjectModel } from "@/lib/model";
@@ -207,8 +206,7 @@ export function DashboardTab({ project, model }: Props) {
     <>
       {missed.length ? (
         <div className="not-accounted small">
-          <b>Не учтено:</b> {missed.map((id) => getParameter(id).name).join("; ")}. Введите значения
-          <Hint text="Значений нет ни в проекте, ни в справочнике допущений — это не ноль. Введите их на вкладках проекта или в справочнике." />
+          <b>Не учтено в расчёте:</b> {missed.map((id) => getParameter(id).name).join("; ")}. Значений нет ни в проекте, ни в справочнике допущений — это не ноль. Введите их на вкладках проекта или в справочнике.
         </div>
       ) : null}
       <Inputs project={project} model={model} groups={dashboardGroups()} />
@@ -217,7 +215,7 @@ export function DashboardTab({ project, model }: Props) {
         {["CF по годам", "Долг", "Эскроу"].map((t) => (
           <div key={t} className="chart">
             <h3>{t}</h3>
-            <div className="chart-empty">График появится на этапе 6</div>
+            <div className="chart-empty">Ещё не рассчитывается</div>
           </div>
         ))}
       </section>

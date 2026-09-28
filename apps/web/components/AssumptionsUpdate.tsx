@@ -5,7 +5,6 @@ import { useState } from "react";
 import { getParameter } from "@fm/spec";
 import { assumptionValueText, diffVersions, latest, versionOf } from "@/lib/assumptions";
 import { useStore } from "@/lib/store";
-import { Hint } from "./Hint";
 import type { DemoProject } from "@/lib/types";
 
 /**
@@ -23,12 +22,10 @@ export function AssumptionsUpdate({ project }: { project: DemoProject }) {
   const statusOnly = diffVersions(mine, last).filter((d) => !d.valueChanged).length;
   return (
     <div className="assumptions-update">
-      <b>Справочник обновлён до версии {last.version}</b> · {diff.length ? `изменится значений: ${diff.length}` : "числа не изменятся"}
-      <Hint
-        text={`Проект посчитан по версии ${mine.version}. ${
-          diff.length ? `Изменились значения, которые использует проект: ${diff.length}.` : `Значения, которые использует проект, не изменились${statusOnly ? "; поменялись статусы проверки или «Откуда»" : ""}.`
-        } Без нажатия «Обновить» проект считается по своей версии.`}
-      />{" "}
+      <b>Справочник допущений обновлён до версии {last.version}</b> (проект посчитан по версии {mine.version}).{" "}
+      {diff.length
+        ? `Изменились значения, которые использует проект: ${diff.length}.`
+        : `Значения, которые использует проект, не изменились${statusOnly ? "; поменялись статусы проверки или «Откуда»" : ""}.`}{" "}
       <button className="linklike" onClick={() => setOpen(!open)}>
         {open ? "Скрыть" : "Что изменится"}
       </button>

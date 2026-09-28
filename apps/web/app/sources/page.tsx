@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { ReferenceShell } from "@/components/ReferenceShell";
 import { Suspense, useMemo, useState } from "react";
 import { getParameter, spec, type ParameterId } from "@fm/spec";
 import { useHow } from "@/components/HowPanel";
@@ -8,7 +9,6 @@ import * as fmt from "@/lib/format";
 import { REVIEW_PERIOD_MONTHS, sourceStatus, type SourceCheck, type SourceIssue } from "@/lib/sources";
 import { useStore } from "@/lib/store";
 import type { ProjectSource } from "@/lib/types";
-import { Hint } from "@/components/Hint";
 
 type Scope = "all" | "global" | "project";
 
@@ -130,9 +130,9 @@ function SourcesPage() {
   };
 
   return (
-    <main className="page wide">
-      <div className="page-head">
-        <h1>Источники</h1>
+    <ReferenceShell active="sources">
+      <div className="work-head">
+        <h2>Источники</h2>
         <button className="btn primary" onClick={() => (setScope("project"), setAdding(true))}>
           + Источник проекта
         </button>
@@ -275,11 +275,8 @@ function SourcesPage() {
         </tbody>
       </table>
       </div>
-      <p className="footnote">
-        Уровни источников от 1 до 5
-        <Hint text="1 — закон, НПА; 2 — статистика, госсервисы; 3 — рынок; 4 — документ компании или проекта; 5 — экспертная оценка (автор, обоснование, диапазон). Вложение файлов к источникам проекта — этап 8." />
-      </p>
-    </main>
+      <p className="footnote">Уровни: 1 — закон, НПА; 2 — статистика, госсервисы; 3 — рынок; 4 — документ компании или проекта; 5 — экспертная оценка (автор, обоснование, диапазон).</p>
+    </ReferenceShell>
   );
 }
 

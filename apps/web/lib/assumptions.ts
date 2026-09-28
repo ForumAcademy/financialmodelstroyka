@@ -101,8 +101,8 @@ export function confirmation(project: DemoProject, param: ParameterId) {
 export type ValueSource = "standard" | "confirmed" | "project";
 
 export const SOURCE_LABEL: Record<ValueSource, string> = {
-  standard: "стандарт",
-  confirmed: "подтверждено",
+  standard: "стандарт компании",
+  confirmed: "подтверждено финансистами",
   project: "введено для проекта",
 };
 

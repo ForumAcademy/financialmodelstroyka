@@ -6,9 +6,9 @@ import Decimal from "decimal.js";
 import { assumptionValueProblem, getParameter, type ParameterId } from "@fm/spec";
 import { savedAuthor } from "@/components/Change";
 import { useHow } from "@/components/HowPanel";
+import { ReferenceShell } from "@/components/ReferenceShell";
 import {
   assumptionValueText,
-  diffVersions,
   GROUP_LABEL,
   isConfirmed,
   latest,
@@ -21,7 +21,6 @@ import {
 } from "@/lib/assumptions";
 import * as fmt from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { Hint } from "@/components/Hint";
 
 const AUTHOR_KEY = "fm.author";
 const PERCENT = 100;
@@ -255,35 +254,6 @@ function ReleaseChecks({ current }: { current: AssumptionVersion }) {
   );
 }
 
-function History({ versions }: { versions: AssumptionVersion[] }) {
-  return (
-    <ul className="version-list">
-      {[...versions].reverse().map((v) => {
-        const prev = versionOf(versions, v.version - 1);
-        const diff = prev ? diffVersions(prev, v) : [];
-        return (
-          <li key={v.version}>
-            <b>Версия {v.version}</b> · {fmt.date(v.date)} · {v.author}
-            <div>{v.note}</div>
-            {diff.length ? (
-              <ul className="small">
-                {diff.map((d) => (
-                  <li key={d.param}>
-                    {getParameter(d.param).name}:{" "}
-                    {d.valueChanged ? `${assumptionValueText(d.param, d.before?.value)} → ${assumptionValueText(d.param, d.after?.value)}` : null}
-                    {d.before?.status !== d.after?.status && d.after ? `${d.valueChanged ? "; " : ""}${d.before ? statusText(d.before) : STATUS_LABEL.unverified} → ${statusText(d.after)}` : null}
-                    {!d.valueChanged && d.before?.status === d.after?.status ? "изменено «Откуда»" : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
 export default function AssumptionsPage() {
   const { assumptions, projects } = useStore();
   const current = latest(assumptions);
@@ -291,13 +261,12 @@ export default function AssumptionsPage() {
   const behind = projects.filter((p) => !p.archived && (p.assumptionsVersion ?? 0) < current.version);
   const unverified = current.items.filter((i) => i.status !== "approved" && i.value !== null).length;
   return (
-    <main className="page">
-      <div className="page-head">
-        <h1>Справочник допущений</h1>
+    <ReferenceShell active="values">
+      <div className="work-head">
+        <h2>Стандартные значения</h2>
       </div>
       <p className="muted">
-        Стандартные значения компании для нового проекта
-        <Hint text="Финансист вводит только специфику объекта: ТЭП, цены, план продаж, смету, график СМР. Любое значение можно заменить в проекте, указав, почему. Новая версия справочника не пересчитывает существующие проекты: проект переходит на неё по кнопке «Обновить» в самом проекте." />
+        Стандартные значения компании для нового проекта. Финансист вводит только специфику объекта: ТЭП, цены, план продаж, смету, график СМР. Любое значение можно заменить в проекте, указав, почему. Новая версия справочника не пересчитывает существующие проекты: проект переходит на неё по кнопке «Обновить» в самом проекте.
       </p>
       <p>
         <b>Версия {current.version}</b> от {fmt.date(current.date)} · {current.author}. Не проверено: {unverified}.
@@ -342,9 +311,6 @@ export default function AssumptionsPage() {
           </div>
         </section>
       ))}
-      <h2>История изменений</h2>
-      <History versions={assumptions} />
-      <p className="footnote">Демо: данные хранятся до перезагрузки страницы</p>
-    </main>
+    </ReferenceShell>
   );
 }

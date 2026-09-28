@@ -7,13 +7,12 @@ import { getCapexItem, getFormula, getParameter, getSource, spec, type CapexItem
 import * as fmt from "@/lib/format";
 import { compositeSummary, DataView } from "./DataView";
 import { ChangedMark, valueText } from "./Change";
-import { Hint } from "./Hint";
 import { whence } from "@/lib/whence";
 import { valueSource } from "@/lib/assumptions";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { amount, compatDiff, exampleFocus, howExample, inputFields, monthName, shortSource } from "@/lib/how-example";
 import { cellMln, cellPrice, cellQty, cellShare, hasUnsold, parkingWarning, pricesFromExcel, rowName, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
-import { isParameterIdLike, modePair, stageOf, type ProjectModel } from "@/lib/model";
+import { isParameterIdLike, modePair, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import { useStore } from "@/lib/store";
 
@@ -90,30 +89,6 @@ function Actions({ formula, source }: { formula?: string | undefined; source?: s
   );
 }
 
-/** Первая фраза текста и остаток: на экране — одна фраза, полный текст — по клику «Подробнее». */
-export function splitFirst(text: string): [string, string] {
-  const m = /^(.+?[.!?])\s+(?=[А-ЯЁA-Z«(])/.exec(text);
-  return m ? [m[1]!, text.slice(m[0].length)] : [text, ""];
-}
-
-function Short({ text }: { text: string }) {
-  const [full, setFull] = useState(false);
-  const [first, rest] = splitFirst(text);
-  return (
-    <p>
-      {full ? text : first}
-      {rest ? (
-        <>
-          {" "}
-          <button className="linklike" onClick={() => setFull(!full)}>
-            {full ? "Свернуть" : "Подробнее"}
-          </button>
-        </>
-      ) : null}
-    </p>
-  );
-}
-
 /** Значение в заголовке — только для одного числа; ряды и таблицы раскрывает блок «Пример». */
 function headlineValue(v: unknown, unit: string): string | null {
   if (v instanceof Decimal || typeof v === "number") return amount(v, unit);
@@ -151,7 +126,7 @@ function WarnList({ items, projectId, open }: { items: Warn[]; projectId: string
           {w.product && projectId ? (
             <>
               {" "}
-              <Link className="how-go" href={`/projects/${projectId}?tab=sales&row=${encodeURIComponent(w.product)}`}>
+              <Link className="how-go" href={`/projects/${projectId}?field=SALES.PACE&row=${encodeURIComponent(w.product)}`}>
                 Открыть план продаж {w.product}
               </Link>
             </>
@@ -185,10 +160,7 @@ function SalesTable({ rows, excelPrices }: { rows: SalesRow[]; excelPrices: bool
             <th>Построено</th>
             {unsold ? <th>Не продано</th> : null}
             <th>Продано к вводу своей очереди, %</th>
-            <th>
-              Договоры к вводу, млн руб{star}
-              <Hint text="По ДДУ эти деньги лежат на эскроу до раскрытия." />
-            </th>
+            <th>Договоры к вводу, млн руб{star}</th>
             <th>Выручка, млн руб{star}</th>
             {full ? (
               <>
@@ -250,7 +222,8 @@ function SalesTable({ rows, excelPrices }: { rows: SalesRow[]; excelPrices: bool
         <button className="linklike" onClick={() => setFull(!full)}>
           {full ? "Свернуть" : "Подробнее: темп, срок продаж, средняя цена"}
         </button>
-        {excelPrices ? " * Цены из исходного Excel: не задан рыночный рост цен" : ""}
+        {" "}Договоры к вводу — по ДДУ эти деньги лежат на эскроу до раскрытия.
+        {excelPrices ? " * По ценам исходного Excel: в расчёте сервиса цена не считается, пока не заполнен «Рыночный рост цен, годовой»." : ""}
       </p>
     </div>
   );
@@ -326,9 +299,9 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
     <>
       <h2>{f.plain?.title ?? t.label ?? f.name}</h2>
       {value ? <div className="how-value">{value}</div> : null}
-      {!node && sm && !warns.length ? <p className="muted small">Показатель начнёт считаться на этапе {stageOf(t.id) ?? "?"}.</p> : null}
+      {!node && sm && !warns.length ? <p className="muted small">Показатель ещё не рассчитывается.</p> : null}
       <h3>Как считается</h3>
-      <Short key={t.id} text={f.plain?.how ?? humanize(f.note ?? f.rationale)} />
+      <p>{f.plain?.how ?? humanize(f.note ?? f.rationale)}</p>
       {related ? (
         <p className="how-related">
           {related.text}:{" "}
@@ -493,26 +466,20 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
         {change
           ? "Изменено в проекте — справочник не менялся"
           : source === "standard"
-            ? `Стандарт компании, версия ${project?.assumptionsVersion}. Подтвердите или замените`
+            ? `Стандарт компании (справочник допущений, версия ${project?.assumptionsVersion}). Для проекта не подтверждено: нажмите «Подтвердить» у поля или замените значение, указав, почему`
             : source === "confirmed"
-              ? `Стандарт компании, версия ${project?.assumptionsVersion}, подтверждён для проекта`
+              ? `Стандарт компании (справочник допущений, версия ${project?.assumptionsVersion}), подтверждено финансистами для этого проекта`
               : origin === "project"
           ? "Введено в проекте"
           : origin === "region"
             ? "Из справочника регионов — подставляется по региону проекта"
             : p.scope === "template"
-              ? "Значение справочника, одинаково для всех проектов"
-              : "Значение по умолчанию из справочника"}
-        {source === "standard" || source === "confirmed" ? (
-          <>
-            {" "}
-            · <Link href="/assumptions">справочник</Link>
-          </>
-        ) : null}
+              ? "Значение справочника — одинаково для всех проектов; в проекте его можно изменить, указав, почему"
+              : "Значение по умолчанию из справочника — можно заменить в проекте"}
       </p>
       {project && model(project).missing.has(id) ? (
         <p className="need-legend">
-          <span className="need-badge">Заполните</span> Без него не считаются формулы ниже
+          <span className="need-badge">Заполните</span> Обязательное значение не введено — без него не считаются формулы из раздела «Где используется в расчёте» ниже.
         </p>
       ) : null}
       <h3>Откуда</h3>
@@ -546,13 +513,13 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
       {p.from?.text === p.basis ? null : (
         <>
           <h3>Что это</h3>
-          <Short key={id} text={humanize(p.basis)} />
+          <p>{humanize(p.basis)}</p>
         </>
       )}
       {p.how_to_fill ? (
         <>
           <h3>Где взять значение</h3>
-          <Short key={id} text={humanize(p.how_to_fill)} />
+          <p>{humanize(p.how_to_fill)}</p>
         </>
       ) : null}
       {project && (p.scope !== "template" || change) ? (
@@ -575,8 +542,8 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
             </p>
           ) : (
             <p className="warn small">
-              Документ не указан — значение непроверенное
-              <Hint text="Выберите ниже документ, из которого взято значение (договор, ТЭП, ГПЗУ, расчёт), или добавьте его в источники проекта." />
+              Документ не указан. Выберите ниже документ, из которого взято значение (договор, ТЭП, ГПЗУ, расчёт), или добавьте его в источники проекта.
+              Пока документа нет, значение считается непроверенным.
             </p>
           )}
           <select value={linked?.id ?? ""} onChange={(e) => dispatch({ type: "linkSource", id: project.id, param: id, sourceId: e.target.value || null })}>
@@ -588,7 +555,7 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
             ))}
           </select>
           <p className="small">
-            <Link href={`/projects/${project.id}?tab=docs`}>+ Загрузить документ</Link> · <Link href={`/sources?project=${project.id}&new=1`}>добавить ссылку или экспертную оценку</Link>
+            <Link href={`/projects/${project.id}?s=docs`}>+ Загрузить документ</Link> · <Link href={`/sources?project=${project.id}&new=1`}>добавить ссылку или экспертную оценку</Link>
           </p>
         </>
       ) : null}
@@ -655,7 +622,7 @@ function CapexView({ id, open }: { id: CapexItemId; open: (t: HowTarget) => void
         .
       </p>
       <h3>Почему так</h3>
-      <Short key={id} text={humanize(c.basis)} />
+      <p>{humanize(c.basis)}</p>
       <h3>Формула</h3>
       <button className="dep" onClick={() => open({ kind: "formula", id: formula })}>
         <span>{getFormula(formula).name}</span>

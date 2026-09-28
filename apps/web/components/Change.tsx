@@ -6,6 +6,7 @@ import { compositeSummary } from "./DataView";
 import { useStore } from "@/lib/store";
 import type { DemoProject, ValueChange } from "@/lib/types";
 import { whence } from "@/lib/whence";
+import Link from "next/link";
 import { confirmation, SOURCE_LABEL, standardKey, valueSource } from "@/lib/assumptions";
 import * as fmt from "@/lib/format";
 import { standardInUse } from "@/lib/standard";
@@ -54,7 +55,7 @@ export function ChangedMark({ project, id }: { project: DemoProject; id: Paramet
 }
 
 /**
- * Источник значения справочника допущений в проекте: «Стандарт» с кнопкой «Подтвердить» / «введено для
+ * Источник значения справочника допущений в проекте: «Стандарт компании» с кнопкой «Подтвердить» / «введено для
  * проекта» / «подтверждено финансистами». Подтверждение (кто, когда, комментарий) хранится в проекте.
  */
 export function SourceMark({ project, id }: { project: DemoProject; id: ParameterId }) {
@@ -83,12 +84,15 @@ export function SourceMark({ project, id }: { project: DemoProject; id: Paramete
     };
     return (
       <span className="standard-mark">
-        <span className={`source-badge source-${source}`} title={`Стандартное значение компании. Подтвердите или замените. Откуда: ${w.text}`}>
-          Стандарт
+        <span className={`source-badge source-${source}`} title={`${w.text}. Для проекта не подтверждено.`}>
+          Стандарт компании
         </span>
         <button className="link small" onClick={() => setConfirming(true)} title="Подтвердить, что значение подходит этому проекту">
           Подтвердить
         </button>
+        <Link className="small" href="/assumptions" title="Открыть справочник допущений компании">
+          справочник
+        </Link>
         {confirming ? (
           <span className="issue-status-form">
             <textarea placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />

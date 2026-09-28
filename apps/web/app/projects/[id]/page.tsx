@@ -4,49 +4,47 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useHow } from "@/components/HowPanel";
+import { Inputs } from "@/components/Sheet";
 import { BudgetTab } from "@/components/tabs/BudgetTab";
 import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
+import { TepCalc } from "@/components/tabs/TepTab";
 import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
-import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
-import { inputTabCount, issueSummary, issuesBannerText, issuesTabCount, type TabCount } from "@/lib/issues";
-import { Hint } from "@/components/Hint";
-import { tabCount, tabMissing, tabOfParam, type InputTab } from "@/lib/tab-inputs";
-import { unconfirmedStandard } from "@/lib/standard";
-import { getParameter } from "@fm/spec";
-import { TepTab } from "@/components/tabs/TepTab";
+import { DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
+import { NavLayout, type NavEntry, type Tone } from "@/components/ProjectNav";
+import { issuesCount, issueSummary } from "@/lib/issues";
+import { firstMissing, inputSteps, inputsMissing, placeOfParam, SECTION_OF_TAB, sectionHref, SHEETS, stepMissing, type SectionId } from "@/lib/project-nav";
 import { exportProject } from "@/lib/excel-export";
-import { regionName } from "@/lib/format";
+import { housingClass, plural, regionName } from "@/lib/format";
 import { projectQuestions } from "@/lib/model";
 import { useStore } from "@/lib/store";
+import type { InputTab } from "@/lib/tab-inputs";
+import type { ParameterId } from "@fm/spec";
 
-const TABS = [
-  { id: "issues", label: "Расхождения" },
-  { id: "tep", label: "ТЭП" },
-  { id: "budget", label: "Бюджет" },
-  { id: "sales", label: "План продаж" },
-  { id: "escrow", label: "Эскроу" },
-  { id: "cf", label: "CF" },
-  { id: "dashboard", label: "Дашборд" },
-  { id: "docs", label: "Документы" },
-] as const;
-type TabId = (typeof TABS)[number]["id"];
+/** Прежние адреса «?tab=…&view=…» (ссылки из панелей «Как посчитано») ведут в новый раздел. */
+function sectionFromSearch(search: URLSearchParams): SectionId | null {
+  const s = search.get("s");
+  if (s) return s as SectionId;
+  const tab = search.get("tab");
+  if (tab === "docs" || tab === "issues") return tab;
+  if (tab && tab in SECTION_OF_TAB) return SECTION_OF_TAB[tab as InputTab];
+  return null;
+}
 
 function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
   const router = useRouter();
-  const { projects, model, sourceChecks, assumptions } = useStore();
+  const { projects, model, sourceChecks } = useStore();
   const { setProject } = useHow();
   const [exporting, setExporting] = useState(false);
-  const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const project = projects.find((p) => p.id === id);
   useEffect(() => {
     setProject(project ? project.id : null);
     return () => setProject(null);
   }, [project, setProject]);
 
-  // Переход к полю из строки «Не подтверждено стандартных значений»: ?tab=<вкладка>&field=<параметр>
+  // Переход к полю: ?s=<шаг>&t=<вкладка>&field=<параметр>
   const field = search.get("field");
   useEffect(() => {
     if (!field) return;
@@ -59,7 +57,7 @@ function ProjectPage() {
     return () => clearTimeout(t);
   }, [field]);
 
-  // Переход из панели «Как посчитано» к строке плана продаж: ?tab=sales&row=<продукт>
+  // Переход из панели «Как посчитано» к строке плана продаж: ?s=sales&row=<продукт>
   const row = search.get("row");
   useEffect(() => {
     if (!row) return;
@@ -76,34 +74,73 @@ function ProjectPage() {
     return (
       <main className="page">
         <h1>Проект не найден</h1>
-        <p className="muted">В демо-режиме проекты хранятся до перезагрузки страницы.</p>
-        <Link href="/">← К проектам</Link>
+        <p className="muted">Проекты хранятся до перезагрузки страницы.</p>
+        <Link href="/">← Все проекты</Link>
       </main>
     );
   }
   const m = model(project);
   const questions = projectQuestions(project, m);
-  // Одна сводка для заголовка вкладки «Расхождения» и плашки над вкладками
   const summary = issueSummary(project, questions);
-  const banner = issuesBannerText(project, summary);
-  const tabs = TABS.filter((t) => t.id !== "issues" || summary.shown);
-  const tab = (tabs.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
-  const unconfirmed = unconfirmedStandard(project, assumptions);
-  // Счётчик на вкладке — только число с цветом («ТЭП 7»), подробности — в подсказке
-  const count = (t: (typeof TABS)[number]): TabCount | null =>
-    t.id === "issues" ? issuesTabCount(project, summary) : t.id === "docs" ? null : inputTabCount(tabMissing(t.id as InputTab, project, m), tabCount(t.id as InputTab, project, unconfirmed));
-  const view = search.get("view") === "calc" ? "calc" : "inputs";
-  const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
+  // «Как в исходном Excel» — ошибок в файле, «Расчёт сервиса» — сколько не исправлено (статус из кода)
+  const issueCount = issuesCount(project, summary);
+  const steps = inputSteps(project);
+  const missing = inputsMissing(project, m);
+  const first = firstMissing(project, m);
+
+  // Поле из ссылки «?field=» без шага — открываем шаг, где оно стоит.
+  const fieldPlace = field ? placeOfParam(project, field as ParameterId) : null;
+  const requested = sectionFromSearch(search) ?? fieldPlace?.step ?? "site";
+  const section: SectionId = requested === "issues" && !summary.shown ? "site" : requested;
+  const go = (s: string, extra: Record<string, string | number> = {}) => router.replace(sectionHref(project.id, s as SectionId, extra), { scroll: false });
+
+  const stepStatus = (n: number): [string, Tone] => (n ? [`нет ${n}`, "need"] : ["✓", "done"]);
+  const entries: NavEntry[] = [
+    {
+      group: {
+        id: "inputs",
+        title: "Вводные показатели",
+        icon: "✎",
+        short: "Вводные",
+        status: missing ? `нет ${missing}` : undefined,
+        tone: missing ? "need" : "done",
+        items: steps.map((s) => {
+          const [status, tone] = stepStatus(stepMissing(s, m));
+          return { id: s.id, mark: String(s.n), title: s.title, status, tone };
+        }),
+      },
+    },
+    { group: { id: "calc", title: "Расчёт", icon: "Σ", short: "Расчёт", items: SHEETS.map((s) => ({ id: s.id, mark: "·", title: s.title })) } },
+    { divider: true },
+    { item: { id: "dashboard", mark: "★", title: "Дашборд", icon: "★", short: "Дашборд" } },
+    { item: { id: "docs", mark: "▤", title: "Документы проекта", icon: "▤", short: "Документы" } },
+    ...(summary.shown
+      ? [{ item: { id: "issues", mark: "⇄", title: "Расхождения с Excel", status: issueCount.ok ? "✓" : String(issueCount.n), hint: issueCount.title, tone: (issueCount.ok ? "done" : "bad") as Tone, icon: "⇄", short: "Расхождения" } }]
+      : []),
+  ];
+
+  const step = steps.find((s) => s.id === section);
+  const tRaw = Number(search.get("t") ?? fieldPlace?.tab ?? 0) || 0;
+  // У ТЭП после вкладок полей — «Итоги площадей» (что посчитано из вводных).
+  const tepTotals = step?.id === "tep" && tRaw === step.tabs.length;
+  const tabIndex = tepTotals ? tRaw : Math.min(tRaw, (step?.tabs.length ?? 1) - 1);
 
   return (
-    <main className="page wide">
-      <div className="project-head">
-        <div>
-          <h1>{project.name}</h1>
-          <div className="meta">
-            {regionName(project)} · {String(project.input.values["GEN.PROJECT_STAGE"] ?? "стадия не указана")}
-          </div>
-        </div>
+    <div className="shell">
+      <header className="card-head">
+        <Link href="/" className="back">
+          ← Все проекты
+        </Link>
+        <h1>{project.name}</h1>
+        <span className="meta">
+          {[project.input.values["GEN.REGION_CODE"] ? regionName(project) : null, housingClass(project)].filter(Boolean).join(" · ")}
+        </span>
+        <span className="sp" />
+        {first ? (
+          <button className="chip warn" onClick={() => go(first.step, { t: first.tab, field: first.id })}>
+            Не хватает {missing} {plural(missing, ["значения", "значений", "значений"])}
+          </button>
+        ) : null}
         <button
           className="btn"
           disabled={exporting}
@@ -118,75 +155,77 @@ function ProjectPage() {
         >
           Выгрузить в Excel
         </button>
-      </div>
-      {project.legacyCase ? <ModeSwitch project={project} /> : null}
-      <AssumptionsUpdate project={project} />
-      {tab === "issues" || !banner ? null : <CompatBanner text={banner} go={() => go("issues", view)} />}
-      {unconfirmed.length ? (
-        <div className="standard-line small">
-          Подтвердите стандарт: {unconfirmed.length}.{" "}
-          <button className="linklike" onClick={() => setShowUnconfirmed(!showUnconfirmed)}>
-            {showUnconfirmed ? "Скрыть" : "Показать"}
-          </button>
-          {showUnconfirmed ? <br /> : null}
-          {showUnconfirmed && unconfirmed.map((id, k) => {
-            const t = tabOfParam(project, id);
-            return (
-              <span key={id}>
-                {k ? ", " : ""}
-                {t ? (
-                  <button className="linklike" onClick={() => router.replace(`/projects/${project.id}?tab=${t}&field=${id}`, { scroll: false })}>
-                    {getParameter(id).name}
-                  </button>
-                ) : (
-                  getParameter(id).name
-                )}
-              </span>
-            );
-          })}
-        </div>
-      ) : null}
-      <nav className="tabs">
-        {tabs.map((t) => (
-          <TabButton key={t.id} label={t.label} count={count(t)} on={tab === t.id} onClick={() => go(t.id, view)} />
-        ))}
-      </nav>
-      <div className="sheet-page" data-view={view}>
-        {tab === "docs" ? <DocumentsTab project={project} /> : null}
-        {tab === "issues" ? <DiscrepanciesTab project={project} questions={questions} go={(t) => go(t, "calc")} /> : null}
-        <div className="view-switch" hidden={tab === "docs" || tab === "issues"}>
-          <div className="seg">
-            <button className={view === "inputs" ? "on" : ""} onClick={() => go(tab, "inputs")}>
-              Вводные
-            </button>
-            <button className={view === "calc" ? "on" : ""} onClick={() => go(tab, "calc")}>
-              Расчёт
-            </button>
-          </div>
-          {view === "calc" ? <span className="small muted">Нажмите на строку — формула и источники</span> : null}
-          <Hint text={HELP} />
-        </div>
-        {tab === "tep" ? <TepTab project={project} model={m} /> : null}
-        {tab === "budget" ? <BudgetTab project={project} model={m} /> : null}
-        {tab === "sales" ? <SalesTab project={project} model={m} /> : null}
-        {tab === "escrow" ? <EscrowTab project={project} model={m} /> : null}
-        {tab === "cf" ? <CashflowTab project={project} model={m} /> : null}
-        {tab === "dashboard" ? <DashboardTab project={project} model={m} /> : null}
-      </div>
-    </main>
-  );
-}
-
-/** Справка по виду полей — один раз, у переключателя «Вводные | Расчёт». */
-const HELP =
-  "Голубые поля можно менять. «Заполните» — обязательное значение не введено, без него часть расчёта не выполняется. «Стандарт» — значение из справочника компании: подтвердите его или замените. Число на вкладке — сколько полей ждут действия. Нажмите на название поля или строку расчёта — откроется, как посчитано и откуда значение.";
-
-function TabButton({ label, count, on, onClick }: { label: string; count: TabCount | null; on: boolean; onClick: () => void }) {
-  return (
-    <button className={on ? "on" : ""} onClick={onClick} title={count?.title}>
-      {label}
-      {count ? <span className={`tab-count tc-${count.tone}`}>{count.tone === "ok" ? "✓" : count.n}</span> : null}
-    </button>
+      </header>
+      <NavLayout entries={entries} active={section} go={(s) => go(s)}>
+        <AssumptionsUpdate project={project} />
+        {step ? (
+          <>
+            <div className="work-head">
+              <h2>{step.title}</h2>
+              <p>{step.hint}</p>
+            </div>
+            <nav className="work-tabs">
+              {step.tabs.map((g, k) => (
+                <button key={g.title} className={k === tabIndex ? "on" : ""} onClick={() => go(step.id, { t: k })}>
+                  {g.title}
+                  {g.params.some((p) => m.missing.has(p)) ? <i className="dot dot-need" /> : null}
+                </button>
+              ))}
+              {step.id === "tep" ? (
+                <button className={tabIndex === step.tabs.length ? "on" : ""} onClick={() => go(step.id, { t: step.tabs.length })}>
+                  Итоги площадей
+                </button>
+              ) : null}
+            </nav>
+            {tepTotals ? (
+              <TepCalc project={project} model={m} />
+            ) : (
+              <Inputs project={project} model={m} groups={[step.tabs[tabIndex]!]} bare />
+            )}
+          </>
+        ) : null}
+        {SHEETS.some((s) => s.id === section) ? (
+          <>
+            <div className="work-head">
+              <h2>{SHEETS.find((s) => s.id === section)!.title}</h2>
+            </div>
+            <div className="sheet-page" data-view="calc">
+              {section === "sales" ? <SalesTab project={project} model={m} /> : null}
+              {section === "budget" ? <BudgetTab project={project} model={m} /> : null}
+              {section === "escrow" ? <EscrowTab project={project} model={m} /> : null}
+              {section === "cf" ? <CashflowTab project={project} model={m} /> : null}
+            </div>
+          </>
+        ) : null}
+        {section === "dashboard" ? (
+          <>
+            <div className="work-head">
+              <h2>Дашборд</h2>
+            </div>
+            <div className="sheet-page" data-view="calc">
+              <DashboardTab project={project} model={m} />
+            </div>
+          </>
+        ) : null}
+        {section === "docs" ? (
+          <>
+            <div className="work-head">
+              <h2>Документы проекта</h2>
+            </div>
+            <DocumentsTab project={project} />
+          </>
+        ) : null}
+        {section === "issues" ? (
+          <>
+            <div className="work-head">
+              <h2>Расхождения с Excel</h2>
+            </div>
+            <ModeSwitch project={project} />
+            <DiscrepanciesTab project={project} questions={questions} go={(t) => go(SECTION_OF_TAB[t])} />
+          </>
+        ) : null}
+      </NavLayout>
+    </div>
   );
 }
 

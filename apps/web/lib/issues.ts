@@ -112,7 +112,7 @@ export interface IssueSummary {
   notFixed: number;
 }
 
-/** Один подсчёт для счётчика вкладки «Расхождения» и плашки над вкладками — одинаковый в обоих расчётах. */
+/** Один подсчёт для заголовка вкладки «Расхождения» и плашки над вкладками — одинаковый в обоих расчётах. */
 export function issueSummary(project: DemoProject, questions: DataQuestion[]): IssueSummary {
   const items = issueItems(project, questions).filter((i) => !i.stale);
   const open = (g: AuditGroup) => items.filter((i) => i.group === g && i.status !== "done").length;
@@ -128,36 +128,30 @@ export function issueSummary(project: DemoProject, questions: DataQuestion[]): I
   };
 }
 
-/** Счётчик на вкладке: на экране — только число с цветом, подробности — в подсказке. */
-export interface TabCount {
+/** Число у пункта «Расхождения с Excel»: n — число на экране, title — подсказка, ok — всё исправлено. */
+export interface IssuesCount {
   n: number;
-  /** need — не заполнено обязательное; standard — только не подтверждён стандарт; issues — расхождения; ok — всё решено. */
-  tone: "need" | "standard" | "issues" | "ok";
+  ok: boolean;
   title: string;
 }
 
 /**
- * Вкладка «Расхождения»: в «Как в исходном Excel» — ошибок в файле («Расхождения 34», подсказка «В файле: 34»),
- * в «Расчёте сервиса» — сколько не исправлено («Расхождения 7») или ✓.
+ * В «Как в исходном Excel» — ошибок в файле («34», подсказка «В файле: 34»); в «Расчёте сервиса» — сколько
+ * не исправлено («7», подсказка «Не исправлено: 7. В файле: 34») или ✓. Статус «исправлено» — из кода (fixedInCode).
  */
-export function issuesTabCount(project: DemoProject, s: IssueSummary): TabCount {
+export function issuesCount(project: DemoProject, s: IssueSummary): IssuesCount {
   const asked = s.questions ? `. Вопросов автору файла: ${s.questions}` : "";
-  if (project.input.mode === "legacy") return { n: s.inFile, tone: "issues", title: `В файле: ${s.inFile}${asked}` };
-  return s.notFixed
-    ? { n: s.notFixed, tone: "issues", title: `Не исправлено: ${s.notFixed}. В файле: ${s.inFile}${asked}` }
-    : { n: 0, tone: "ok", title: `Всё исправлено. В файле: ${s.inFile}${asked}` };
+  if (project.input.mode === "legacy") return { n: s.inFile, ok: s.inFile === 0, title: `В файле: ${s.inFile}${asked}` };
+  return { n: s.notFixed, ok: s.notFixed === 0, title: s.notFixed ? `Не исправлено: ${s.notFixed}. В файле: ${s.inFile}${asked}` : `Всё исправлено. В файле: ${s.inFile}${asked}` };
 }
 
-/** Плашка над вкладками — только в «Расчёте сервиса» и только если есть неисправленное; в «Как в исходном Excel» — метка у переключателя. */
+/** Текст плашки: только в «Расчёте сервиса» и только если есть неисправленное; null — плашки нет. */
 export function issuesBannerText(project: DemoProject, s: IssueSummary): string | null {
   if (!s.shown || s.notFixed === 0 || project.input.mode === "legacy") return null;
   return `Не исправлено: ${s.notFixed}.`;
 }
 
-/** Вкладка с вводными: «ТЭП 7» — незаполненные и неподтверждённые вместе; null — счётчика нет. */
-export function inputTabCount(missing: number, unconfirmed = 0): TabCount | null {
-  const n = missing + unconfirmed;
-  if (!n) return null;
-  const title = [missing ? `Не заполнено: ${missing}` : "", unconfirmed ? `Стандарт не подтверждён: ${unconfirmed}` : ""].filter(Boolean).join(". ");
-  return { n, tone: missing ? "need" : "standard", title };
+/** Заголовок вкладки с вводными: «ТЭП · 7 не заполнено · 3 не подтверждено». */
+export function inputTabLabel(label: string, missing: number, unconfirmed = 0): string {
+  return [label, missing ? `${missing} не заполнено` : "", unconfirmed ? `${unconfirmed} не подтверждено` : ""].filter(Boolean).join(" · ");
 }

@@ -35,6 +35,9 @@ export function whence(id: ParameterId, project?: DemoProject | null, versions: 
     if (change) return { text: change.why, url: change.url || doc?.url || doc?.file?.url || null, kind: "changed" };
     const own = project.input.values[id];
     if (own !== undefined && own !== null) {
+      const cell = project.fromFile?.[id];
+      const file = project.sources.find((s) => s.id === project.fileImport?.sourceId)?.file;
+      if (cell && file) return { text: `Загружено из файла ${file.name}, лист ${cell.sheet}, ${cell.cell.includes(":") ? "ячейки" : "ячейка"} ${cell.cell}`, url: file.url, kind: "project" };
       return doc ? { text: doc.title, url: doc.url || doc.file?.url || null, kind: "project" } : { text: "документ не указан", url: null, kind: "project" };
     }
     const source = valueSource(project, id, versions);

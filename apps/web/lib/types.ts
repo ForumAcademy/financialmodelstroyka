@@ -1,5 +1,6 @@
 import type { CalcMessage, LegacyCase, ProjectInput } from "@fm/engine";
 import type { ParameterId } from "@fm/spec";
+import type { FileImport } from "./excel-import";
 
 /** Источник проекта (docs/00, раздел 6): документ проекта (уровень 4) или экспертная оценка (уровень 5). */
 export interface ProjectSource {
@@ -93,6 +94,12 @@ export interface DemoProject {
   legacyCase?: LegacyCase;
   /** Статусы пунктов «Расхождения с Excel» по постоянному ключу — сохраняются при пересчёте. */
   issues?: Record<string, IssueState>;
+  /** Адрес участка из формы «Новый проект» (кадастровый номер хранится в параметре GEN.CADASTRAL_NUMBER). */
+  address?: string;
+  /** Значения, подставленные из загруженной финмодели в Excel: лист и ячейка файла (файл — документ fileImport.sourceId). */
+  fromFile?: Partial<Record<ParameterId, { sheet: string; cell: string }>>;
+  /** Что загружено из финмодели в Excel при создании проекта: подставлено и не подставлено. */
+  fileImport?: FileImport;
   /** Примечание к данным (например, допущения при переносе вех исходника). */
   note?: string;
 }

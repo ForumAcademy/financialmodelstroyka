@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import Decimal from "decimal.js";
 import { assumptionValueProblem, getParameter, type ParameterId } from "@fm/spec";
 import { savedAuthor } from "@/components/Change";
@@ -151,13 +152,13 @@ function EditForm({ item, onDone }: { item: AssumptionItem; onDone: () => void }
   );
 }
 
-function ItemRow({ item }: { item: AssumptionItem }) {
+function ItemRow({ item, hl }: { item: AssumptionItem; hl: boolean }) {
   const { open } = useHow();
   const [editing, setEditing] = useState(false);
   const p = getParameter(item.param);
   const long = item.param === "SALES.PAYMENT_MIX";
   return (
-    <tr>
+    <tr id={`ref-${item.param}`} className={hl ? "hl" : ""}>
       <td>
         <button className="linklike" onClick={() => open({ kind: "param", id: item.param })}>
           {p.name}
@@ -254,14 +255,42 @@ function ReleaseChecks({ current }: { current: AssumptionVersion }) {
   );
 }
 
-export default function AssumptionsPage() {
+/** Переход из поля проекта по метке «по справочнику»: строка подсвечена, сверху — «← Проект». */
+function useFromProject(): { param: string | null; back: { href: string; name: string } | null } {
+  const search = useSearchParams();
+  const { projects } = useStore();
+  const param = search.get("param");
+  const from = projects.find((p) => p.id === search.get("from"));
+  useEffect(() => {
+    if (!param) return;
+    const t = setTimeout(() => document.getElementById(`ref-${param}`)?.scrollIntoView({ block: "center" }), 100);
+    return () => clearTimeout(t);
+  }, [param]);
+  return { param, back: from ? { href: `/projects/${from.id}?field=${encodeURIComponent(param ?? "")}`, name: from.name } : null };
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<main className="page">Загрузка…</main>}>
+      <AssumptionsPage />
+    </Suspense>
+  );
+}
+
+function AssumptionsPage() {
   const { assumptions, projects } = useStore();
+  const { param, back } = useFromProject();
   const current = latest(assumptions);
   const groups = (Object.keys(GROUP_LABEL) as AssumptionItem["group"][]).filter((g) => current.items.some((i) => i.group === g));
   const behind = projects.filter((p) => !p.archived && (p.assumptionsVersion ?? 0) < current.version);
   const unverified = current.items.filter((i) => i.status !== "approved" && i.value !== null).length;
   return (
     <ReferenceShell active="values">
+      {back ? (
+        <Link href={back.href} className="back">
+          ← Проект «{back.name}»
+        </Link>
+      ) : null}
       <div className="work-head">
         <h2>Стандартные значения</h2>
       </div>
@@ -304,7 +333,7 @@ export default function AssumptionsPage() {
                 {current.items
                   .filter((i) => i.group === g)
                   .map((i) => (
-                    <ItemRow key={i.param} item={i} />
+                    <ItemRow key={i.param} item={i} hl={i.param === param} />
                   ))}
               </tbody>
             </table>

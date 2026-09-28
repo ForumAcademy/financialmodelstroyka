@@ -7,7 +7,7 @@ import { computeProject, type ProjectModel } from "./model";
 import type { SourceCheck } from "./sources";
 import { latest, SPEC_ASSUMPTIONS, type AssumptionItem, type AssumptionVersion } from "./assumptions";
 
-type Action =
+export type Action =
   | { type: "create"; project: DemoProject }
   | { type: "copy"; id: string; newId: string }
   | { type: "archive"; id: string; archived: boolean }
@@ -22,7 +22,9 @@ type Action =
   | { type: "revert"; id: string; param: ParameterId }
   | { type: "issue"; id: string; key: string; no: number; question: string; event: IssueEvent }
   | { type: "issueNote"; id: string; key: string; no: number; question: string; note: IssueNote }
-  | { type: "assumptionsVersion"; id: string; version: number };
+  | { type: "assumptionsVersion"; id: string; version: number }
+  /** Сохранить черновик вводных проекта целиком (панель «Несохранённые изменения»). */
+  | { type: "replace"; id: string; project: DemoProject };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
@@ -109,6 +111,8 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
       });
     case "assumptionsVersion":
       return map((p) => touch(p, { assumptionsVersion: a.version }));
+    case "replace":
+      return map(() => touch(a.project, {}));
     case "linkSource":
       return map((p) => {
         const paramSources = { ...p.paramSources };
@@ -136,7 +140,7 @@ export function assumptionsReducer(state: AssumptionVersion[], a: AssumptionActi
   return [...state, { version: last.version + 1, date: today, author: a.author, note: a.why, items }];
 }
 
-interface Store {
+export interface Store {
   projects: DemoProject[];
   /** Версии справочника допущений компании; последняя — текущая, новые проекты создаются на ней. */
   assumptions: AssumptionVersion[];
@@ -156,6 +160,9 @@ function checksReducer(state: Record<string, SourceCheck>, a: { id: string; chec
 }
 
 const Ctx = createContext<Store | null>(null);
+
+/** Подмена хранилища для части страницы: черновик вводных проекта (components/Draft.tsx). */
+export const StoreOverride = Ctx.Provider;
 
 export function StoreProvider({ seed, children }: { seed: Seed; children: ReactNode }) {
   const [projects, dispatch] = useReducer(reducer, seed.projects);

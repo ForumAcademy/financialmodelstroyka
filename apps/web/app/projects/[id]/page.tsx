@@ -13,7 +13,8 @@ import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
 import { NavLayout, type NavEntry, type Tone } from "@/components/ProjectNav";
 import { issueSummary } from "@/lib/issues";
-import { firstMissing, inputSteps, inputsMissing, placeOfParam, SECTION_OF_TAB, sectionHref, SHEETS, stepMissing, type SectionId } from "@/lib/project-nav";
+import { firstMissing, inputSteps, inputsMissing, placeOfParam, SECTION_OF_TAB, sectionHref, SHEETS, stepChecks, stepMissing, tabChecks, type SectionId } from "@/lib/project-nav";
+import { DraftProvider } from "@/components/Draft";
 import { exportProject } from "@/lib/excel-export";
 import { housingClass, plural, regionName } from "@/lib/format";
 import { projectQuestions } from "@/lib/model";
@@ -92,7 +93,8 @@ function ProjectPage() {
   const section: SectionId = requested === "issues" && !summary.shown ? "site" : requested;
   const go = (s: string, extra: Record<string, string | number> = {}) => router.replace(sectionHref(project.id, s as SectionId, extra), { scroll: false });
 
-  const stepStatus = (n: number): [string, Tone] => (n ? [`нет ${n}`, "need"] : ["✓", "done"]);
+  const stepStatus = (n: number, checks: number): [string, Tone] =>
+    n ? [`нет ${n}`, "need"] : checks ? [`${checks} ${plural(checks, ["проверка", "проверки", "проверок"])}`, "need"] : ["✓", "done"];
   const entries: NavEntry[] = [
     {
       group: {
@@ -103,7 +105,7 @@ function ProjectPage() {
         status: missing ? `нет ${missing}` : undefined,
         tone: missing ? "need" : "done",
         items: steps.map((s) => {
-          const [status, tone] = stepStatus(stepMissing(s, m));
+          const [status, tone] = stepStatus(stepMissing(s, m), stepChecks(project, m, s));
           return { id: s.id, mark: String(s.n), title: s.title, status, tone };
         }),
       },
@@ -166,7 +168,7 @@ function ProjectPage() {
               {step.tabs.map((g, k) => (
                 <button key={g.title} className={k === tabIndex ? "on" : ""} onClick={() => go(step.id, { t: k })}>
                   {g.title}
-                  {g.params.some((p) => m.missing.has(p)) ? <i className="dot dot-need" /> : null}
+                  {g.params.some((p) => m.missing.has(p)) || tabChecks(project, m, g).length ? <i className="dot dot-need" /> : null}
                 </button>
               ))}
               {step.id === "tep" ? (
@@ -178,7 +180,7 @@ function ProjectPage() {
             {tepTotals ? (
               <TepCalc project={project} model={m} />
             ) : (
-              <Inputs project={project} model={m} groups={[step.tabs[tabIndex]!]} bare />
+              <Inputs project={project} model={m} groups={[step.tabs[tabIndex]!]} bare footer={<Checks items={tabChecks(project, m, step.tabs[tabIndex]!)} />} />
             )}
           </>
         ) : null}
@@ -227,10 +229,34 @@ function ProjectPage() {
   );
 }
 
+/** Проверки вкладки одной фразой: что не так → числа → что сделать. */
+function Checks({ items }: { items: { text: string }[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="checks">
+      {items.map((c) => (
+        <div key={c.text} className="check warn">
+          <span className="ic">!</span>
+          <span>{c.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProjectRoute() {
+  const { id } = useParams<{ id: string }>();
+  return (
+    <DraftProvider projectId={id}>
+      <ProjectPage />
+    </DraftProvider>
+  );
+}
+
 export default function Page() {
   return (
     <Suspense fallback={<main className="page">Загрузка…</main>}>
-      <ProjectPage />
+      <ProjectRoute />
     </Suspense>
   );
 }

@@ -399,3 +399,46 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .version-list ul { margin: 4px 0 0; padding-left: 18px; }
 .assumptions-update { border: 1px solid var(--input-border); background: var(--group-head); border-radius: 8px; padding: 10px 14px; margin: 10px 0; }
 .assumptions-update ul { margin: 6px 0; padding-left: 18px; }
+
+/* Окно сервиса (модальное): заголовок, крестик, поля в две колонки, кнопки внизу */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(20,28,40,.38); z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px 16px; overflow-y: auto; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 18px 50px rgba(20,30,50,.22); width: min(680px, 100%); display: flex; flex-direction: column; max-height: 88vh; }
+.modal.wide { width: min(860px, 100%); }
+.modal-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.modal-head h2 { margin: 0; font-size: 16px; }
+.modal-body { padding: 16px; overflow-y: auto; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); background: #fafbfc; border-radius: 0 0 10px 10px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.mfield { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mfield label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.mfield .req { color: var(--danger); }
+.mfield input, .mfield select { width: 100%; }
+.mfield input.invalid, .mfield select.invalid { border-color: var(--danger); }
+.field-error { font-size: 12px; color: var(--danger); }
+.field-hint { font-size: 12px; color: var(--muted); }
+.combo { position: relative; }
+.combo-list { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 2px); max-height: 240px; overflow-y: auto; margin: 0; padding: 4px 0; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(20,30,50,.14); }
+.combo-list li { padding: 5px 10px; cursor: pointer; }
+.combo-list li.on { background: var(--input); }
+.combo-list li[aria-selected="true"] { font-weight: 600; }
+.upload-block { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--grid); }
+.upload-title { font-weight: 600; margin-bottom: 8px; }
+.dropzone { border: 1.5px dashed var(--input-border); background: #fbfcfe; border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.dropzone:hover, .dropzone.over, .dropzone:focus { border-color: var(--accent); background: var(--input); outline: none; }
+.upload-file { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: #fbfcfe; }
+.upload-file span:first-child { font-weight: 500; overflow-wrap: anywhere; }
+.upload-file .link { margin-left: auto; }
+.import-count { margin: 0 0 10px; }
+.import-fail { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--need-bg); }
+.import-table { margin-bottom: 8px; }
+.import-table td { font-size: 13px; }
+.import-table td:last-child, .import-table th:last-child { white-space: nowrap; }
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .modal-backdrop { padding: 12px 8px; }
+  .modal { max-height: none; }
+}
+.date-input { position: relative; display: flex; align-items: center; }
+.date-input input:first-child { padding-right: 34px; }
+.date-input .icon { position: absolute; right: 3px; display: inline-flex; padding: 5px 6px; }
+.date-input .date-picker { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; }

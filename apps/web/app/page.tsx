@@ -10,6 +10,7 @@ import type { ProjectModel } from "@/lib/model";
 import { latest } from "@/lib/assumptions";
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
+import { Hint } from "@/components/Hint";
 
 /** Выручка с НДС из ядра (F.SALES.REVENUE_TOTAL), млрд руб.; не посчитана — «—». */
 const revenueBn = (m: ProjectModel) => {
@@ -125,7 +126,10 @@ export default function ProjectsPage() {
         ))}
         {list.length === 0 ? <p className="muted">{archived ? "В архиве пусто" : "Проектов нет"}</p> : null}
       </div>
-      <p className="footnote">Демо-режим: проекты и изменения хранятся до перезагрузки страницы (хранение — этап 7). Выручка, NPV и IRR появятся после этапов 4–6.</p>
+      <p className="footnote">
+        Демо: данные хранятся до перезагрузки страницы
+        <Hint text="Постоянное хранение — этап 7. Выручка, NPV и IRR появятся после этапов 4–6." />
+      </p>
     </main>
   );
 }

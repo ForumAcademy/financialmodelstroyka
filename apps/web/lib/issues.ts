@@ -6,7 +6,6 @@
  * Стандартные значения компании сюда не входят: они подтверждаются на полях (lib/standard.ts).
  */
 import type { DataQuestion } from "@fm/engine";
-import { plural } from "./format";
 import { auditItems, type AuditGroup } from "./legacy-audit";
 import type { InputTab } from "./tab-inputs";
 import type { DemoProject, IssueState, IssueStatus } from "./types";
@@ -103,7 +102,7 @@ export interface IssueSummary {
   byGroup: Record<AuditGroup, number>;
 }
 
-/** Один подсчёт для заголовка вкладки «Расхождения» и плашки над вкладками — одинаковый в обоих расчётах. */
+/** Один подсчёт для счётчика вкладки «Расхождения» и плашки над вкладками — одинаковый в обоих расчётах. */
 export function issueSummary(project: DemoProject, questions: DataQuestion[]): IssueSummary {
   const items = issueItems(project, questions).filter((i) => !i.stale);
   const open = (g: AuditGroup) => items.filter((i) => i.group === g && i.status !== "done").length;
@@ -117,18 +116,30 @@ export function issueSummary(project: DemoProject, questions: DataQuestion[]): I
   };
 }
 
-/** Заголовок вкладки: «Расхождения · N не решено» или «Расхождения ✓». */
-export const issuesTabLabel = (s: IssueSummary): string => (s.open ? `Расхождения · ${s.open} не решено` : "Расхождения ✓");
-
-/** Текст плашки над вкладками; null — плашки нет (всё решено или вкладки нет). */
-export function issuesBannerText(project: DemoProject, s: IssueSummary): string | null {
-  if (!s.shown || s.open === 0) return null;
-  return project.input.mode === "legacy"
-    ? `Ошибки исходного файла сохранены намеренно: не исправлено ${s.open}. В режиме «Расчёт сервиса» они исправлены.`
-    : `Не решено ${s.open} ${plural(s.open, ["расхождение", "расхождения", "расхождений"])}.`;
+/** Счётчик на вкладке: на экране — только число с цветом, подробности — в подсказке. */
+export interface TabCount {
+  n: number;
+  /** need — не заполнено обязательное; standard — только не подтверждён стандарт; issues — расхождения; ok — всё решено. */
+  tone: "need" | "standard" | "issues" | "ok";
+  title: string;
 }
 
-/** Заголовок вкладки с вводными: «ТЭП · 7 не заполнено · 3 не подтверждено». */
-export function inputTabLabel(label: string, missing: number, unconfirmed = 0): string {
-  return [label, missing ? `${missing} не заполнено` : "", unconfirmed ? `${unconfirmed} не подтверждено` : ""].filter(Boolean).join(" · ");
+/** Вкладка «Расхождения»: «Расхождения 34» (подсказка «Не решено: 34») или «Расхождения ✓». */
+export const issuesTabCount = (s: IssueSummary): TabCount =>
+  s.open
+    ? { n: s.open, tone: "issues", title: `Не решено: ${s.open}${s.questions ? `. Вопросов автору файла: ${s.questions}` : ""}` }
+    : { n: 0, tone: "ok", title: "Все расхождения решены" };
+
+/** Плашка над вкладками — только в «Расчёте сервиса» и только если есть неисправленное; в «Как в исходном Excel» — метка у переключателя. */
+export function issuesBannerText(project: DemoProject, s: IssueSummary): string | null {
+  if (!s.shown || s.open === 0 || project.input.mode === "legacy") return null;
+  return `Не исправлено: ${s.open}.`;
+}
+
+/** Вкладка с вводными: «ТЭП 7» — незаполненные и неподтверждённые вместе; null — счётчика нет. */
+export function inputTabCount(missing: number, unconfirmed = 0): TabCount | null {
+  const n = missing + unconfirmed;
+  if (!n) return null;
+  const title = [missing ? `Не заполнено: ${missing}` : "", unconfirmed ? `Стандарт не подтверждён: ${unconfirmed}` : ""].filter(Boolean).join(". ");
+  return { n, tone: missing ? "need" : "standard", title };
 }

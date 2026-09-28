@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { spec } from "@fm/spec";
 import { latest, SPEC_ASSUMPTIONS } from "../lib/assumptions";
 import { computeProject, projectQuestions } from "../lib/model";
-import { issueItems, issueSummary, issuesBannerText, issuesTabLabel } from "../lib/issues";
+import { inputTabCount, issueItems, issueSummary, issuesBannerText, issuesTabCount } from "../lib/issues";
 import { loadSeed } from "../lib/seed";
 import { standardInUse, unconfirmedStandard } from "../lib/standard";
 import { reducer } from "../lib/store";
@@ -56,24 +56,28 @@ describe("Расхождения: пункты аудита исходного E
 });
 
 describe("Расхождения: один подсчёт для вкладки и плашки", () => {
-  it("всё решено — «Расхождения ✓», плашки нет", () => {
+  it("всё решено — на вкладке ✓, плашки нет", () => {
     const s = { shown: true, open: 0, total: 3, questions: 1, byGroup: { distorts: 0, method: 0, author: 1 } };
-    expect(issuesTabLabel(s)).toBe("Расхождения ✓");
+    expect(issuesTabCount(s).tone).toBe("ok");
     expect(issuesBannerText(demo, s)).toBeNull();
   });
 
   for (const p of modes(demo)) {
     const name = p.input.mode === "legacy" ? "«Как в исходном Excel»" : "«Расчёт сервиса»";
-    it(`Дербеневская, ${name}: число на вкладке равно числу в плашке; 23 + 11 не решено, 4 вопроса автору`, () => {
+    it(`Дербеневская, ${name}: на вкладке — число 34; 23 + 11 не решено, 4 вопроса автору`, () => {
       const s = issueSummary(p, projectQuestions(p, computeProject(p)));
       expect(s.byGroup).toEqual({ distorts: 23, method: 11, author: 4 });
       expect(s.open).toBe(34);
-      const tab = issuesTabLabel(s);
+      const tab = issuesTabCount(s);
+      expect(tab.n).toBe(s.open);
+      expect(count(tab.title)).toBe(s.open);
       const banner = issuesBannerText(p, s);
-      expect(count(tab)).toBe(s.open);
-      expect(count(banner)).toBe(count(tab));
-      expect(tab).not.toMatch(/ из /);
-      expect(banner).not.toMatch(/ из /);
+      if (p.input.mode === "legacy") {
+        // в «Как в исходном Excel» вместо плашки — метка у переключателя режима
+        expect(banner).toBeNull();
+      } else {
+        expect(banner).toBe("Не исправлено: 34.");
+      }
     });
   }
 });
@@ -108,5 +112,14 @@ describe("Новый проект без исходного Excel", () => {
   it("ни одна проверка не в статусе «ошибка»; незаполненные поля считаются на своих вкладках", () => {
     expect(m.result.messages.filter((x) => x.severity === "error" && x.formulaId?.startsWith("F.CHECK."))).toEqual([]);
     expect(tabMissing("tep", p, m)).toBe(7);
+  });
+});
+
+describe("Счётчик на вкладке с вводными", () => {
+  it("только число с цветом, подробности — в подсказке", () => {
+    expect(inputTabCount(0, 0)).toBeNull();
+    expect(inputTabCount(7, 0)).toEqual({ n: 7, tone: "need", title: "Не заполнено: 7" });
+    expect(inputTabCount(0, 3)).toEqual({ n: 3, tone: "standard", title: "Стандарт не подтверждён: 3" });
+    expect(inputTabCount(4, 2)).toEqual({ n: 6, tone: "need", title: "Не заполнено: 4. Стандарт не подтверждён: 2" });
   });
 });

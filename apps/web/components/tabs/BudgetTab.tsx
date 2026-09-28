@@ -2,6 +2,7 @@
 
 import Decimal from "decimal.js";
 import { getFormula, getParameter, isFormulaId, isParameterId, spec, type ParameterId } from "@fm/spec";
+import { Hint } from "../Hint";
 import { useHow } from "../HowPanel";
 import { Inputs, val } from "../Sheet";
 import { BUDGET_GROUPS, budgetGroups } from "@/lib/tab-inputs";
@@ -84,12 +85,15 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
       <Inputs project={project} model={model} groups={groups} />
       <section className="calc">
         <div className="calc-head">
-          <h2 className="part-title">Расчёт</h2>
+          <h2 className="part-title">
+            Расчёт
+            <Hint
+              text={`Сумма — ставка × база в ценах даты расценки. «В CF» — платежи по графику статьи с индексом цен и НДС. У статей-долей, заданных суммой из Excel, под ставкой — сумма, делённая на базу.${
+                project.input.mode === "legacy" ? " «Как в исходном Excel»: суммы статей, ручные графики и земельные платежи — из исходного Excel, без индексации цен." : ""
+              }`}
+            />
+          </h2>
         </div>
-        <p className="stage-note">
-          Сумма — ставка × база в ценах даты расценки. «В CF» — платежи по графику статьи с индексом цен и НДС. У статей-долей, заданных суммой из Excel, под ставкой — сумма, делённая на базу.
-          {project.input.mode === "legacy" ? " Расчёт «как в исходном Excel»: суммы статей, ручные графики и земельные платежи — из исходного Excel, без индексации цен." : ""}
-        </p>
         <div className="hscroll">
         <table className="sheet calc-table">
           <thead>

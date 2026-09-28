@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { getParameter, type ParameterId } from "@fm/spec";
 import { savedAuthor } from "../Change";
+import { Hint } from "../Hint";
 import { useHow } from "../HowPanel";
 import { useStore } from "@/lib/store";
 import type { DemoProject, ProjectSource } from "@/lib/types";
@@ -63,8 +64,8 @@ export function DocumentsTab({ project }: { project: DemoProject }) {
     <section className="documents">
       <h2 className="part-title">Документы проекта</h2>
       <p className="small muted">
-        Договор, ГПЗУ, ППТ, ТЭП архитектора, расчёты, term sheet банка. Загруженный документ появляется в списке «выбрать источник проекта» у любого значения
-        (нажмите на название поля). Пока в демо файлы хранятся только до перезагрузки страницы; постоянное хранение появится вместе с базой проектов.
+        Договор, ГПЗУ, ППТ, ТЭП, расчёты, term sheet банка
+        <Hint text="Загруженный документ появляется в списке «выбрать источник проекта» у любого значения (нажмите на название поля). Пока в демо файлы хранятся только до перезагрузки страницы; постоянное хранение появится вместе с базой проектов." />
       </p>
       <div className="doc-upload">
         <input className="doc-author" placeholder="Кто загружает" value={author} onChange={(e) => setAuthor(e.target.value)} />

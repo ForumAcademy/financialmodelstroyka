@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { fmtRub, type DataQuestion } from "@fm/engine";
 import { savedAuthor } from "./Change";
+import { Hint } from "./Hint";
 import { useHow } from "./HowPanel";
 import { GROUPS, impactSize, issueItems, TAB_TITLE, type IssueItem } from "@/lib/issues";
 import type { InputTab } from "@/lib/tab-inputs";
@@ -19,7 +20,7 @@ const MODE_HINT = {
   legacy: "Повторяет исходный файл вместе с его ошибками. Нужен для сверки с Excel.",
 } as const;
 
-/** Переключатель «Расчёт сервиса | Как в исходном Excel» для проекта из исходного Excel и строка подсказки под ним. */
+/** Переключатель «Расчёт сервиса | Как в исходном Excel»: в режиме Excel — метка у переключателя, пояснение — в «?». */
 export function ModeSwitch({ project }: { project: DemoProject }) {
   const { dispatch } = useStore();
   const mode = project.input.mode === "legacy" ? "legacy" : "normal";
@@ -33,18 +34,19 @@ export function ModeSwitch({ project }: { project: DemoProject }) {
           Как в исходном Excel
         </button>
       </div>
-      <div className="small muted">{MODE_HINT[mode]}</div>
+      {mode === "legacy" ? <span className="small muted mode-label">Как в Excel · ошибки файла сохранены</span> : null}
+      <Hint text={MODE_HINT[mode]} />
     </div>
   );
 }
 
-/** Плашка над вкладками: сколько расхождений не решено (тот же подсчёт, что в заголовке вкладки) и где их список. */
+/** Плашка над вкладками в «Расчёте сервиса»: сколько не исправлено (тот же подсчёт, что на вкладке) и ссылка на список. */
 export function CompatBanner({ text, go }: { text: string; go: () => void }) {
   return (
     <div className="compat-warnings">
       {text}{" "}
       <button className="linklike" onClick={go}>
-        Открыть список
+        Открыть
       </button>
     </div>
   );
@@ -249,6 +251,9 @@ function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]
   );
 }
 
+const ISSUES_HELP =
+  "Ошибки и недочёты исходного Excel по аудиту файла: расчёт «Как в исходном Excel» повторяет их как есть, в «Расчёте сервиса» они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше. Вопросы автору файла — отдельно: это не ошибки, в число нерешённых они не входят.";
+
 type Sub = "active" | "archive";
 type Filter = "all" | "open" | "work";
 
@@ -275,9 +280,9 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   const tabs = Object.keys(TAB_TITLE) as InputTab[];
   return (
     <div className="discrepancies">
-      <p className="small muted">
-        Ошибки и недочёты исходного Excel по аудиту файла: расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше. Вопросы
-        автору файла — отдельно: это не ошибки, в число нерешённых они не входят.
+      <p className="small muted one-line">
+        Ошибки исходного Excel и как их исправляет сервис
+        <Hint text={ISSUES_HELP} />
       </p>
       <div className="issues-toolbar">
         <div className="seg">

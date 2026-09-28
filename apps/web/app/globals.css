@@ -294,8 +294,8 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .field .change-form { grid-column: 1 / -1; }
 
 /* Предупреждения расчёта «как в исходном Excel» */
-.mode-switch { margin: 4px 0 12px; }
-.mode-switch .seg { margin-bottom: 4px; }
+.mode-switch { margin: 4px 0 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.mode-switch .seg { margin: 0; }
 .compat-warnings { background: var(--need-bg); border: 1px solid #efd9a6; border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; }
 
 .compat-warnings ol { margin: 8px 0 4px; padding-left: 22px; }
@@ -402,3 +402,15 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .standard-mark { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .standard-line { margin: 8px 0; padding: 8px 12px; border: 1px solid #ecd9a8; border-radius: 6px; background: var(--need-bg); }
 .issue-ask { margin: 6px 0; }
+
+/* Подсказка «?» и счётчики на вкладках (правила сокращения текстов 28.09.2026) */
+.hint { position: relative; display: inline-block; margin-left: 6px; vertical-align: 1px; text-transform: none; letter-spacing: 0; }
+.hint-q { width: 16px; height: 16px; padding: 0; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--muted); font: 600 11px/14px inherit; cursor: help; }
+.hint-q:hover { color: var(--accent); border-color: var(--accent); }
+.hint-pop { position: absolute; z-index: 30; left: 0; top: 20px; width: max-content; max-width: min(340px, 80vw); padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, .12); color: var(--text); font-size: 12px; font-weight: 400; line-height: 1.45; white-space: normal; }
+.tab-count.tc-need { background: var(--need); color: #fff; }
+.tab-count.tc-standard { background: var(--need-bg); color: var(--warn); border: 1px solid #ecd9a8; }
+.tab-count.tc-issues { background: var(--danger); color: #fff; }
+.tab-count.tc-ok { background: #eef6ee; color: #3d7a3d; }
+.mode-label { margin-left: 10px; }
+.one-line { margin: 0 0 10px; }

@@ -9,7 +9,8 @@ import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tab
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
-import { inputTabLabel, issueSummary, issuesBannerText, issuesTabLabel } from "@/lib/issues";
+import { inputTabCount, issueSummary, issuesBannerText, issuesTabCount, type TabCount } from "@/lib/issues";
+import { Hint } from "@/components/Hint";
 import { tabCount, tabMissing, tabOfParam, type InputTab } from "@/lib/tab-inputs";
 import { unconfirmedStandard } from "@/lib/standard";
 import { getParameter } from "@fm/spec";
@@ -38,6 +39,7 @@ function ProjectPage() {
   const { projects, model, sourceChecks, assumptions } = useStore();
   const { setProject } = useHow();
   const [exporting, setExporting] = useState(false);
+  const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const project = projects.find((p) => p.id === id);
   useEffect(() => {
     setProject(project ? project.id : null);
@@ -87,8 +89,9 @@ function ProjectPage() {
   const tabs = TABS.filter((t) => t.id !== "issues" || summary.shown);
   const tab = (tabs.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
   const unconfirmed = unconfirmedStandard(project, assumptions);
-  const label = (t: (typeof TABS)[number]) =>
-    t.id === "issues" ? issuesTabLabel(summary) : t.id === "docs" ? t.label : inputTabLabel(t.label, tabMissing(t.id as InputTab, project, m), tabCount(t.id as InputTab, project, unconfirmed));
+  // Счётчик на вкладке — только число с цветом («ТЭП 7»), подробности — в подсказке
+  const count = (t: (typeof TABS)[number]): TabCount | null =>
+    t.id === "issues" ? issuesTabCount(summary) : t.id === "docs" ? null : inputTabCount(tabMissing(t.id as InputTab, project, m), tabCount(t.id as InputTab, project, unconfirmed));
   const view = search.get("view") === "calc" ? "calc" : "inputs";
   const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
 
@@ -121,8 +124,12 @@ function ProjectPage() {
       {tab === "issues" || !banner ? null : <CompatBanner text={banner} go={() => go("issues", view)} />}
       {unconfirmed.length ? (
         <div className="standard-line small">
-          Не подтверждено стандартных значений: {unconfirmed.length}.{" "}
-          {unconfirmed.map((id, k) => {
+          Подтвердите стандарт: {unconfirmed.length}.{" "}
+          <button className="linklike" onClick={() => setShowUnconfirmed(!showUnconfirmed)}>
+            {showUnconfirmed ? "Скрыть" : "Показать"}
+          </button>
+          {showUnconfirmed ? <br /> : null}
+          {showUnconfirmed && unconfirmed.map((id, k) => {
             const t = tabOfParam(project, id);
             return (
               <span key={id}>
@@ -141,9 +148,7 @@ function ProjectPage() {
       ) : null}
       <nav className="tabs">
         {tabs.map((t) => (
-          <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>
-            {label(t)}
-          </button>
+          <TabButton key={t.id} label={t.label} count={count(t)} on={tab === t.id} onClick={() => go(t.id, view)} />
         ))}
       </nav>
       <div className="sheet-page" data-view={view}>
@@ -158,7 +163,8 @@ function ProjectPage() {
               Расчёт
             </button>
           </div>
-          <span className="small muted">{view === "inputs" ? "Исходные данные листа: голубые поля можно менять" : "Что посчитано из вводных. Нажмите на строку, чтобы увидеть формулу и источники"}</span>
+          {view === "calc" ? <span className="small muted">Нажмите на строку — формула и источники</span> : null}
+          <Hint text={HELP} />
         </div>
         {tab === "tep" ? <TepTab project={project} model={m} /> : null}
         {tab === "budget" ? <BudgetTab project={project} model={m} /> : null}
@@ -168,6 +174,19 @@ function ProjectPage() {
         {tab === "dashboard" ? <DashboardTab project={project} model={m} /> : null}
       </div>
     </main>
+  );
+}
+
+/** Справка по виду полей — один раз, у переключателя «Вводные | Расчёт». */
+const HELP =
+  "Голубые поля можно менять. «Заполните» — обязательное значение не введено, без него часть расчёта не выполняется. «Стандарт» — значение из справочника компании: подтвердите его или замените. Число на вкладке — сколько полей ждут действия. Нажмите на название поля или строку расчёта — откроется, как посчитано и откуда значение.";
+
+function TabButton({ label, count, on, onClick }: { label: string; count: TabCount | null; on: boolean; onClick: () => void }) {
+  return (
+    <button className={on ? "on" : ""} onClick={onClick} title={count?.title}>
+      {label}
+      {count ? <span className={`tab-count tc-${count.tone}`}>{count.tone === "ok" ? "✓" : count.n}</span> : null}
+    </button>
   );
 }
 

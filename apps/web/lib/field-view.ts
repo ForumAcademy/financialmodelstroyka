@@ -184,6 +184,8 @@ export function unitOf(unit: string, id?: ParameterId): FieldUnit {
   if (unit === "%годовых") return { label: "% годовых", scale: 100, digits: null };
   if (unit === "доля/год") return { label: "% в год", scale: 100, digits: null };
   if (unit === "м2") return { label: "м²", scale: 1, digits: 0 };
+  // суммы — в целых рублях: копейки исходного Excel в поле не показываются, в данных остаются
+  if (unit === "руб") return { label: "руб", scale: 1, digits: 0 };
   return { label: UNIT[unit] ?? unit, scale: 1, digits: null };
 }
 

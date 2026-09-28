@@ -350,7 +350,9 @@ function TableEditor({ project, id, value, columns: only, revenue }: { project: 
   // Одна «Цены на дату» для всех продуктов, пока у строк одна дата цены.
   const priceDates = products && Array.isArray(value) ? new Set((value as Row[]).map((r) => r.price_date ?? null)) : new Set();
   const oneDate = products && priceDates.size === 1;
-  const columns = (p.columns ?? []).filter((c) => c.key !== "source_ids" && (!only || only.includes(c.key)) && !(oneDate && c.key === "price_date"));
+  const all = (p.columns ?? []).filter((c) => c.key !== "source_ids" && !(oneDate && c.key === "price_date"));
+  // часть столбцов (вкладки графика) — в порядке вкладки
+  const columns = only ? only.map((k) => all.find((c) => c.key === k)).filter((c): c is (typeof all)[number] => c !== undefined) : all;
   const raw = value;
   const change = useChange(project, id, raw);
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {

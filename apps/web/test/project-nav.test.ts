@@ -146,6 +146,7 @@ describe("Единицы полей", () => {
     expect(toField(0.02, unitOf("доля", "LAND.AGENT_FEE_RATE"))).toBe("2");
     expect(toField(35294.59, unitOf("м2"))).toBe("35 295");
     expect(toField(5834907660, unitOf("руб"))).toBe("5 834 907 660");
+    expect(toField(825124525.273, unitOf("руб"))).toBe("825 124 525");
   });
 
   it("введённое на экране читается обратно в доли без потери точности", () => {

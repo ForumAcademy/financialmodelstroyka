@@ -38,18 +38,6 @@ export function ModeSwitch({ project }: { project: DemoProject }) {
   );
 }
 
-/** Плашка над вкладками: сколько расхождений не решено (тот же подсчёт, что в заголовке вкладки) и где их список. */
-export function CompatBanner({ text, go }: { text: string; go: () => void }) {
-  return (
-    <div className="compat-warnings">
-      {text}{" "}
-      <button className="linklike" onClick={go}>
-        Открыть список
-      </button>
-    </div>
-  );
-}
-
 function Impact({ q }: { q: DataQuestion }) {
   const a = q.impact.amount;
   const timing = q.impact.kind === "сроки денег" || q.impact.kind === "зависит";

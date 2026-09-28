@@ -215,7 +215,7 @@ export function DashboardTab({ project, model }: Props) {
         {["CF по годам", "Долг", "Эскроу"].map((t) => (
           <div key={t} className="chart">
             <h3>{t}</h3>
-            <div className="chart-empty">График появится на этапе 6</div>
+            <div className="chart-empty">Ещё не рассчитывается</div>
           </div>
         ))}
       </section>

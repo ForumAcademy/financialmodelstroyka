@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ReferenceShell } from "@/components/ReferenceShell";
 import { Fragment, Suspense, useEffect, useState } from "react";
 import { getFormula, getParameter, getSource, isFormulaId, isParameterId, spec, type SpecFormula } from "@fm/spec";
 import { unit } from "@/lib/format";
@@ -116,9 +117,9 @@ function FormulasPage() {
   const list = inSection(section);
 
   return (
-    <main className="page wide">
-      <div className="page-head">
-        <h1>Формулы</h1>
+    <ReferenceShell active="formulas">
+      <div className="work-head">
+        <h2>Формулы</h2>
       </div>
       <div className="toolbar">
         <input className="search" placeholder="Поиск по названию, формуле и обозначениям…" value={q} onChange={(e) => setQ(e.target.value)} />
@@ -198,7 +199,7 @@ function FormulasPage() {
           </table>
         </div>
       </div>
-    </main>
+    </ReferenceShell>
   );
 }
 

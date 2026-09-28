@@ -12,7 +12,7 @@ import { valueSource } from "@/lib/assumptions";
 import { baseName, humanize, indexName, milestoneName, scheduleName } from "@/lib/humanize";
 import { amount, compatDiff, exampleFocus, howExample, inputFields, monthName, shortSource } from "@/lib/how-example";
 import { cellMln, cellPrice, cellQty, cellShare, hasUnsold, parkingWarning, pricesFromExcel, rowName, salesRows, salesTotal, salesWarnings, type SalesRow } from "@/lib/sales-panel";
-import { isParameterIdLike, modePair, stageOf, type ProjectModel } from "@/lib/model";
+import { isParameterIdLike, modePair, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import { useStore } from "@/lib/store";
 
@@ -126,7 +126,7 @@ function WarnList({ items, projectId, open }: { items: Warn[]; projectId: string
           {w.product && projectId ? (
             <>
               {" "}
-              <Link className="how-go" href={`/projects/${projectId}?tab=sales&row=${encodeURIComponent(w.product)}`}>
+              <Link className="how-go" href={`/projects/${projectId}?field=SALES.PACE&row=${encodeURIComponent(w.product)}`}>
                 Открыть план продаж {w.product}
               </Link>
             </>
@@ -299,7 +299,7 @@ function FormulaView({ t, projectId, open }: { t: Extract<HowTarget, { kind: "fo
     <>
       <h2>{f.plain?.title ?? t.label ?? f.name}</h2>
       {value ? <div className="how-value">{value}</div> : null}
-      {!node && sm && !warns.length ? <p className="muted small">Показатель начнёт считаться на этапе {stageOf(t.id) ?? "?"}.</p> : null}
+      {!node && sm && !warns.length ? <p className="muted small">Показатель ещё не рассчитывается.</p> : null}
       <h3>Как считается</h3>
       <p>{f.plain?.how ?? humanize(f.note ?? f.rationale)}</p>
       {related ? (
@@ -555,7 +555,7 @@ function ParamView({ id, projectId }: { id: ParameterId; projectId: string | nul
             ))}
           </select>
           <p className="small">
-            <Link href={`/projects/${project.id}?tab=docs`}>+ Загрузить документ</Link> · <Link href={`/sources?project=${project.id}&new=1`}>добавить ссылку или экспертную оценку</Link>
+            <Link href={`/projects/${project.id}?s=docs`}>+ Загрузить документ</Link> · <Link href={`/sources?project=${project.id}&new=1`}>добавить ссылку или экспертную оценку</Link>
           </p>
         </>
       ) : null}

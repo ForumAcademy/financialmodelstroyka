@@ -131,7 +131,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
       </select>
     );
   } else if (p.kind === "series") {
-    control = <span className="ro muted">помесячный ряд — ввод на этапе 8</span>;
+    control = <span className="ro muted">помесячный ряд — ввод ещё не сделан</span>;
   } else {
     control = <input key={`${text}-${change.pending}`} className={need ? "need" : ""} type={p.kind === "date" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && commit(e.target.value)} />;
   }
@@ -168,7 +168,8 @@ export function needHint(id: ParameterId): string {
   return `Обязательное значение не введено — без него не считается ${list || "часть расчёта"}. Нажмите на название поля: там написано, что это и где взять значение.`;
 }
 
-export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
+/** bare — одна вкладка шага вводных: без заголовка «Вводные» и заголовка группы (название — на вкладке). */
+export function Inputs({ project, model, groups, bare = false }: { project: DemoProject; model: ProjectModel; groups: InputGroup[]; bare?: boolean }) {
   const missing = missingCount(groups, model);
   // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; простые ставятся парами,
   // блок без соседа в строке тоже растягивается на всю ширину.
@@ -187,7 +188,7 @@ export function Inputs({ project, model, groups }: { project: DemoProject; model
   }
   return (
     <section className="inputs">
-      <h2 className="part-title">Вводные</h2>
+      {bare ? null : <h2 className="part-title">Вводные</h2>}
       {missing ? (
         <p className="need-legend">
           <span className="need-badge">Заполните</span> — обязательное значение не введено, без него часть расчёта не выполняется. На этой вкладке таких полей: {missing}. Наведите на поле или нажмите на его название, чтобы узнать, где взять значение.
@@ -196,7 +197,7 @@ export function Inputs({ project, model, groups }: { project: DemoProject; model
       <div className="input-groups">
         {groups.map((g, i) => (
           <div key={g.title} className={`input-group ${full.has(i) ? "wide" : ""}`}>
-            <h3>{g.title}</h3>
+            {bare ? null : <h3>{g.title}</h3>}
             {g.note ? <p className="group-note">{g.note}</p> : null}
             <div className="fields">
               {g.params.map((id) => (
@@ -383,7 +384,7 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
           </div>
         ) : null}
       </div>
-      {stages?.length ? <p className="stage-note">Расчёт — этап {stages.join(", ")}: строки заполнятся, когда ядро будет считать эти формулы.</p> : null}
+      {stages?.length ? <p className="stage-note">Часть строк ещё не рассчитывается.</p> : null}
       {periods && !dates ? <p className="stage-note">Нет временной шкалы: заполните дату начала модели и вехи очередей на вкладке ТЭП.</p> : null}
       <div className="hscroll">
         <table className="sheet calc-table">

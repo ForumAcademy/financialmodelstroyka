@@ -3,57 +3,23 @@
 import { useState, type ReactNode } from "react";
 import Decimal from "decimal.js";
 import { getParameter, spec, type FormulaId, type ParameterId } from "@fm/spec";
-import { ChangedMark, NoLink, SourceMark, useChange } from "./Change";
+import Link from "next/link";
+import { ChangedMark, SourceMark, useChange } from "./Change";
 import { compositeSummary } from "./DataView";
 import { useHow } from "./HowPanel";
 import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
 import * as fmt from "@/lib/format";
-import { missingCount, type InputGroup } from "@/lib/tab-inputs";
+import type { InputGroup } from "@/lib/tab-inputs";
+import { COLUMN_LABEL, excelCell, fieldLabel, fromField, itemLabel, optionLabel, toField, unitOf, type FieldUnit } from "@/lib/field-view";
+import { versionOf } from "@/lib/assumptions";
+import { whence, type Whence } from "@/lib/whence";
 
 // ---------------------------------------------------------------- Вводные
 
 export type { InputGroup };
 
-const COLUMN_LABEL: Record<string, string> = {
-  phase: "Очередь",
-  land_acquired: "Покупка ЗУ",
-  design_start: "Начало ИРД/ПИР",
-  expertise_done: "Экспертиза",
-  rns_date: "РНС",
-  construction_start: "Начало СМР",
-  construction_end: "Окончание СМР",
-  rnv_date: "РНВ",
-  handover_start: "Начало передачи",
-  handover_end: "Передача ключей",
-  vri_change_date: "Смена ВРИ",
-  value: "Норматив",
-  unit: "Единица",
-  sales_start: "Старт продаж",
-  type_name: "Тип",
-  count: "Кол-во, шт",
-  area_share: "Доля площади",
-  avg_area: "Ср. площадь, м²",
-  product: "Продукт",
-  stock_area: "Построено к продаже, м²",
-  stock_units: "Построено к продаже, шт",
-  start_price: "Стартовая цена",
-  price_date: "Дата цены",
-  sale_channel_before_rnv: "Канал до РНВ",
-  source_ids: "Источники",
-  mortgage_share: "Ипотечные сделки",
-  mortgage_down_payment: "из них ПВ по ипотеке",
-  full_payment_share: "100% оплата",
-  installment_share: "Рассрочка",
-  installment_months: "Рассрочка, мес",
-  installment_down_payment: "Первый взнос",
-  name: "Название",
-  method: "Способ",
-  manual: "Ручной ряд",
-  stage: "Стадия",
-  uplift: "Надбавка",
-};
 
 /** Подписи столбцов, которые у параметра значат не то же, что в COLUMN_LABEL. */
 const PARAM_COLUMN_LABEL: Partial<Record<ParameterId, Record<string, string>>> = {
@@ -61,35 +27,64 @@ const PARAM_COLUMN_LABEL: Partial<Record<ParameterId, Record<string, string>>> =
   "SALES.LEGACY_PRICE_GROWTH": { rate: "Рост за период", step_months: "Длина периода, мес" },
 };
 
-function parseInput(kind: string, unit: string, raw: string): unknown {
+function parseInput(kind: string, unit: string, raw: string, id?: ParameterId): unknown {
   const t = raw.trim();
   if (t === "") return null;
   if (kind === "bool") return t === "true";
   if (kind === "date" || unit === "дата") return t;
-  if (kind === "scalar" || ["м2", "шт", "доля", "руб", "мес", "коэф", "м", "км", "год", "руб/м2", "доля/год", "%годовых"].includes(unit)) {
-    const n = Number(t.replace(/\s/g, "").replace(",", "."));
-    return Number.isNaN(n) ? t : n;
+  const u = unitOf(unit, id);
+  if (kind === "scalar" || u.scale !== 1 || ["м2", "шт", "руб", "мес", "коэф", "м", "км", "год", "руб/м2"].includes(unit)) {
+    const n = fromField(t, u);
+    return n === null ? t : n;
   }
   // Число, показанное с разрядами («1 000»), читается обратно как число в любом столбце.
   if (/^-?\d{1,3}(\s\d{3})+([.,]\d+)?$/.test(t)) return Number(t.replace(/\s/g, "").replace(",", "."));
   return t;
 }
 
+/** Ячейка значения: число — в единицах экрана (проценты, целые м²), остальное — как есть. */
+const shownText = (v: unknown, u: FieldUnit): string => (v === null || v === undefined || typeof v === "object" ? "" : typeof v === "number" ? toField(v, u) : String(v));
+
+/** Подпись поля: с источником — подчёркнута пунктиром, клик показывает источник под полем; без источника — «Как посчитано». */
+function FieldHead({ label, hasSource, onLabel, children }: { label: string; hasSource: boolean; onLabel: () => void; children?: ReactNode }) {
+  return (
+    <div className="fld-head">
+      <button className={`fld-name ${hasSource ? "has-src" : ""}`} onClick={onLabel} title={hasSource ? "Источник" : "Как посчитано"}>
+        {label}
+      </button>
+      {children}
+    </div>
+  );
+}
+
+const hasText = (w: Whence) => !["документ не указан", "обоснование не указано"].includes(w.text);
+
 function Field({ project, model, id }: { project: DemoProject; model: ProjectModel; id: ParameterId }) {
   const { open } = useHow();
+  const { assumptions } = useStore();
+  const [showSrc, setShowSrc] = useState(false);
+  const [showFile, setShowFile] = useState(false);
   const p = getParameter(id);
   const own = project.input.values[id];
+  const hasOwn = own !== undefined && own !== null;
   const traced = model.result.parameters[id];
   const shown = own ?? traced?.value ?? model.standard[id] ?? p.default;
   const summary = compositeSummary(shown);
-  // Любое значение проекта можно изменить (с комментарием «почему»); ряды и таблицы справочника смотрятся в карточке.
+  // Любое значение проекта можно изменить; ряды и таблицы справочника смотрятся в карточке «Как посчитано».
   const reference = p.scope === "template";
   const readonly = reference && (summary !== null || p.kind === "table" || p.kind === "series");
   const need = model.missing.has(id);
   const change = useChange(project, id, shown);
   const hasValue = shown !== null && shown !== undefined && shown !== "" && !(Array.isArray(shown) && shown.length === 0);
-  const commit = (raw: string) => change.commit(parseInput(p.kind, p.unit, raw));
-  const text = shown === null || shown === undefined ? "" : typeof shown === "object" ? "" : typeof shown === "number" ? fmt.inputNumber(shown) : String(shown);
+  const u = unitOf(p.unit, id);
+  const commit = (raw: string) => change.commit(parseInput(p.kind, p.unit, raw, id));
+  const text = shownText(shown, u);
+  const w = whence(id, project, assumptions);
+  const src = hasValue && hasText(w);
+  const cell = hasOwn ? excelCell(project, id) : null;
+  const inRef = !hasOwn && hasValue ? (versionOf(assumptions, project.assumptionsVersion)?.items.some((i) => i.param === id) ?? false) : false;
+  const byRef = !hasOwn && hasValue && w.kind !== "project";
+  const table = p.kind === "table" && !readonly;
 
   let control: ReactNode;
   if (summary && (readonly || p.kind !== "table")) {
@@ -101,61 +96,157 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   } else if (readonly || (p.kind !== "table" && typeof shown === "object" && shown !== null)) {
     control = <span className="ro">{fmt.value(shown ?? null)}</span>;
   } else if (p.kind === "table") {
-    control = <TableEditor project={project} id={id} value={shown} />;
+    const byRow = id === "SALES.PRODUCTS" ? (model.result.formulas["F.SALES.REVENUE_TOTAL"]?.value as { byRow?: Record<string, Decimal> } | undefined)?.byRow : undefined;
+    control = <TableEditor project={project} id={id} value={shown} columns={undefined} revenue={byRow} />;
   } else if (id === "GEN.REGION_CODE") {
     control = (
-      <select className={need ? "need" : ""} value={text} onChange={(e) => commit(e.target.value)}>
+      <select value={text} onChange={(e) => commit(e.target.value)}>
         <option value="">—</option>
         {spec.regions.map((r) => (
           <option key={r.code} value={r.code}>
-            {r.code} — {r.name}
+            {r.name}
           </option>
         ))}
       </select>
     );
   } else if (p.kind === "enum" && p.options) {
     control = (
-      <select className={need ? "need" : ""} value={text} onChange={(e) => commit(e.target.value)}>
+      <select value={text} onChange={(e) => commit(e.target.value)}>
         <option value="">—</option>
         {p.options.map((o) => (
-          <option key={o}>{o}</option>
+          <option key={o} value={o}>
+            {optionLabel(o)}
+          </option>
         ))}
       </select>
     );
   } else if (p.kind === "bool") {
     control = (
-      <select className={need ? "need" : ""} value={text} onChange={(e) => commit(e.target.value)}>
+      <select value={text} onChange={(e) => commit(e.target.value)}>
         <option value="">—</option>
         <option value="true">да</option>
         <option value="false">нет</option>
       </select>
     );
   } else if (p.kind === "series") {
-    control = <span className="ro muted">помесячный ряд — ввод ещё не сделан</span>;
+    control = <span className="ro muted">не задано</span>;
   } else {
-    control = <input key={`${text}-${change.pending}`} className={need ? "need" : ""} type={p.kind === "date" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && commit(e.target.value)} />;
+    control = (
+      <input
+        key={`${text}-${change.pending}`}
+        type={p.kind === "date" ? "date" : "text"}
+        defaultValue={text}
+        placeholder={need ? "введите" : "—"}
+        onBlur={(e) => e.target.value !== text && commit(e.target.value)}
+      />
+    );
   }
+  const unitLabel = !table && !summary && !["enum", "bool", "text", "date"].includes(p.kind) ? u.label : "";
 
   return (
-    <div id={`field-${id}`} className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
-      <div className="field-head">
-        <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
-          {p.name}
-          {reference && !project.changes?.[id] && !model.standard[id] ? <span className="tag">справочник</span> : null}
-          {need ? <span className="need-badge">Заполните</span> : null}
-        </button>
-        {hasValue || project.changes?.[id] ? (
-          <div className="field-marks">
-            {hasValue ? <SourceMark project={project} id={id} /> : null}
-            {hasValue ? <NoLink project={project} id={id} /> : null}
-            <ChangedMark project={project} id={id} />
-          </div>
+    <div id={`field-${id}`} className={`fld ${table ? "wide" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
+      <FieldHead label={fieldLabel(id)} hasSource={src} onLabel={() => (src ? setShowSrc(!showSrc) : open({ kind: "param", id }))}>
+        {cell ? (
+          <button className="tag file" onClick={() => setShowFile(!showFile)} title="Где в исходном файле">
+            исходный файл
+          </button>
         ) : null}
+        {byRef ? (
+          inRef ? (
+            <Link className="tag" href={`/assumptions?param=${encodeURIComponent(id)}&from=${encodeURIComponent(project.id)}`} title="Открыть в справочнике">
+              по справочнику
+            </Link>
+          ) : (
+            <span className="tag">по справочнику</span>
+          )
+        ) : null}
+        <ChangedMark project={project} id={id} />
+      </FieldHead>
+      {table ? (
+        control
+      ) : (
+        <div className={`inp ${need ? "empty" : ""} ${readonly || summary || p.kind === "series" ? "ro" : ""}`}>
+          {control}
+          {unitLabel ? <span className="u">{unitLabel}</span> : null}
+        </div>
+      )}
+      {showSrc && src ? (
+        <div className="fld-src">
+          Источник:{" "}
+          {w.url ? (
+            <a href={w.url} target="_blank" rel="noreferrer">
+              {w.text} ↗
+            </a>
+          ) : (
+            w.text
+          )}
+          {" · "}
+          <button className="link small" onClick={() => open({ kind: "param", id })}>
+            подробнее
+          </button>{" "}
+          <SourceMark project={project} id={id} inline />
+        </div>
+      ) : null}
+      {showFile && cell ? <div className="fld-src">Из исходного файла: {cell}</div> : null}
+      {change.form}
+    </div>
+  );
+}
+
+/** Подпись единицы статьи бюджета по её базе: сумма, ставка на м² или доля другой суммы. */
+function itemUnit(base: string): FieldUnit {
+  if (base === "фикс") return unitOf("руб");
+  if (base === "фикс_в_месяц") return { label: "руб/мес", scale: 1, digits: null };
+  const share: Record<string, string> = { "F.CAPEX.SMR_TOTAL": "% СМР", "F.SALES.REVENUE_TOTAL": "% выручки", "LAND.PURCHASE_PRICE": "% цены участка" };
+  if (share[base]) return { label: share[base], scale: 100, digits: null };
+  if (base === "формула") return { label: "", scale: 1, digits: null };
+  return { label: "руб/м²", scale: 1, digits: null };
+}
+
+type ItemRow = { item_id: string; base?: string; rate?: number | null };
+
+/**
+ * Статья бюджета полем: ставка или сумма из строки статьи в CAPEX.ITEMS проекта (у проекта из Excel — сумма
+ * из листа «Бюджет»). Правка меняет строку статьи; пустая строка — статья не заполнена.
+ */
+function BudgetItemField({ project, itemId }: { project: DemoProject; itemId: string }) {
+  const { open } = useHow();
+  const [showFile, setShowFile] = useState(false);
+  const item = spec.capexItems.find((c) => c.item_id === itemId)!;
+  const rows = (Array.isArray(project.input.values["CAPEX.ITEMS"]) ? project.input.values["CAPEX.ITEMS"] : []) as ItemRow[];
+  const row = rows.find((r) => r.item_id === itemId);
+  const change = useChange(project, "CAPEX.ITEMS", project.input.values["CAPEX.ITEMS"] ?? null);
+  const base = row?.base ?? item.base;
+  const u = itemUnit(base);
+  const rate = row?.rate;
+  const text = typeof rate === "number" ? toField(rate, u) : "";
+  const legacy = project.legacyCase?.capex_legacy?.find((x) => x.item_id === itemId);
+  const cell = legacy?.budget_row && !project.changes?.["CAPEX.ITEMS"] ? `Лист «Бюджет», ячейка F${legacy.budget_row}` : null;
+  const commit = (raw: string) => {
+    const n = raw.trim() === "" ? null : fromField(raw, u);
+    if (raw.trim() !== "" && n === null) return;
+    const next = row ? rows.map((r) => (r.item_id === itemId ? { ...r, rate: n } : r)) : [...rows, { item_id: itemId, base, rate: n }];
+    change.commit(next);
+  };
+  const label = itemLabel(item);
+  return (
+    <div className="fld">
+      <FieldHead label={label} hasSource={false} onLabel={() => open({ kind: "capex", id: item.item_id })}>
+        {cell && typeof rate === "number" ? (
+          <button className="tag file" onClick={() => setShowFile(!showFile)} title="Где в исходном файле">
+            исходный файл
+          </button>
+        ) : null}
+      </FieldHead>
+      <div className={`inp ${base === "формула" ? "ro" : ""}`}>
+        {base === "формула" ? (
+          <span className="ro muted">по формуле</span>
+        ) : (
+          <input key={`${text}-${change.pending}`} defaultValue={text} placeholder="—" onBlur={(e) => e.target.value !== text && commit(e.target.value)} />
+        )}
+        {u.label ? <span className="u">{u.label}</span> : null}
       </div>
-      <div className="field-control">
-        {control}
-        {p.kind !== "table" || readonly ? <span className="unit">{p.kind !== "enum" && p.kind !== "bool" && p.kind !== "text" && p.kind !== "date" && p.kind !== "table" && !summary ? fmt.unit(p.unit) : ""}</span> : null}
-      </div>
+      {showFile && cell ? <div className="fld-src">Из исходного файла: {cell}</div> : null}
       {change.form}
     </div>
   );
@@ -165,49 +256,48 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
 export function needHint(id: ParameterId): string {
   const used = spec.formulas.filter((f) => (f.depends_on as string[]).includes(id)).map((f) => `«${f.name}»`);
   const list = used.length > 3 ? `${used.slice(0, 3).join(", ")} и ещё ${used.length - 3}` : used.join(", ");
-  return `Обязательное значение не введено — без него не считается ${list || "часть расчёта"}. Нажмите на название поля: там написано, что это и где взять значение.`;
+  return `Без этого значения не считается ${list || "часть расчёта"}.`;
 }
 
-/** bare — одна вкладка шага вводных: без заголовка «Вводные» и заголовка группы (название — на вкладке). */
-export function Inputs({ project, model, groups, bare = false }: { project: DemoProject; model: ProjectModel; groups: InputGroup[]; bare?: boolean }) {
-  const missing = missingCount(groups, model);
-  // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; простые ставятся парами,
-  // блок без соседа в строке тоже растягивается на всю ширину.
-  const hasTable = (g: InputGroup) => g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template");
-  const full = new Set<number>();
-  for (let i = 0; i < groups.length; ) {
-    if (hasTable(groups[i]!)) {
-      full.add(i);
-      i += 1;
-    } else if (i + 1 < groups.length && !hasTable(groups[i + 1]!)) {
-      i += 2;
-    } else {
-      full.add(i);
-      i += 1;
-    }
-  }
+/**
+ * Поля вкладки шага: две колонки, таблицы — на всю ширину. bare — одна вкладка шага вводных (название — на вкладке);
+ * без bare — блоки с заголовками групп (вводные на листах расчёта).
+ */
+export function Inputs({ project, model, groups, bare = false, footer }: { project: DemoProject; model: ProjectModel; groups: InputGroup[]; bare?: boolean; footer?: ReactNode }) {
   return (
     <section className="inputs">
       {bare ? null : <h2 className="part-title">Вводные</h2>}
-      {missing ? (
-        <p className="need-legend">
-          <span className="need-badge">Заполните</span> — обязательное значение не введено, без него часть расчёта не выполняется. На этой вкладке таких полей: {missing}. Наведите на поле или нажмите на его название, чтобы узнать, где взять значение.
-        </p>
-      ) : null}
-      <div className="input-groups">
-        {groups.map((g, i) => (
-          <div key={g.title} className={`input-group ${full.has(i) ? "wide" : ""}`}>
-            {bare ? null : <h3>{g.title}</h3>}
-            {g.note ? <p className="group-note">{g.note}</p> : null}
-            <div className="fields">
-              {g.params.map((id) => (
+      {groups.map((g) => (
+        <div key={g.title} className="input-group">
+          {bare ? null : <h3>{g.title}</h3>}
+          {g.note ? <p className="group-note">{g.note}</p> : null}
+          <div className="fields">
+            {g.params.map((id) =>
+              g.columns && getParameter(id).kind === "table" ? (
+                <TableField key={id} project={project} model={model} id={id} columns={g.columns} />
+              ) : (
                 <Field key={id} project={project} model={model} id={id} />
-              ))}
-            </div>
+              ),
+            )}
+            {(g.items ?? []).map((item) => (
+              <BudgetItemField key={item} project={project} itemId={item} />
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
+      {footer}
     </section>
+  );
+}
+
+/** Таблица с частью столбцов (график по очередям): без подписи — название уже на вкладке. */
+function TableField({ project, model, id, columns }: { project: DemoProject; model: ProjectModel; id: ParameterId; columns: string[] }) {
+  const own = project.input.values[id];
+  const shown = own ?? model.result.parameters[id]?.value ?? model.standard[id] ?? getParameter(id).default;
+  return (
+    <div id={`field-${id}`} className={`fld wide ${model.missing.has(id) ? "is-need" : ""}`}>
+      <TableEditor project={project} id={id} value={shown} columns={columns} />
+    </div>
   );
 }
 
@@ -248,10 +338,21 @@ function cellSummary(v: object): string {
 }
 
 /** value — значение, которое действует в проекте: своё значение проекта или стандарт компании. */
-function TableEditor({ project, id, value }: { project: DemoProject; id: ParameterId; value: unknown }) {
+const BILLION = 1e9;
+
+/** Штучные продукты: цена за штуку, остальные — за м². */
+const PER_UNIT = ["машино-места", "кладовые"];
+
+function TableEditor({ project, id, value, columns: only, revenue }: { project: DemoProject; id: ParameterId; value: unknown; columns: string[] | undefined; revenue?: Record<string, Decimal> | undefined }) {
   const { dispatch } = useStore();
   const p = getParameter(id);
-  const columns = (p.columns ?? []).filter((c) => c.key !== "source_ids");
+  const products = id === "SALES.PRODUCTS";
+  // Одна «Цены на дату» для всех продуктов, пока у строк одна дата цены.
+  const priceDates = products && Array.isArray(value) ? new Set((value as Row[]).map((r) => r.price_date ?? null)) : new Set();
+  const oneDate = products && priceDates.size === 1;
+  const all = (p.columns ?? []).filter((c) => c.key !== "source_ids" && !(oneDate && c.key === "price_date"));
+  // часть столбцов (вкладки графика) — в порядке вкладки
+  const columns = only ? only.map((k) => all.find((c) => c.key === k)).filter((c): c is (typeof all)[number] => c !== undefined) : all;
   const raw = value;
   const change = useChange(project, id, raw);
   if (raw !== null && raw !== undefined && !Array.isArray(raw)) {
@@ -266,7 +367,7 @@ function TableEditor({ project, id, value }: { project: DemoProject; id: Paramet
             </div>
           ))}
         </dl>
-        <p className="small muted">Значения перенесены из исходного Excel, здесь их можно только посмотреть. Изменять их можно будет, когда до этих данных дойдёт расчёт.</p>
+        <p className="small muted">Из исходного файла, только просмотр.</p>
       </div>
     );
   }
@@ -291,14 +392,30 @@ function TableEditor({ project, id, value }: { project: DemoProject; id: Paramet
     if (rows.length && (project.input.values[id] === undefined || project.input.values[id] === null)) set(next);
     else fill(next);
   };
+  const date = oneDate ? String([...priceDates][0] ?? "") : "";
   return (
     <div className="table-editor">
+      {oneDate ? (
+        <div className="bar">
+          <span className="small muted">Цены на дату</span>
+          <input
+            key={`${date}-${change.pending}`}
+            type="date"
+            defaultValue={date}
+            onBlur={(e) => e.target.value !== date && set(rows.map((row) => ({ ...row, price_date: e.target.value || null })))}
+          />
+        </div>
+      ) : null}
       <table className={id === "TIME.MILESTONES" ? "fit" : ""} data-param={id}>
         <thead>
           <tr>
             {columns.map((c) => (
-              <th key={c.key}>{PARAM_COLUMN_LABEL[id]?.[c.key] ?? COLUMN_LABEL[c.key] ?? c.key}</th>
+              <th key={c.key}>
+                {PARAM_COLUMN_LABEL[id]?.[c.key] ?? COLUMN_LABEL[c.key] ?? c.key}
+                {unitOf(c.unit).scale !== 1 ? ", %" : ""}
+              </th>
             ))}
+            {revenue ? <th className="num">{COLUMN_LABEL.revenue}</th> : null}
             <th className="col-del" />
           </tr>
         </thead>
@@ -307,7 +424,7 @@ function TableEditor({ project, id, value }: { project: DemoProject; id: Paramet
             <tr key={r} data-row={String(row.name ?? row.product ?? "")}>
               {columns.map((c) => {
                 const v = row[c.key];
-                const text = v === null || v === undefined ? "" : typeof v === "number" ? fmt.inputNumber(v) : String(v);
+                const text = shownText(v, unitOf(c.unit));
                 // Составное значение ячейки (ручной ряд темпа) — просмотр кратко; ввод рядов — на этапе 8
                 if (v !== null && typeof v === "object") {
                   return (
@@ -322,15 +439,21 @@ function TableEditor({ project, id, value }: { project: DemoProject; id: Paramet
                       <select key={`${text}-${change.pending}`} value={text} onChange={(e) => cell(r, c.key, e.target.value, "текст")}>
                         <option value="">—</option>
                         {c.options.map((o) => (
-                          <option key={o}>{o}</option>
+                          <option key={o} value={o}>
+                            {optionLabel(o)}
+                          </option>
                         ))}
                       </select>
                     ) : (
-                      <input key={`${text}-${change.pending}`} type={c.unit === "дата" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && cell(r, c.key, e.target.value, c.unit)} />
+                      <span className="cell-u">
+                        <input key={`${text}-${change.pending}`} type={c.unit === "дата" ? "date" : "text"} defaultValue={text} onBlur={(e) => e.target.value !== text && cell(r, c.key, e.target.value, c.unit)} />
+                        {products && c.key === "start_price" ? <span className="u">{PER_UNIT.includes(String(row.product)) ? "руб/шт" : "руб/м²"}</span> : null}
+                      </span>
                     )}
                   </td>
                 );
               })}
+              {revenue ? <td className="num ro">{revenue[String(row.name)] ? fmt.num(revenue[String(row.name)]!.div(BILLION), 1) : "—"}</td> : null}
               <td className="col-del">
                 <button className="icon" aria-label="Удалить строку" onClick={() => set(rows.filter((_, i) => i !== r))}>
                   ×

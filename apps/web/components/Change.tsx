@@ -10,6 +10,7 @@ import Link from "next/link";
 import { confirmation, SOURCE_LABEL, standardKey, valueSource } from "@/lib/assumptions";
 import * as fmt from "@/lib/format";
 import { standardInUse } from "@/lib/standard";
+import { useInDraft } from "./Draft";
 
 const AUTHOR_KEY = "fm.author";
 
@@ -58,7 +59,7 @@ export function ChangedMark({ project, id }: { project: DemoProject; id: Paramet
  * Источник значения справочника допущений в проекте: «Стандарт компании» с кнопкой «Подтвердить» / «введено для
  * проекта» / «подтверждено финансистами». Подтверждение (кто, когда, комментарий) хранится в проекте.
  */
-export function SourceMark({ project, id }: { project: DemoProject; id: ParameterId }) {
+export function SourceMark({ project, id, inline = false }: { project: DemoProject; id: ParameterId; inline?: boolean }) {
   const { assumptions, dispatch } = useStore();
   const [confirming, setConfirming] = useState(false);
   const [comment, setComment] = useState("");
@@ -84,15 +85,19 @@ export function SourceMark({ project, id }: { project: DemoProject; id: Paramete
     };
     return (
       <span className="standard-mark">
-        <span className={`source-badge source-${source}`} title={`${w.text}. Для проекта не подтверждено.`}>
-          Стандарт компании
-        </span>
+        {inline ? null : (
+          <span className={`source-badge source-${source}`} title={`${w.text}. Для проекта не подтверждено.`}>
+            Стандарт компании
+          </span>
+        )}
         <button className="link small" onClick={() => setConfirming(true)} title="Подтвердить, что значение подходит этому проекту">
-          Подтвердить
+          {inline ? "Подтвердить для проекта" : "Подтвердить"}
         </button>
-        <Link className="small" href="/assumptions" title="Открыть справочник допущений компании">
-          справочник
-        </Link>
+        {inline ? null : (
+          <Link className="small" href="/assumptions" title="Открыть справочник допущений компании">
+            справочник
+          </Link>
+        )}
         {confirming ? (
           <span className="issue-status-form">
             <textarea placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
@@ -110,6 +115,7 @@ export function SourceMark({ project, id }: { project: DemoProject; id: Paramete
       </span>
     );
   }
+  if (inline) return source === "confirmed" && c ? <span className="small">Подтверждено для проекта: {c.author}, {fmt.date(c.at.slice(0, 10))}</span> : null;
   const title =
     source === "confirmed"
       ? `Стандарт компании, подтверждён для проекта${c ? `: ${c.author}, ${fmt.date(c.at.slice(0, 10))}${c.comment ? `. ${c.comment}` : ""}` : ""}`
@@ -139,10 +145,13 @@ export function NoLink({ project, id }: { project: DemoProject | null; id: Param
  */
 export function useChange(project: DemoProject, id: ParameterId, current: unknown): { commit: (value: unknown) => void; form: ReactNode; pending: boolean } {
   const { dispatch } = useStore();
+  const inDraft = useInDraft();
   const [proposed, setProposed] = useState<{ value: unknown } | null>(null);
   const commit = (value: unknown) => {
     if (JSON.stringify(value ?? null) === JSON.stringify(current ?? null)) return;
     if (isEmpty(current) && !project.changes?.[id]) dispatch({ type: "value", id: project.id, param: id, value });
+    // в черновике вводных «почему» спрашивается один раз — в панели «Несохранённые изменения»
+    else if (inDraft) dispatch({ type: "change", id: project.id, param: id, before: current, value, why: "", author: "" });
     else setProposed({ value });
   };
   const form = proposed ? (

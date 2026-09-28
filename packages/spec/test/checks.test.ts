@@ -94,8 +94,8 @@ describe("лаговые зависимости (lag_depends_on)", () => {
 
   it("лаг вне depends_on — ошибка", () => {
     const s = clone();
-    s.formulas.find((f) => f.id === "F.FIN.RATE")!.lag_depends_on = ["F.TIME.DATE"];
-    expect(checkSpec(s).errors).toContainEqual("формула F.FIN.RATE: lag_depends_on F.TIME.DATE нет в depends_on");
+    s.formulas.find((f) => f.id === "F.FIN.RATE")!.lag_depends_on = ["F.TIME.DAYS"];
+    expect(checkSpec(s).errors).toContainEqual("формула F.FIN.RATE: lag_depends_on F.TIME.DAYS нет в depends_on");
   });
 
   it("без лаговых связей граф формул содержит цикл", () => {

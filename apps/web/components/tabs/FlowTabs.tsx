@@ -2,10 +2,11 @@
 
 import { notAccounted } from "@/lib/assumptions";
 import Decimal from "decimal.js";
-import { getParameter, type FormulaId, type ParameterId } from "@fm/spec";
+import { getParameter, type FormulaId } from "@fm/spec";
 import { Calc, Inputs, pendingStages, toNum, val, type CalcRow } from "../Sheet";
 import { formulaIds } from "./common";
-import { BUDGET_GROUPS, groupCash } from "./BudgetTab";
+import { groupCash } from "./BudgetTab";
+import { BUDGET_GROUPS, cfGroups, dashboardGroups, escrowGroups, salesGroups } from "@/lib/tab-inputs";
 import type { ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 
@@ -66,22 +67,7 @@ export function SalesTab({ project, model }: Props) {
       <Inputs
         project={project}
         model={model}
-        groups={[
-          { title: "Продукты и стартовые цены", params: ["SALES.PRODUCTS"] },
-          { title: "Темп продаж", params: ["SALES.PACE"] },
-          ...(project.input.mode === "legacy"
-            ? [
-                { title: "Рост цен (как в исходном Excel)", params: ["SALES.LEGACY_PRICE_GROWTH"] as ParameterId[], note: "В расчёте «как в исходном Excel» цена растёт ступенькой, как в исходнике. Рост по рынку и стадиям готовности действует в расчёте сервиса." },
-                { title: "Поступления в денежный поток (как в исходном Excel)", params: ["SALES.LEGACY_CASH_IN_END"] as ParameterId[], note: "В исходнике строка доходов CF1 обрывается раньше продаж, поэтому часть выручки в денежный поток не попадает. В расчёте сервиса учитываются все поступления." },
-              ]
-            : [
-                {
-                  title: "Рост цен",
-                  params: ["SALES.PRICE_MARKET_GROWTH", "SALES.PRICE_STAGE_UPLIFT"] as ParameterId[],
-                  note: "Известное допущение: надбавка за стадию считается по готовности СМР всего проекта, а не своей очереди. Если дальние очереди начинают продавать рано, их цена получает надбавку за стройку ближних очередей, и выручка завышается.",
-                },
-              ]),
-        ]}
+        groups={salesGroups(project)}
       />
       <Calc model={model} rows={rows} periods stages={pendingStages(model, formulaIds(rows))} />
     </>
@@ -98,18 +84,17 @@ export function EscrowTab({ project, model }: Props) {
     { label: "Остаток на эскроу (на конец периода)", unit: "руб", formula: "F.ESC.BALANCE", series: toNum(esc?.balance[p]), totalMode: "none", periodMode: "last" },
     { label: "Месяц раскрытия", unit: "0/1", formula: "F.TIME.FLAG_ESCROW_RELEASE", series: flagRow(model, "F.TIME.FLAG_ESCROW_RELEASE", p) },
   ]).flat();
-  rows.push({ section: "Покрытие долга" }, { label: "Покрытие долга эскроу — появится с расчётом кредита (этап 5)", unit: "доля", formula: "F.ESC.COVERAGE", series: null, totalMode: "none" });
+  const coverage = val<(Decimal | null)[]>(model, "F.ESC.COVERAGE");
+  rows.push(
+    { section: "Покрытие долга" },
+    { label: "Покрытие долга с процентами остатками эскроу (на конец периода)", unit: "коэф", formula: "F.ESC.COVERAGE", series: coverage ? coverage.map((x) => x?.toNumber() ?? 0) : null, totalMode: "none", periodMode: "last" },
+  );
   return (
     <>
       <Inputs
         project={project}
         model={model}
-        groups={[
-          { title: "Структура оплат", params: ["SALES.PAYMENT_MIX"] },
-          project.input.mode === "legacy"
-            ? { title: "Эскроу (как в исходном Excel)", params: ["TIME.LEGACY_ESCROW_DEPOSIT_END", "TIME.LEGACY_ESCROW_RELEASE_DATE", "FIN.ESCROW_RESERVE_RATE"], note: "В исходнике сделки идут на эскроу до даты, после которой в CF1 вбиты нули, а раскрытие одной датой для всех очередей проставлено руками. В расчёте сервиса раскрытие — через лаг после РНВ каждой очереди." }
-            : { title: "Раскрытие", params: ["TIME.ESCROW_RELEASE_LAG_M", "FIN.ESCROW_RESERVE_RATE"] },
-        ]}
+        groups={escrowGroups(project)}
       />
       <Calc model={model} rows={rows} periods stages={pendingStages(model, formulaIds(rows))} />
     </>
@@ -136,13 +121,7 @@ export function CashflowTab({ project, model }: Props) {
     { label: "НДС к уплате", unit: "руб", formula: "F.TAX.VAT_PAYABLE", series: null },
     { label: "Налог на прибыль", unit: "руб", formula: "F.TAX.PROFIT_TAX", series: null },
     { label: "Итого налоги", unit: "руб", formula: "F.TAX.PAYMENTS", series: null, bold: true },
-    { section: "Кредит" },
-    { label: "Собственные средства", unit: "руб", formula: "F.FIN.EQUITY_IN", series: null },
-    { label: "Выборка кредита", unit: "руб", formula: "F.FIN.DRAW", series: null },
-    { label: "Ставка", unit: "доля", formula: "F.FIN.RATE", series: null, totalMode: "none" },
-    { label: "Проценты", unit: "руб", formula: "F.FIN.INTEREST", series: null },
-    { label: "Погашение", unit: "руб", formula: "F.FIN.REPAYMENT", series: null },
-    { label: "Остаток долга", unit: "руб", formula: "F.FIN.DEBT", series: null, totalMode: "none", bold: true },
+    ...creditRows(project, model),
     { section: "Оценка" },
     { label: "CFADS", unit: "руб", formula: "F.CF.CFADS", series: null },
     { label: "FCFE", unit: "руб", formula: "F.CF.FCFE", series: null },
@@ -153,15 +132,37 @@ export function CashflowTab({ project, model }: Props) {
       <Inputs
         project={project}
         model={model}
-        groups={[
-          { title: "Проектное финансирование", params: ["FIN.EQUITY_SHARE", "FIN.RATE_PREFERENTIAL", "FIN.RATE_BASE_SPREAD", "FIN.KEY_RATE_PATH", "FIN.RATE_DISCOUNT_COEF", "FIN.RATE_MIN", "FIN.FEE_ARRANGEMENT", "FIN.FEE_COMMITMENT", "FIN.COLLATERAL_DISCOUNT"] },
-          { title: "Налоги", params: ["TAX.VAT_RATE", "TAX.VAT_REGIME", "TAX.INPUT_VAT_RECOVERABLE", "TAX.PROFIT_RATE", "TAX.LOSS_CARRYFORWARD_LIMIT"] },
-          { title: "Дисконтирование", params: ["GEN.VALUATION_DATE", "VAL.RISK_FREE", "VAL.EQUITY_PREMIUM", "VAL.HURDLE_IRR"] },
-        ]}
+        groups={cfGroups(project)}
       />
       <Calc model={model} rows={rows} periods stages={pendingStages(model, formulaIds(rows))} />
     </>
   );
+}
+
+/** Строки кредита: потребность → взнос застройщика → выдача → ставка → проценты → погашение → остатки. */
+function creditRows(project: DemoProject, model: ProjectModel): CalcRow[] {
+  const need = val<{ need: Decimal[]; cash_bop: (Decimal | null)[] }>(model, "F.FIN.FUNDING_NEED");
+  const equity = val<{ total: Decimal[]; gap: Decimal[] }>(model, "F.FIN.EQUITY_IN");
+  const rep = val<{ interest_paid: Decimal[]; principal: Decimal[]; from_escrow: Decimal[]; from_dkp: Decimal[] }>(model, "F.FIN.REPAYMENT");
+  const debt = val<{ debt: Decimal[]; accrued: Decimal[] }>(model, "F.FIN.DEBT");
+  const legacy = project.input.mode === "legacy";
+  const rows: CalcRow[] = [
+    { section: "Кредит" },
+    { label: legacy ? "Расходы квартала — база выдачи" : "Потребность в финансировании", unit: "руб", formula: "F.FIN.FUNDING_NEED", series: toNum(need?.need) },
+    { label: "Собственные средства", unit: "руб", formula: "F.FIN.EQUITY_IN", series: toNum(equity?.total) },
+    ...(legacy ? [] : [{ label: "из них сверх лимита кредита", unit: "руб", formula: "F.FIN.EQUITY_IN", series: toNum(equity?.gap) } as CalcRow]),
+    { label: "Выдача кредита", unit: "руб", formula: "F.FIN.DRAW", series: toNum(val<Decimal[]>(model, "F.FIN.DRAW")) },
+    { label: "Комиссии банка", unit: "руб", formula: "F.FIN.FEES", series: toNum(val<Decimal[]>(model, "F.FIN.FEES")) },
+    { label: "Ставка (на конец периода)", unit: "%годовых", formula: "F.FIN.RATE", series: toNum(val<Decimal[]>(model, "F.FIN.RATE")), totalMode: "none", periodMode: "last" },
+    { label: "Проценты начисленные", unit: "руб", formula: "F.FIN.INTEREST", series: toNum(val<Decimal[]>(model, "F.FIN.INTEREST")) },
+    { label: "Погашение процентов", unit: "руб", formula: "F.FIN.REPAYMENT", series: toNum(rep?.interest_paid) },
+    { label: "Погашение основного долга", unit: "руб", formula: "F.FIN.REPAYMENT", series: toNum(rep?.principal) },
+    ...(legacy ? [] : [{ label: "из них из договоров купли-продажи", unit: "руб", formula: "F.FIN.REPAYMENT", series: toNum(rep?.from_dkp) } as CalcRow]),
+    { label: "Остаток основного долга", unit: "руб", formula: "F.FIN.DEBT", series: toNum(debt?.debt), totalMode: "none", periodMode: "last", bold: true },
+    { label: "Неоплаченные проценты", unit: "руб", formula: "F.FIN.DEBT", series: toNum(debt?.accrued), totalMode: "none", periodMode: "last" },
+  ];
+  if (!legacy) rows.push({ label: "Свободные деньги проекта на начало месяца", unit: "руб", formula: "F.FIN.FUNDING_NEED", series: need ? need.cash_bop.map((x) => x?.toNumber() ?? 0) : null, totalMode: "none", periodMode: "last" });
+  return rows;
 }
 
 export function DashboardTab({ project, model }: Props) {
@@ -185,9 +186,11 @@ export function DashboardTab({ project, model }: Props) {
     { label: "Маржа", unit: "доля", formula: "F.KPI.MARGIN", bold: true },
     { label: "Налоги", unit: "руб", formula: "F.TAX.PAYMENTS" },
     { section: "Кредит" },
-    { label: "Лимит финансирования", unit: "руб", formula: "F.FIN.LIMIT" },
-    { label: "Начисленные проценты", unit: "руб", formula: "F.FIN.INTEREST" },
-    { label: "Эффективная ставка", unit: "доля", formula: "F.FIN.EFFECTIVE_RATE" },
+    { label: "Лимит кредита", unit: "руб", formula: "F.FIN.LIMIT", total: val(model, "F.FIN.LIMIT") },
+    ...(project.input.mode === "legacy" ? [] : [{ label: "Собственное участие до первой выдачи", unit: "руб", formula: "F.FIN.EQUITY_REQUIRED", total: val(model, "F.FIN.EQUITY_REQUIRED") } as CalcRow]),
+    { label: "Выдано кредита", unit: "руб", formula: "F.FIN.DRAW", total: sum(val<Decimal[]>(model, "F.FIN.DRAW")) },
+    { label: "Начисленные проценты", unit: "руб", formula: "F.FIN.INTEREST", total: sum(val<Decimal[]>(model, "F.FIN.INTEREST")) },
+    { label: "Полная стоимость кредита", unit: "%годовых", formula: "F.FIN.EFFECTIVE_RATE", total: val(model, "F.FIN.EFFECTIVE_RATE") ?? undefined },
     { label: "LTC / LTV", unit: "доля", formula: "F.KPI.LTC_LTV" },
     { section: "Итоги по проекту" },
     { label: "Ставка дисконтирования", unit: "доля", formula: "F.KPI.DISCOUNT_RATE" },
@@ -206,7 +209,7 @@ export function DashboardTab({ project, model }: Props) {
           <b>Не учтено в расчёте:</b> {missed.map((id) => getParameter(id).name).join("; ")}. Значений нет ни в проекте, ни в справочнике допущений — это не ноль. Введите их на вкладках проекта или в справочнике.
         </div>
       ) : null}
-      <Inputs project={project} model={model} groups={[{ title: "Оценка", params: ["GEN.VALUATION_DATE"] }]} />
+      <Inputs project={project} model={model} groups={dashboardGroups()} />
       <Calc model={model} rows={rows} stages={stages} title="Показатели" />
       <section className="charts">
         {["CF по годам", "Долг", "Эскроу"].map((t) => (

@@ -10,14 +10,11 @@ import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
 import * as fmt from "@/lib/format";
+import { missingCount, type InputGroup } from "@/lib/tab-inputs";
 
 // ---------------------------------------------------------------- Вводные
 
-export interface InputGroup {
-  title: string;
-  params: ParameterId[];
-  note?: string | undefined;
-}
+export type { InputGroup };
 
 const COLUMN_LABEL: Record<string, string> = {
   phase: "Очередь",
@@ -140,7 +137,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   }
 
   return (
-    <div className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
+    <div id={`field-${id}`} className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
       <div className="field-head">
         <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
           {p.name}
@@ -172,7 +169,7 @@ export function needHint(id: ParameterId): string {
 }
 
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
-  const missing = groups.flatMap((g) => g.params).filter((id) => model.missing.has(id)).length;
+  const missing = missingCount(groups, model);
   // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; простые ставятся парами,
   // блок без соседа в строке тоже растягивается на всю ширину.
   const hasTable = (g: InputGroup) => g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template");
@@ -416,8 +413,9 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
               }
               const series = row.series && dates ? aggregate(row.series, dates, period, row.periodMode).sums : null;
               const total = row.total !== undefined ? row.total : row.series && row.totalMode !== "none" ? row.series.reduce((a, b) => a + b, 0) : undefined;
-              // Деньги в итогах — до рубля, как в ячейках по периодам
-              const totalText = total === undefined ? (row.series ? "" : "—") : row.unit?.startsWith("руб") && (typeof total === "number" || total instanceof Decimal) ? fmt.num(total, 0) : fmt.value(total);
+              // Деньги в итогах — до рубля, как в ячейках по периодам; доли — в процентах
+              const isNum = typeof total === "number" || total instanceof Decimal;
+              const totalText = total === undefined ? (row.series ? "" : "—") : isNum && (row.unit?.startsWith("руб") || row.unit === "доля" || row.unit === "%годовых" || row.unit === "коэф") ? cellText(new Decimal(total).toNumber(), row.unit) : fmt.value(total);
               const click = () => row.formula && open({ kind: "formula", id: row.formula, label: row.label, value: total === undefined ? "—" : `${totalText} ${fmt.unit(row.unit ?? "")}` });
               return (
                 <tr key={i} className={`${row.bold ? "total" : ""} ${row.formula ? "clickable" : ""}`} onClick={click}>
@@ -426,7 +424,7 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
                   <td className="num">{totalText}</td>
                   {keys.map((k, j) => (
                     <td key={k} className="num">
-                      {series ? (series[j] ? fmt.num(series[j] as number, 0) : "") : row.total !== undefined ? "" : "—"}
+                      {series ? (series[j] ? cellText(series[j] as number, row.unit) : "") : row.total !== undefined ? "" : "—"}
                     </td>
                   ))}
                 </tr>
@@ -438,6 +436,14 @@ export function Calc({ model, rows, periods = false, stages, title = "Расчё
     </section>
   );
 }
+
+/** Число в ячейке расчёта: доли и ставки — в процентах, коэффициенты — с двумя знаками, остальное — целыми. */
+function cellText(v: number, unit: string | undefined): string {
+  if (unit === "доля" || unit === "%годовых") return fmt.share(Math.round(v * PERCENT_CELL) / PERCENT_CELL);
+  if (unit === "коэф") return fmt.num(v, 2);
+  return fmt.num(v, 0);
+}
+const PERCENT_CELL = 10_000;
 
 /** Значение формулы, если ядро его посчитало. */
 export function val<T = unknown>(model: ProjectModel, id: FormulaId): T | undefined {

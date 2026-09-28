@@ -1,18 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { fmtRub, type DataQuestion, type QuestionBlock } from "@fm/engine";
+import { fmtRub, type DataQuestion } from "@fm/engine";
 import { savedAuthor } from "./Change";
 import { useHow } from "./HowPanel";
-import { BLOCKS, impactSize, issueItems, type IssueItem } from "@/lib/issues";
+import { GROUPS, impactSize, issueItems, TAB_TITLE, type IssueItem } from "@/lib/issues";
+import type { InputTab } from "@/lib/tab-inputs";
 import { exportIssues } from "@/lib/issues-export";
+import { plural } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { ISSUE_STATUS_LABEL, type DemoProject, type IssueStatus } from "@/lib/types";
 
-type Tab = "sales" | "budget" | "escrow" | "cf" | "tep";
-
-const TAB_OF_BLOCK: Record<QuestionBlock, Tab> = { sales: "sales", budget: "budget", cf: "cf", escrow: "escrow", fin: "cf" };
-const TAB_LABEL: Record<Tab, string> = { sales: "План продаж", budget: "Бюджет", escrow: "Эскроу", cf: "CF", tep: "ТЭП" };
 const AUTHOR_KEY = "fm.author";
 const STATUSES: IssueStatus[] = ["open", "work", "done"];
 
@@ -40,12 +38,11 @@ export function ModeSwitch({ project }: { project: DemoProject }) {
   );
 }
 
-/** Строка над вкладками в расчёте «как в исходном Excel»: сколько расхождений не решено и где их список. */
-export function CompatBanner({ open, total, go }: { open: number; total: number; go: () => void }) {
-  if (total === 0) return null;
+/** Плашка над вкладками: сколько расхождений не решено (тот же подсчёт, что в заголовке вкладки) и где их список. */
+export function CompatBanner({ text, go }: { text: string; go: () => void }) {
   return (
     <div className="compat-warnings">
-      Расчёт как в исходном Excel повторяет файл один в один. Не решено {open} из {total} расхождений.{" "}
+      {text}{" "}
       <button className="linklike" onClick={go}>
         Открыть список
       </button>
@@ -79,7 +76,7 @@ function StatusCell({ project, item }: { project: DemoProject; item: IssueItem }
       /* имя автора — только удобство */
     }
     const event = { status: pending, author: author.trim(), at: new Date().toISOString(), ...(comment.trim() ? { comment: comment.trim() } : {}) };
-    dispatch({ type: "issue", id: project.id, key: item.key, no: item.no, question: item.question, event });
+    dispatch({ type: "issue", id: project.id, key: item.key, no: item.no, question: item.title, event });
     setPending(null);
     setComment("");
   };
@@ -123,7 +120,7 @@ function StatusCell({ project, item }: { project: DemoProject; item: IssueItem }
   );
 }
 
-/** Автоматическое пояснение пункта + ручные дополнения к нему (кто, когда) и подробности «почему так в файле». */
+/** Пункт: что не так в файле, где, что это меняет; вопросы автору строками внутри; ручные дополнения (кто, когда). */
 function Explanation({ project, item }: { project: DemoProject; item: IssueItem }) {
   const { dispatch } = useStore();
   const [adding, setAdding] = useState(false);
@@ -137,20 +134,30 @@ function Explanation({ project, item }: { project: DemoProject; item: IssueItem 
     } catch {
       /* имя автора — только удобство */
     }
-    dispatch({ type: "issueNote", id: project.id, key: item.key, no: item.no, question: item.question, note: { text: text.trim(), author: author.trim(), at: new Date().toISOString() } });
+    dispatch({ type: "issueNote", id: project.id, key: item.key, no: item.no, question: item.title, note: { text: text.trim(), author: author.trim(), at: new Date().toISOString() } });
     setText("");
     setAdding(false);
   };
   return (
     <>
-      <div className="issue-question">{item.question}</div>
-      {item.q ? (
-        <p className="issue-summary">
-          {item.q.compared} {item.q.threat}
+      <div className="issue-question">{item.title}</div>
+      {item.stale ? <p className="muted">Не воспроизводится: после обновления исходника пункт пропал. Статус сохранён.</p> : null}
+      {item.where ? <div className="small muted">{item.where}</div> : null}
+      {item.effect ? <p className="issue-summary">{item.effect}</p> : null}
+      {item.question ? (
+        <p className="issue-ask">
+          <b>Вопрос автору:</b> {item.question}
         </p>
-      ) : (
-        <p className="muted">Не воспроизводится: после обновления исходника расхождение пропало. Статус сохранён.</p>
-      )}
+      ) : null}
+      {item.questions.map((q) => (
+        <div key={q.key} className="issue-ask">
+          <b>Вопрос автору:</b> {q.question}
+          <details className="issue-detail">
+            <summary>Что сверил расчёт</summary>
+            {q.compared} {q.threat} {q.explanation}
+          </details>
+        </div>
+      ))}
       {notes.length ? (
         <ul className="issue-notes">
           {notes.map((n, k) => (
@@ -162,12 +169,6 @@ function Explanation({ project, item }: { project: DemoProject; item: IssueItem 
             </li>
           ))}
         </ul>
-      ) : null}
-      {item.q ? (
-        <details className="issue-detail">
-          <summary>{item.q.parameterId ? "Откуда значение" : "Почему так в файле"}</summary>
-          {item.q.explanation}
-        </details>
       ) : null}
       {adding ? (
         <div className="issue-status-form">
@@ -191,51 +192,58 @@ function Explanation({ project, item }: { project: DemoProject; item: IssueItem 
   );
 }
 
-function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]; go: (t: Tab) => void }) {
+function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]; go: (t: InputTab) => void }) {
   const { open } = useHow();
   return (
     <table className="grid issues-table">
       <thead>
         <tr>
           <th>№</th>
-          <th>Вопрос и пояснение</th>
+          <th>Что не так в файле</th>
           <th>Влияние</th>
-          <th>Рекомендация</th>
+          <th>В расчёте сервиса</th>
           <th>Статус</th>
           <th>Где видно</th>
         </tr>
       </thead>
       <tbody>
-        {items.map((i) => (
-          <tr key={i.key} className={i.stale ? "stale" : ""}>
-            <td data-label="№" className="issue-no">
-              {i.no}
-            </td>
-            <td data-label="Вопрос и пояснение" className="issue-main">
-              <Explanation project={project} item={i} />
-            </td>
-            <td data-label="Влияние">{i.q ? <Impact q={i.q} /> : "—"}</td>
-            <td data-label="Рекомендация">{i.q?.recommendation ?? "—"}</td>
-            <td data-label="Статус">
-              <StatusCell project={project} item={i} />
-            </td>
-            <td data-label="Где видно" className="nowrap">
-              {i.q ? (
-                <>
-                  <button className="linklike" onClick={() => go(TAB_OF_BLOCK[i.q?.block ?? "budget"])}>
-                    {TAB_LABEL[TAB_OF_BLOCK[i.q.block]]}
-                  </button>
-                  <br />
-                  <button className="linklike" onClick={() => i.q && open(i.q.parameterId ? { kind: "param", id: i.q.parameterId } : { kind: "formula", id: i.q.formulaId })}>
-                    {i.q.parameterId ? "значение" : "как посчитано"}
-                  </button>
-                </>
-              ) : (
-                "—"
-              )}
-            </td>
-          </tr>
-        ))}
+        {items.map((i) => {
+          const q = i.questions[0];
+          return (
+            <tr key={i.key} className={i.stale ? "stale" : ""}>
+              <td data-label="№" className="issue-no">
+                {i.label}
+              </td>
+              <td data-label="Что не так в файле" className="issue-main">
+                <Explanation project={project} item={i} />
+              </td>
+              <td data-label="Влияние">{i.questions.some((x) => x.impact.amount) ? i.questions.map((x) => <Impact key={x.key} q={x} />) : "—"}</td>
+              <td data-label="В расчёте сервиса">{i.fix || "—"}</td>
+              <td data-label="Статус">
+                <StatusCell project={project} item={i} />
+              </td>
+              <td data-label="Где видно" className="nowrap">
+                {i.stale ? (
+                  "—"
+                ) : (
+                  <>
+                    <button className="linklike" onClick={() => go(i.tab)}>
+                      {TAB_TITLE[i.tab]}
+                    </button>
+                    {q ? (
+                      <>
+                        <br />
+                        <button className="linklike" onClick={() => open({ kind: "formula", id: q.formulaId })}>
+                          как посчитано
+                        </button>
+                      </>
+                    ) : null}
+                  </>
+                )}
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
@@ -245,37 +253,36 @@ type Sub = "active" | "archive";
 type Filter = "all" | "open" | "work";
 
 /**
- * Вкладка «Расхождения с Excel» — рабочий список вопросов к авторам исходного файла (решение владельца продукта
- * 27.09.2026). Расчёт «как в исходном Excel» повторяет Excel один в один; здесь — места, где файл не сходится сам с собой,
- * с влиянием, рекомендацией и статусом. Решённые — в «Архиве».
+ * Вкладка «Расхождения» — пункты аудита исходного Excel с вопросами расчёта к авторам файла (решения владельца продукта
+ * 27.09.2026 и 28.09.2026). Расчёт «как в исходном Excel» повторяет Excel один в один; здесь — что в файле не так,
+ * влияние, как считает сервис и статус. Группы: «Искажают результат», «Методика», «Уточнить у автора файла» (открытые
+ * вопросы, в число нерешённых не входят). Решённые — в «Архиве».
  */
-export function DiscrepanciesTab({ project, questions, go }: { project: DemoProject; questions: DataQuestion[]; go: (tab: Tab) => void }) {
+export function DiscrepanciesTab({ project, questions, go }: { project: DemoProject; questions: DataQuestion[]; go: (tab: InputTab) => void }) {
   const [sub, setSub] = useState<Sub>("active");
-  const [sort, setSort] = useState<"impact" | "no">("impact");
+  const [sort, setSort] = useState<"impact" | "no">("no");
   const [filter, setFilter] = useState<Filter>("all");
   const [exporting, setExporting] = useState(false);
-  if (!project.legacyCase && questions.length === 0 && !Object.keys(project.issues ?? {}).length) {
-    return <p className="muted discrepancies">Вопросов нет: проект не загружен из Excel и не использует неподтверждённых стандартных значений компании.</p>;
-  }
   const all = issueItems(project, questions);
   const active = all.filter((i) => i.status !== "done");
   const archive = all.filter((i) => i.status === "done");
   const shown = (sub === "active" ? active.filter((i) => filter === "all" || i.status === filter) : archive).sort((a, b) =>
     sort === "impact" ? impactSize(b) - impactSize(a) || a.no - b.no : a.no - b.no,
   );
-  const blockOf = (i: IssueItem) => i.q?.block ?? "budget";
+  // Вопросы автору файла — не ошибки: в скобках отдельно, чтобы число совпадало с заголовком вкладки
+  const asked = active.filter((i) => i.group === "author").length;
+  const activeLabel = `${active.length - asked}${asked ? ` + ${asked} ${plural(asked, ["вопрос", "вопроса", "вопросов"])} автору` : ""}`;
+  const tabs = Object.keys(TAB_TITLE) as InputTab[];
   return (
     <div className="discrepancies">
       <p className="small muted">
-        {project.legacyCase
-          ? "Ошибки и нестыковки, найденные в исходном Excel: расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше. "
-          : ""}
-        Стандартные значения компании, которые проект использует без подтверждения, тоже здесь: статус «Решено» отмечает значение как подтверждённое финансистами.
+        Ошибки и недочёты исходного Excel по аудиту файла: расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше. Вопросы
+        автору файла — отдельно: это не ошибки, в число нерешённых они не входят.
       </p>
       <div className="issues-toolbar">
         <div className="seg">
           <button className={sub === "active" ? "on" : ""} onClick={() => setSub("active")}>
-            Активные ({active.length})
+            Активные ({activeLabel})
           </button>
           <button className={sub === "archive" ? "on" : ""} onClick={() => setSub("archive")}>
             Архив ({archive.length})
@@ -294,8 +301,8 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
         <label className="small">
           Порядок{" "}
           <select value={sort} onChange={(e) => setSort(e.target.value as "impact" | "no")}>
-            <option value="impact">по влиянию</option>
             <option value="no">по номеру</option>
+            <option value="impact">по влиянию</option>
           </select>
         </label>
         <button
@@ -316,14 +323,26 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
       {shown.length === 0 ? (
         <p className="muted">{sub === "archive" ? "Решённых пунктов пока нет." : "Активных пунктов нет."}</p>
       ) : (
-        BLOCKS.filter((b) => shown.some((i) => blockOf(i) === b.id)).map((b) => (
-          <section key={b.id}>
-            <h2>
-              {b.title} <span className="muted small">{shown.filter((i) => blockOf(i) === b.id).length}</span>
-            </h2>
-            <Rows project={project} items={shown.filter((i) => blockOf(i) === b.id)} go={go} />
-          </section>
-        ))
+        GROUPS.filter((g) => shown.some((i) => i.group === g.id)).map((g) => {
+          const inGroup = shown.filter((i) => i.group === g.id);
+          return (
+            <section key={g.id} className="issue-group">
+              <h2>
+                {g.id === "author" ? `${g.title}: открытые вопросы` : g.title} <span className="muted small">{inGroup.length}</span>
+              </h2>
+              {tabs
+                .filter((t) => inGroup.some((i) => i.tab === t))
+                .map((t) => (
+                  <section key={t}>
+                    <h3>
+                      {TAB_TITLE[t]} <span className="muted small">{inGroup.filter((i) => i.tab === t).length}</span>
+                    </h3>
+                    <Rows project={project} items={inGroup.filter((i) => i.tab === t)} go={go} />
+                  </section>
+                ))}
+            </section>
+          );
+        })
       )}
     </div>
   );

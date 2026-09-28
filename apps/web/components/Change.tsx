@@ -6,8 +6,10 @@ import { compositeSummary } from "./DataView";
 import { useStore } from "@/lib/store";
 import type { DemoProject, ValueChange } from "@/lib/types";
 import { whence } from "@/lib/whence";
-import { confirmation, SOURCE_LABEL, valueSource } from "@/lib/assumptions";
+import Link from "next/link";
+import { confirmation, SOURCE_LABEL, standardKey, valueSource } from "@/lib/assumptions";
 import * as fmt from "@/lib/format";
+import { standardInUse } from "@/lib/standard";
 
 const AUTHOR_KEY = "fm.author";
 
@@ -52,19 +54,66 @@ export function ChangedMark({ project, id }: { project: DemoProject; id: Paramet
   );
 }
 
-/** Источник значения справочника допущений в проекте: «стандарт компании» / «введено для проекта» / «подтверждено финансистами». */
+/**
+ * Источник значения справочника допущений в проекте: «Стандарт компании» с кнопкой «Подтвердить» / «введено для
+ * проекта» / «подтверждено финансистами». Подтверждение (кто, когда, комментарий) хранится в проекте.
+ */
 export function SourceMark({ project, id }: { project: DemoProject; id: ParameterId }) {
-  const { assumptions } = useStore();
+  const { assumptions, dispatch } = useStore();
+  const [confirming, setConfirming] = useState(false);
+  const [comment, setComment] = useState("");
+  const [author, setAuthor] = useState(savedAuthor);
   const source = valueSource(project, id, assumptions);
   // «Как в исходном Excel» берёт значения справочника из самого Excel — метка стандарта там не показывается
   if (!source || (project.input.mode === "legacy" && project.legacyCase)) return null;
+  // стандарт, который в расчёте проекта не участвует (статьи бюджета заданы суммой), не требует подтверждения
+  if (source === "standard" && !standardInUse(project, assumptions).includes(id)) return null;
   const c = source === "confirmed" ? confirmation(project, id) : null;
+  if (source === "standard") {
+    const w = whence(id, project, assumptions);
+    const save = () => {
+      if (!author.trim()) return;
+      try {
+        localStorage.setItem(AUTHOR_KEY, author.trim());
+      } catch {
+        /* имя автора — только удобство */
+      }
+      const event = { status: "done" as const, author: author.trim(), at: new Date().toISOString(), ...(comment.trim() ? { comment: comment.trim() } : {}) };
+      dispatch({ type: "issue", id: project.id, key: standardKey(id), no: 0, question: `Стандарт компании: ${getParameter(id).name}`, event });
+      setConfirming(false);
+    };
+    return (
+      <span className="standard-mark">
+        <span className={`source-badge source-${source}`} title={`${w.text}. Для проекта не подтверждено.`}>
+          Стандарт компании
+        </span>
+        <button className="link small" onClick={() => setConfirming(true)} title="Подтвердить, что значение подходит этому проекту">
+          Подтвердить
+        </button>
+        <Link className="small" href="/assumptions" title="Открыть справочник допущений компании">
+          справочник
+        </Link>
+        {confirming ? (
+          <span className="issue-status-form">
+            <textarea placeholder="Комментарий (необязательно)" value={comment} onChange={(e) => setComment(e.target.value)} rows={2} />
+            {savedAuthor() ? null : <input placeholder="Ваше имя" value={author} onChange={(e) => setAuthor(e.target.value)} />}
+            <span className="row-actions">
+              <button className="btn small primary" disabled={!author.trim()} onClick={save}>
+                Подтвердить
+              </button>
+              <button className="btn small" onClick={() => setConfirming(false)}>
+                Отмена
+              </button>
+            </span>
+          </span>
+        ) : null}
+      </span>
+    );
+  }
   const title =
-    source === "standard"
-      ? `Стандартное значение компании (справочник допущений, версия ${project.assumptionsVersion}). Для проекта не подтверждено — вопрос в «Расхождениях».`
-      : source === "confirmed"
-        ? `Стандарт компании, подтверждён для проекта${c ? `: ${c.author}, ${fmt.date(c.at.slice(0, 10))}${c.comment ? `. ${c.comment}` : ""}` : ""}`
-        : "Значение введено для этого проекта";
+    source === "confirmed"
+      ? `Стандарт компании, подтверждён для проекта${c ? `: ${c.author}, ${fmt.date(c.at.slice(0, 10))}${c.comment ? `. ${c.comment}` : ""}` : ""}`
+      : "Значение введено для этого проекта";
   return (
     <span className={`source-badge source-${source}`} title={title}>
       {SOURCE_LABEL[source]}

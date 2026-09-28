@@ -399,6 +399,9 @@ table.calc-table tr.block td.sticky { background: var(--group-head); }
 .version-list ul { margin: 4px 0 0; padding-left: 18px; }
 .assumptions-update { border: 1px solid var(--input-border); background: var(--group-head); border-radius: 8px; padding: 10px 14px; margin: 10px 0; }
 .assumptions-update ul { margin: 6px 0; padding-left: 18px; }
+.standard-mark { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.standard-line { margin: 8px 0; padding: 8px 12px; border: 1px solid #ecd9a8; border-radius: 6px; background: var(--need-bg); }
+.issue-ask { margin: 6px 0; }
 
 /* Окно сервиса (модальное): заголовок, крестик, поля в две колонки, кнопки внизу */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(20,28,40,.38); z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 6vh 16px 16px; overflow-y: auto; }

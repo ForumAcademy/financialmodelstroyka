@@ -38,9 +38,10 @@ describe("изменение значения в проекте", () => {
 describe("«Откуда»", () => {
   it("значения без документа получили текст обоснования; ссылка — только если есть документ", () => {
     // 30 значений справочника (этап 3) + этап 4: рост цены, даты эскроу и конец поступлений исходного Excel
-    // для расчёта «как в исходном Excel», лаг раскрытия эскроу (решение владельца продукта)
+    // для расчёта «как в исходном Excel», лаг раскрытия эскроу (решение владельца продукта); этап 5: лимит и ключевая
+    // ставка исходного Excel
     const withFrom = spec.parameters.filter((x) => x.from);
-    expect(withFrom).toHaveLength(35);
+    expect(withFrom).toHaveLength(37);
     expect(referenceWhence("BENCH.PAIR_RADIUS_KM")).toMatchObject({ url: null });
     expect(referenceWhence("CAPEX.COST_INDEX").url).toMatch(/^https:/);
   });

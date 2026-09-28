@@ -1,34 +1,13 @@
 "use client";
 
 import Decimal from "decimal.js";
-import type { ParameterId } from "@fm/spec";
-import { Calc, Inputs, val, type CalcRow, type InputGroup } from "../Sheet";
+import { Calc, Inputs, val, type CalcRow } from "../Sheet";
+import { tepGroups } from "@/lib/tab-inputs";
 import type { ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 
-const PROJECT: ParameterId[] = ["GEN.PROJECT_NAME", "GEN.REGION_CODE", "GEN.HOUSING_CLASS", "GEN.PROJECT_STAGE", "GEN.CADASTRAL_NUMBER", "GEN.MODEL_START_DATE", "GEN.PHASES_COUNT"];
-const LAND: ParameterId[] = ["LAND.AREA", "LAND.CADASTRAL_VALUE", "LAND.TENURE"];
-const AREAS_CONCEPT: ParameterId[] = ["TEP.GFA_ABOVE", "TEP.RES_GFA", "TEP.NONRES_GFA", "TEP.APT_AREA", "TEP.COMM_AREA", "TEP.APART_AREA", "TEP.MOP_AREA", "TEP.GFA_BELOW", "TEP.STORAGE_COUNT", "TEP.STORAGE_AREA", "TEP.FOOTPRINT_AREA", "TEP.MAX_FLOORS", "TEP.BUILDING_HEIGHT_M"];
-const AREAS_ESTIMATE: ParameterId[] = ["TEP.FOOTPRINT_AREA", "TEP.AVG_FLOORS", "TEP.RES_GFA_SHARE", "TEP.APART_GFA_SHARE", "TEP.APT_EFFICIENCY", "TEP.COMM_EFFICIENCY", "TEP.APART_EFFICIENCY", "TEP.MOP_AREA", "TEP.STORAGE_PER_APT", "TEP.STORAGE_AVG_AREA"];
-const GPZU: ParameterId[] = ["GPZU.MAX_GFA_ABOVE", "GPZU.MAX_BUILT_SHARE", "GPZU.MAX_FLOORS", "GPZU.MAX_HEIGHT_M", "GPZU.APART_ALLOWED"];
-const PARKING_CONCEPT: ParameterId[] = ["TEP.PARKING_NORM", "TEP.PARKING_GPZU_COUNT", "TEP.PARKING_COUNT_OVERRIDE"];
-const PARKING_ESTIMATE: ParameterId[] = [...PARKING_CONCEPT, "TEP.PARKING_AREA_PER_SPACE"];
-const LANDSCAPE: ParameterId[] = ["TEP.LANDSCAPE_SHARE", "TEP.ROAD_SHARE", "TEP.GREEN_SHARE"];
-
 export function TepTab({ project, model }: { project: DemoProject; model: ProjectModel }) {
-  const estimate = project.input.values["GEN.PROJECT_STAGE"] === "оценка участка";
-  const groups: InputGroup[] = [
-    { title: "Проект", params: PROJECT },
-    { title: "Участок", params: LAND },
-    estimate
-      ? { title: "Площади: пределы ГПЗУ и коэффициенты (стадия «Оценка участка»)", params: [...GPZU, ...AREAS_ESTIMATE] }
-      : { title: "Площади по ТЭП архитектора (стадия «Концепция»)", params: AREAS_CONCEPT },
-    ...(estimate ? [] : [{ title: "Пределы ГПЗУ", params: GPZU }]),
-    { title: "Квартирография", params: ["TEP.APT_MIX"] },
-    { title: "Машино-места", params: estimate ? PARKING_ESTIMATE : PARKING_CONCEPT },
-    { title: "Благоустройство", params: LANDSCAPE },
-    { title: "Вехи проекта по очередям", params: ["TIME.MILESTONES"], note: project.note },
-  ];
+  const groups = tepGroups(project);
 
   const mix = (project.input.values["TEP.APT_MIX"] as { type_name?: string }[] | undefined) ?? [];
   const typeArea = val<Decimal[]>(model, "F.TEP.APT_TYPE_AREA");

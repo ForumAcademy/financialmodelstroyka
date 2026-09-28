@@ -10,8 +10,8 @@ describe("Вопросы к данным из предупреждений ра�
   const q = dataQuestions(c, input, { ...r, messages: [...r.messages, ...legacyChecks(c)] });
   const by = (no: number) => q.find((x) => x.no === no);
 
-  it("12 пунктов с постоянными номерами 1–12, у каждого вопрос, пояснение, влияние и рекомендация", () => {
-    expect(q.map((x) => x.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  it("19 пунктов с постоянными номерами 1–19, у каждого вопрос, пояснение, влияние и рекомендация", () => {
+    expect(q.map((x) => x.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
     for (const x of q) {
       expect(x.question.endsWith("?"), x.key).toBe(true);
       expect(x.explanation).toMatch(/\)\.$/);

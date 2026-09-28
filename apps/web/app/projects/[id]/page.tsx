@@ -9,7 +9,10 @@ import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tab
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
-import { issueCounts } from "@/lib/issues";
+import { inputTabLabel, issueSummary, issuesBannerText, issuesTabLabel } from "@/lib/issues";
+import { tabCount, tabMissing, tabOfParam, type InputTab } from "@/lib/tab-inputs";
+import { unconfirmedStandard } from "@/lib/standard";
+import { getParameter } from "@fm/spec";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
 import { regionName } from "@/lib/format";
@@ -32,7 +35,7 @@ function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearchParams();
   const router = useRouter();
-  const { projects, model, sourceChecks } = useStore();
+  const { projects, model, sourceChecks, assumptions } = useStore();
   const { setProject } = useHow();
   const [exporting, setExporting] = useState(false);
   const project = projects.find((p) => p.id === id);
@@ -40,6 +43,19 @@ function ProjectPage() {
     setProject(project ? project.id : null);
     return () => setProject(null);
   }, [project, setProject]);
+
+  // Переход к полю из строки «Не подтверждено стандартных значений»: ?tab=<вкладка>&field=<параметр>
+  const field = search.get("field");
+  useEffect(() => {
+    if (!field) return;
+    const t = setTimeout(() => {
+      const el = document.getElementById(`field-${field}`);
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.classList.add("row-flash");
+    }, 100);
+    return () => clearTimeout(t);
+  }, [field]);
 
   // Переход из панели «Как посчитано» к строке плана продаж: ?tab=sales&row=<продукт>
   const row = search.get("row");
@@ -65,10 +81,14 @@ function ProjectPage() {
   }
   const m = model(project);
   const questions = projectQuestions(project, m);
-  const counts = issueCounts(project, questions);
-  // Строка над вкладками в расчёте «как в исходном Excel» — только расхождения Excel, без стандартных значений компании
-  const excelCounts = issueCounts(project, questions.filter((q) => !q.parameterId));
-  const tab = (TABS.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
+  // Одна сводка для заголовка вкладки «Расхождения» и плашки над вкладками
+  const summary = issueSummary(project, questions);
+  const banner = issuesBannerText(project, summary);
+  const tabs = TABS.filter((t) => t.id !== "issues" || summary.shown);
+  const tab = (tabs.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
+  const unconfirmed = unconfirmedStandard(project, assumptions);
+  const label = (t: (typeof TABS)[number]) =>
+    t.id === "issues" ? issuesTabLabel(summary) : t.id === "docs" ? t.label : inputTabLabel(t.label, tabMissing(t.id as InputTab, project, m), tabCount(t.id as InputTab, project, unconfirmed));
   const view = search.get("view") === "calc" ? "calc" : "inputs";
   const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
 
@@ -98,12 +118,31 @@ function ProjectPage() {
       </div>
       {project.legacyCase ? <ModeSwitch project={project} /> : null}
       <AssumptionsUpdate project={project} />
-      {tab === "issues" || project.input.mode !== "legacy" ? null : <CompatBanner open={excelCounts.open} total={excelCounts.total} go={() => go("issues", view)} />}
+      {tab === "issues" || !banner ? null : <CompatBanner text={banner} go={() => go("issues", view)} />}
+      {unconfirmed.length ? (
+        <div className="standard-line small">
+          Не подтверждено стандартных значений: {unconfirmed.length}.{" "}
+          {unconfirmed.map((id, k) => {
+            const t = tabOfParam(project, id);
+            return (
+              <span key={id}>
+                {k ? ", " : ""}
+                {t ? (
+                  <button className="linklike" onClick={() => router.replace(`/projects/${project.id}?tab=${t}&field=${id}`, { scroll: false })}>
+                    {getParameter(id).name}
+                  </button>
+                ) : (
+                  getParameter(id).name
+                )}
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
       <nav className="tabs">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>
-            {t.label}
-            {t.id === "issues" && counts.total ? <span className="tab-count">{`${counts.open} из ${counts.total}`}</span> : null}
+            {label(t)}
           </button>
         ))}
       </nav>

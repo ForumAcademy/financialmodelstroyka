@@ -1405,13 +1405,13 @@ parameters:
     legacy: [{cell: "CF1!D115", value: 0.1425, verdict: replace, note: "устарело, одна константа на весь срок"}]
 
   - id: FIN.RATE_DISCOUNT_COEF
-    name: "Скидка к ставке при избыточном покрытии эскроу (СкР)"
+    name: "Поправка к ключевой ставке для скидки при избыточном покрытии эскроу (СкР)"
     unit: "%годовых"
     kind: scalar
     scope: project
-    default: 0
+    default: null
     source_ids: [S_BANK_TERMSHEET]
-    basis: "Условие банка (не у всех банков). В исходнике: ставка скидки = ключевая − 2 п.п."
+    basis: "Условие банка (не у всех банков). Когда на эскроу больше, чем долг с процентами, банк снижает ставку на (покрытие − 1) × (ключевая + поправка), как в исходнике: ставка скидки = ключевая − 2 п.п. (CF1!F118). Пусто — в договоре банка такой скидки нет, скидка не считается"
     status: project_input
     legacy: [{cell: "CF1!D118", value: -0.02, verdict: keep}]
 
@@ -1458,6 +1458,36 @@ parameters:
     basis: "По кредитному договору"
     status: project_input
     legacy: [{cell: "CF1!A112", verdict: keep, note: "строка была пустой"}]
+
+  - id: FIN.LEGACY_KEY_RATE
+    name: "Как в исходном Excel: ключевая ставка"
+    unit: "%годовых"
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_EXPERT]
+    basis: "Только для расчёта «как в исходном Excel»: одна ключевая ставка на весь срок (CF1!D115 = 14,25%). В расчёте сервиса — траектория ключевой ставки ЦБ (FIN.KEY_RATE_PATH)"
+    from:
+      text: "Исходный Excel «Кальк Саевой привязка КОД.xlsx», CF1!D115"
+      url: null
+    status: expert_allowed
+    legacy:
+      - {cell: "CF1!D115", value: 0.1425, verdict: replace, note: "одна константа на весь срок; только в расчёте «как в исходном Excel»"}
+
+  - id: FIN.LEGACY_LIMIT
+    name: "Как в исходном Excel: лимит проектного финансирования"
+    unit: руб
+    kind: scalar
+    scope: project
+    default: null
+    source_ids: [S_EXPERT]
+    basis: "Только для расчёта «как в исходном Excel»: лимит из Бюджет!F67 = F30 + F23 + F17 + F50 + F53 (СМР, ПИР, участок, коммерческие расходы и налоги). От него считается комиссия за выдачу CF1!F111. В расчёте сервиса лимит = бюджет − собственное участие (F.FIN.LIMIT)"
+    from:
+      text: "Исходный Excel «Кальк Саевой привязка КОД.xlsx», Бюджет!F67"
+      url: null
+    status: expert_allowed
+    legacy:
+      - {cell: "Бюджет!F67", value: 83701139832.39725, verdict: fix, note: "включает участок, оплаченный собственными средствами, и налоги; только в расчёте «как в исходном Excel»"}
 
   - id: FIN.COLLATERAL_DISCOUNT
     name: "Дисконт залоговой стоимости нераспроданных площадей"

@@ -1,7 +1,7 @@
 // Файл сгенерирован packages/spec/scripts/build-spec.ts из data/*.yaml. Не редактировать вручную.
 
 /** Версия справочника: хеш содержимого data/*.yaml. Сохраняется в каждой версии расчёта. */
-export const SPEC_VERSION = "6929b7c4c7a8";
+export const SPEC_VERSION = "7485ed1343f2";
 /** Дата актуализации справочника: самая поздняя дата проверки источника. */
 export const SPEC_ACTUALIZED_AT = "2026-09-27";
 
@@ -187,6 +187,8 @@ export const PARAMETER_IDS = [
   "FIN.ESCROW_RESERVE_RATE",
   "FIN.FEE_ARRANGEMENT",
   "FIN.FEE_COMMITMENT",
+  "FIN.LEGACY_KEY_RATE",
+  "FIN.LEGACY_LIMIT",
   "FIN.COLLATERAL_DISCOUNT",
   "TAX.VAT_RATE_OPTIONS",
   "TAX.VAT_RATE",
@@ -284,15 +286,15 @@ export const FORMULA_IDS = [
   "F.ESC.BALANCE",
   "F.ESC.COVERAGE",
   "F.FIN.EQUITY_REQUIRED",
+  "F.FIN.LIMIT",
+  "F.FIN.FEES",
   "F.FIN.FUNDING_NEED",
   "F.FIN.EQUITY_IN",
-  "F.FIN.LIMIT",
   "F.FIN.DRAW",
   "F.FIN.RATE",
   "F.FIN.INTEREST",
   "F.FIN.REPAYMENT",
   "F.FIN.DEBT",
-  "F.FIN.FEES",
   "F.FIN.EFFECTIVE_RATE",
   "F.TAX.OUTPUT_VAT",
   "F.TAX.INPUT_VAT_SHARE",

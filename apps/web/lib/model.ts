@@ -2,10 +2,9 @@
  * Расчёт проекта в интерфейсе: вызов ядра и вспомогательные преобразования для таблиц.
  * Формул модели здесь нет — только то, что вернуло ядро (@fm/engine).
  */
-import { calculate, dataQuestions, ENGINE_MODULES, LEGACY_QUESTION_MAX_NO, FORMULAS, legacyCaseInput, sinkFormulas, type DataQuestion, type LegacyCase, type ProjectInput, type ResultSet } from "@fm/engine";
+import { calculate, dataQuestions, ENGINE_MODULES, FORMULAS, legacyCaseInput, sinkFormulas, type DataQuestion, type LegacyCase, type ProjectInput, type ResultSet } from "@fm/engine";
 import { getFormula, getParameter, PARAMETER_IDS, type FormulaId, type ParameterId } from "@fm/spec";
 import { assumptionParams, SPEC_ASSUMPTIONS, standardValues, versionOf, type AssumptionVersion } from "./assumptions";
-import { standardQuestions } from "./standard-questions";
 import type { DemoProject } from "./types";
 
 const excelCache = new WeakMap<LegacyCase, Partial<Record<ParameterId, unknown>>>();
@@ -109,6 +108,7 @@ const TARGETS: FormulaId[] = [
   ...sinkFormulas(Object.keys(FORMULAS) as FormulaId[]),
   "F.SALES.REVENUE_TOTAL",
   "F.SALES.WAVG_PRICE",
+  "F.CAPEX.TOTAL",
   "F.TEP.PARKING_COUNT",
   "F.TEP.GFA_SPLIT",
   "F.TEP.GFA_TOTAL",
@@ -173,15 +173,9 @@ export function compatWarnings(project: DemoProject, m: ProjectModel) {
  * Вопросы к данным: расхождения исходного Excel (только у проектов из Excel, в любом режиме) + неподтверждённые
  * стандартные значения компании (у всех проектов; влияние — по расчёту сервиса).
  */
+/** Вопросы расчёта «как в исходном Excel» к исходному файлу; у проекта без исходного Excel их нет. */
 export function projectQuestions(project: DemoProject, m: ProjectModel): DataQuestion[] {
-  const legacy = excelQuestions(project, m);
-  const pair = project.legacyCase ? modePair(project, m) : null;
-  const normal = project.input.mode === "legacy" ? pair?.normal : m;
-  // Номера стандартных значений — после номеров исходного Excel, чтобы не менялись, когда пункты Excel решаются.
-  const offset = project.legacyCase ? legacy.reduce((max, q) => Math.max(max, q.no), LEGACY_QUESTION_MAX_NO) : 0;
-  const legacyResult = project.input.mode === "legacy" ? m.result : (pair?.legacy.result ?? null);
-  const std = normal ? standardQuestions(project, effectiveInput({ ...project, input: { ...project.input, mode: "normal" } }, m.versions), normal.result, legacyResult, m.versions, offset) : [];
-  return [...legacy, ...std];
+  return excelQuestions(project, m);
 }
 
 function excelQuestions(project: DemoProject, m: ProjectModel): DataQuestion[] {

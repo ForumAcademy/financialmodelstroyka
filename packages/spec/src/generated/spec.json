@@ -1,5 +1,5 @@
 {
-  "specVersion": "6929b7c4c7a8",
+  "specVersion": "7485ed1343f2",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -3682,15 +3682,15 @@
     },
     {
       "id": "FIN.RATE_DISCOUNT_COEF",
-      "name": "Скидка к ставке при избыточном покрытии эскроу (СкР)",
+      "name": "Поправка к ключевой ставке для скидки при избыточном покрытии эскроу (СкР)",
       "unit": "%годовых",
       "kind": "scalar",
       "scope": "project",
-      "default": 0,
+      "default": null,
       "source_ids": [
         "S_BANK_TERMSHEET"
       ],
-      "basis": "Условие банка (не у всех банков). В исходнике: ставка скидки = ключевая − 2 п.п.",
+      "basis": "Условие банка (не у всех банков). Когда на эскроу больше, чем долг с процентами, банк снижает ставку на (покрытие − 1) × (ключевая + поправка), как в исходнике: ставка скидки = ключевая − 2 п.п. (CF1!F118). Пусто — в договоре банка такой скидки нет, скидка не считается",
       "status": "project_input",
       "legacy": [
         {
@@ -3778,6 +3778,56 @@
           "cell": "CF1!A112",
           "verdict": "keep",
           "note": "строка была пустой"
+        }
+      ]
+    },
+    {
+      "id": "FIN.LEGACY_KEY_RATE",
+      "name": "Как в исходном Excel: ключевая ставка",
+      "unit": "%годовых",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Только для расчёта «как в исходном Excel»: одна ключевая ставка на весь срок (CF1!D115 = 14,25%). В расчёте сервиса — траектория ключевой ставки ЦБ (FIN.KEY_RATE_PATH)",
+      "from": {
+        "text": "Исходный Excel «Кальк Саевой привязка КОД.xlsx», CF1!D115",
+        "url": null
+      },
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": "CF1!D115",
+          "value": 0.1425,
+          "verdict": "replace",
+          "note": "одна константа на весь срок; только в расчёте «как в исходном Excel»"
+        }
+      ]
+    },
+    {
+      "id": "FIN.LEGACY_LIMIT",
+      "name": "Как в исходном Excel: лимит проектного финансирования",
+      "unit": "руб",
+      "kind": "scalar",
+      "scope": "project",
+      "default": null,
+      "source_ids": [
+        "S_EXPERT"
+      ],
+      "basis": "Только для расчёта «как в исходном Excel»: лимит из Бюджет!F67 = F30 + F23 + F17 + F50 + F53 (СМР, ПИР, участок, коммерческие расходы и налоги). От него считается комиссия за выдачу CF1!F111. В расчёте сервиса лимит = бюджет − собственное участие (F.FIN.LIMIT)",
+      "from": {
+        "text": "Исходный Excel «Кальк Саевой привязка КОД.xlsx», Бюджет!F67",
+        "url": null
+      },
+      "status": "expert_allowed",
+      "legacy": [
+        {
+          "cell": "Бюджет!F67",
+          "value": 83701139832.39725,
+          "verdict": "fix",
+          "note": "включает участок, оплаченный собственными средствами, и налоги; только в расчёте «как в исходном Excel»"
         }
       ]
     },
@@ -11234,27 +11284,25 @@
       "dims": [
         "t"
       ],
-      "expr": "coverage[t]  = Σ_p esc_bal_avg[p,t] × (1 − FIN.ESCROW_RESERVE_RATE) / (debt_avg[t] + accrued_interest[t−1])\nesc_bal_avg  = (esc_bal[t−1] + esc_bal[t]) / 2\n",
-      "note": "Считается с модулем проектного финансирования (этап 5): нужны долг и проценты F.FIN.*.",
+      "expr": "coverage[t]  = Σ_p esc_bal_avg[p,t] × (1 − FIN.ESCROW_RESERVE_RATE) / (debt_avg[t] + accrued[t−1])\nesc_bal_avg  = (esc_bal[t−1] + esc_bal[t]) / 2\ndebt_avg[t]  = debt[t−1] + draw[t] / 2\ncoverage[t]  = пусто, если debt_avg[t] + accrued[t−1] = 0\n",
+      "note": "Ставка месяца t берёт покрытие за t−1 (F.FIN.RATE), поэтому покрытие может читать долг того же месяца без цикла. «Как в исходном Excel» — поквартально, как CF1!F120:AS122: остаток эскроу — среднее конца прошлого и текущего квартала (в первом квартале — только конец квартала: ячейка E94 пустая), долг — среднее остатков на конец кварталов, проценты — на конец текущего квартала; знаки — как в CF1 (долг и проценты в исходнике отрицательные).",
       "terms": {
         "coverage[t]": "результат: покрытие долга остатками эскроу, доля",
-        "esc_bal_avg[p,t]": "средний остаток эскроу за месяц",
+        "esc_bal_avg[p,t]": "средний остаток эскроу очереди за месяц",
         "esc_bal": "остаток эскроу (F.ESC.BALANCE)",
-        "debt_avg[t]": "средний остаток основного долга (F.FIN.DEBT)",
-        "accrued_interest[t−1]": "накопленные проценты на конец прошлого месяца (F.FIN.INTEREST)"
+        "debt_avg[t]": "средний основной долг за месяц: выдача — в середине месяца (F.FIN.DEBT, F.FIN.DRAW)",
+        "accrued[t−1]": "начисленные и не оплаченные проценты на конец прошлого месяца (F.FIN.DEBT)"
       },
       "plain": {
         "title": "Покрытие долга остатками на эскроу",
-        "how": "Средний остаток на эскроу за вычетом резерва банка, делённый на долг по кредиту с процентами. Чем выше покрытие, тем ниже ставка."
+        "how": "Средний остаток на эскроу за вычетом резерва банка, делённый на долг по кредиту с процентами. Чем выше покрытие, тем ниже ставка. Пока долга нет, покрытие не считается."
       },
       "depends_on": [
         "F.ESC.BALANCE",
         "F.FIN.DEBT",
-        "F.FIN.INTEREST"
-      ],
-      "lag_depends_on": [
-        "F.FIN.DEBT",
-        "F.FIN.INTEREST"
+        "F.FIN.DRAW",
+        "FIN.ESCROW_RESERVE_RATE",
+        "F.TIME.DATE"
       ],
       "rationale": "Коэффициент К1 для ставки ПФ; средние остатки за период — как в методике исходника и кредитных договорах",
       "rejected": [],
@@ -11275,13 +11323,15 @@
       "unit": "руб",
       "dims": [],
       "expr": "equity_req = FIN.EQUITY_SHARE × capex_total",
+      "note": "«Как в исходном Excel» требуемого собственного участия нет: собственные средства в CF1 — 10% расходов каждого квартала (F.FIN.EQUITY_IN); показатель не считается.",
       "terms": {
         "equity_req": "результат: требуемое собственное участие, руб",
         "capex_total": "итого бюджет, включая стоимость участка (F.CAPEX.TOTAL), руб"
       },
       "plain": {
         "title": "Требуемое собственное участие, руб",
-        "how": "Бюджет проекта × требуемая банком доля собственного участия."
+        "how": "Бюджет проекта × требуемая банком доля собственного участия. Застройщик вносит эти деньги до первой выдачи кредита.",
+        "example": "В проекте — {=|руб}."
       },
       "depends_on": [
         "FIN.EQUITY_SHARE",
@@ -11302,6 +11352,97 @@
       "status": "needs_verification"
     },
     {
+      "id": "F.FIN.LIMIT",
+      "module": "FIN",
+      "name": "Лимит проектного финансирования",
+      "unit": "руб",
+      "dims": [],
+      "expr": "limit = capex_total − equity_req\n«Как в исходном Excel»: limit = FIN.LEGACY_LIMIT (Бюджет!F67)\n",
+      "note": "Капитализированные проценты в лимит не входят — они учитываются отдельно (PIK).",
+      "terms": {
+        "limit": "результат: лимит проектного финансирования, руб",
+        "capex_total": "итого бюджет (F.CAPEX.TOTAL), руб",
+        "equity_req": "требуемое собственное участие (F.FIN.EQUITY_REQUIRED)"
+      },
+      "plain": {
+        "title": "Лимит проектного кредита, руб",
+        "how": "Бюджет проекта минус собственное участие. Проценты в лимит не входят: они прибавляются к долгу и гасятся из эскроу.",
+        "example": "В проекте — {=|руб}."
+      },
+      "depends_on": [
+        "F.CAPEX.TOTAL",
+        "F.FIN.EQUITY_REQUIRED",
+        "FIN.LEGACY_LIMIT"
+      ],
+      "rationale": "Лимит покрывает бюджет за вычетом собственного участия; проценты капитализируются и гасятся при раскрытии эскроу — как в исходнике (строки 107–110)",
+      "rejected": [
+        "Лимит = СМР + ПИР + участок + коммерческие + налоги (исходник Бюджет!F67) — включает участок, уже оплаченный собственными средствами"
+      ],
+      "source_ids": [
+        "S_BANK_TERMSHEET"
+      ],
+      "legacy": {
+        "cells": "Бюджет!F67, CF1!C98",
+        "verdict": "fix"
+      },
+      "status": "verified"
+    },
+    {
+      "id": "F.FIN.FEES",
+      "module": "FIN",
+      "name": "Комиссии банка",
+      "unit": "руб",
+      "dims": [
+        "t"
+      ],
+      "expr": "open[t]       = 1{ Σ_{τ<t} equity_in[τ] ≥ equity_req } × 1{ t ≤ t_release_last }\nfee_arr[t]    = FIN.FEE_ARRANGEMENT × limit × 1{ open[t] = 1 и open[t−1] = 0 }\nfee_commit[t] = FIN.FEE_COMMITMENT × (limit − Σ_{τ<t} draw[τ]) × days[t] / 365 × open[t]\nfees[t]       = fee_arr[t] + fee_commit[t]\n«Как в исходном Excel»: fees = FIN.FEE_ARRANGEMENT × limit в первом квартале CF1 (CF1!F111), комиссии за резервирование нет (CF1!F112:AS112 пустые)\n",
+      "note": "Комиссии считаются по данным прошлого месяца (взносы и выдачи до t), поэтому их можно включить в потребность месяца t без цикла. Пустая ставка комиссии в расчёт не входит и показывается как «не учтено».",
+      "terms": {
+        "fees[t]": "результат: комиссии банка в месяце t, руб",
+        "fee_arr[t]": "комиссия за выдачу — в месяц открытия кредита, руб",
+        "fee_commit[t]": "комиссия за неиспользованный лимит, руб",
+        "open[t]": "кредит открыт: собственное участие внесено, месяц не позже раскрытия эскроу последней очереди",
+        "equity_in[τ]": "взнос собственных средств (F.FIN.EQUITY_IN)",
+        "equity_req": "требуемое собственное участие (F.FIN.EQUITY_REQUIRED)",
+        "limit": "лимит кредита (F.FIN.LIMIT)",
+        "draw[τ]": "выдача кредита (F.FIN.DRAW)",
+        "t_release_last": "месяц раскрытия эскроу последней очереди (F.TIME.FLAG_ESCROW_RELEASE)",
+        "days[t]": "дней в месяце (F.TIME.DAYS)"
+      },
+      "plain": {
+        "title": "Комиссии банка, руб",
+        "how": "Комиссия за выдачу — один раз, в первый месяц после внесения собственного участия, процент от лимита. Комиссия за резервирование — на невыбранную часть лимита, пока кредит открыт.",
+        "example": "В проекте за весь срок — {=|руб}."
+      },
+      "depends_on": [
+        "F.FIN.LIMIT",
+        "F.FIN.EQUITY_REQUIRED",
+        "F.FIN.EQUITY_IN",
+        "F.FIN.DRAW",
+        "F.TIME.FLAG_ESCROW_RELEASE",
+        "F.TIME.DAYS",
+        "F.TIME.DATE",
+        "FIN.FEE_ARRANGEMENT",
+        "FIN.FEE_COMMITMENT"
+      ],
+      "lag_depends_on": [
+        "F.FIN.EQUITY_IN",
+        "F.FIN.DRAW"
+      ],
+      "rationale": "Стандартные комиссии кредитного договора: за выдачу — при открытии кредита, за резервирование — на невыбранный лимит",
+      "rejected": [
+        "«Банковские расходы 15% от ПФ» (исходник Бюджет!F68) — дублирует проценты"
+      ],
+      "source_ids": [
+        "S_BANK_TERMSHEET"
+      ],
+      "legacy": {
+        "cells": "CF1!F111:AS112, Бюджет!D68:F68",
+        "verdict": "fix"
+      },
+      "status": "verified"
+    },
+    {
       "id": "F.FIN.FUNDING_NEED",
       "module": "FIN",
       "name": "Потребность в финансировании месяца",
@@ -11309,31 +11450,45 @@
       "dims": [
         "t"
       ],
-      "expr": "need[t] = MAX(0, capex_cash[t] + opex_cash[t] + taxes_paid[t] + fees[t] − dkp_cash[t] − released_to_developer[t] − cash_bal[t-1])",
+      "expr": "need[t]     = MAX(0, capex_cash[t] + taxes_paid[t] + fees[t] − cash_bop[t])\ncash_bop[t] = cash_bop[t−1] + equity_in[t−1] + draw[t−1] + Σ_p release[p,t−1] + dkp_cash[t−1]\n              − repaid[t−1] − capex_cash[t−1] − taxes_paid[t−1] − fees[t−1]\n«Как в исходном Excel»: need = расходы квартала (CF1!F18:AS18)\n",
+      "note": "Налоги появятся с этапом 6 (F.TAX.PAYMENTS); до этого taxes_paid = 0, и это показывается на экране. Свободные деньги проекта cash_bop ведутся здесь же и на этапе 6 совпадут с остатком денег F.CF.CASH_BALANCE. Деньги, пришедшие в месяце, тратятся со следующего месяца.",
       "terms": {
         "need[t]": "результат: потребность в финансировании месяца t, руб",
+        "cash_bop[t]": "свободные деньги проекта на начало месяца, руб",
         "capex_cash[t]": "платежи по бюджету в месяце: Σ_i item_cash[i,t] (F.CAPEX.ITEM_CASH)",
-        "opex_cash[t]": "коммерческие и управленческие расходы месяца",
-        "taxes_paid[t]": "налоговые платежи (F.TAX.PAYMENTS)",
+        "taxes_paid[t]": "налоговые платежи (F.TAX.PAYMENTS, этап 6)",
         "fees[t]": "комиссии банка (F.FIN.FEES)",
-        "dkp_cash[t]": "поступления по ДКП (мимо эскроу)",
-        "released_to_developer[t]": "средства, переданные застройщику после погашения долга",
-        "cash_bal[t−1]": "остаток денег на конец прошлого месяца (F.CF.CASH_BALANCE)"
+        "release[p,t]": "раскрытие эскроу очереди (F.ESC.BALANCE)",
+        "dkp_cash[t]": "поступления по договорам купли-продажи, мимо эскроу (F.SALES.CASH_IN)",
+        "equity_in, draw": "взносы застройщика и выдачи кредита (F.FIN.EQUITY_IN, F.FIN.DRAW)",
+        "repaid[t]": "погашение кредита и процентов (F.FIN.REPAYMENT)"
       },
       "plain": {
         "title": "Потребность в финансировании месяца, руб",
-        "how": "Платежи по бюджету, налоги и комиссии банку минус поступления по ДКП, раскрытое эскроу и остаток денег. Если денег хватает, ноль."
+        "how": "Платежи по бюджету и комиссии банку минус свободные деньги проекта на начало месяца. Свободные деньги — это раскрытое эскроу и поступления по договорам купли-продажи, оставшиеся после погашения кредита. Если денег хватает, ноль.",
+        "example": "В проекте за весь срок — {=.need|руб}."
       },
       "depends_on": [
         "F.CAPEX.ITEM_CASH",
         "F.TAX.PAYMENTS",
-        "F.ESC.BALANCE"
+        "F.ESC.BALANCE",
+        "F.SALES.CASH_IN",
+        "F.FIN.FEES",
+        "F.FIN.EQUITY_IN",
+        "F.FIN.DRAW",
+        "F.FIN.REPAYMENT",
+        "F.TIME.DATE"
       ],
       "lag_depends_on": [
-        "F.TAX.PAYMENTS"
+        "F.TAX.PAYMENTS",
+        "F.FIN.EQUITY_IN",
+        "F.FIN.DRAW",
+        "F.FIN.REPAYMENT"
       ],
-      "rationale": "Сначала используются собственные поступления, затем собственный капитал, затем кредит",
-      "rejected": [],
+      "rationale": "Сначала используются собственные поступления проекта, затем собственный капитал, затем кредит",
+      "rejected": [
+        "Кредит на все расходы квартала плюс собственные средства (исходник CF1!F98 = −(F18 + F132)) — выдача больше потребности"
+      ],
       "source_ids": [
         "S_EXPERT"
       ],
@@ -11351,64 +11506,45 @@
       "dims": [
         "t"
       ],
-      "expr": "ЕСЛИ Σ_{τ<t} equity_in[τ] < equity_req:\n  equity_in[t] = MIN( need[t], equity_req − Σ_{τ<t} equity_in[τ] )\nИНАЧЕ (после первой выборки кредита):\n  equity_in[t] = cash_gap[t]\n",
-      "note": "Сначала акционер вносит требуемое собственное участие; после первой выборки кредита — только на покрытие дефицита вне лимита (cash gap).",
+      "expr": "rest_req[t] = MAX(0, equity_req − Σ_{τ<t} equity_in[τ])\nupfront[t]  = MIN(need[t], rest_req[t])\nopen[t]     = 1{ upfront[t] = rest_req[t] } × 1{ t ≤ t_release_last }\ncredit[t]   = MIN(need[t] − upfront[t], MAX(0, limit − Σ_{τ<t} draw[τ])) × open[t]\ngap[t]      = need[t] − upfront[t] − credit[t]\nequity_in[t] = upfront[t] + gap[t]\n«Как в исходном Excel»: equity_in = комиссия за выдачу в первом квартале CF1, дальше FIN.EQUITY_SHARE × расходы квартала (CF1!F132:AS132)\n",
+      "note": "Сначала акционер вносит требуемое собственное участие; после первой выборки кредита — только на покрытие дефицита вне лимита (gap).",
       "terms": {
-        "equity_in[t]": "результат: взнос акционера в месяце t, руб",
+        "equity_in[t]": "результат: взнос акционера в месяце t, руб (total), из него сверх лимита — gap",
         "need[t]": "потребность в финансировании (F.FIN.FUNDING_NEED)",
         "equity_req": "требуемое собственное участие (F.FIN.EQUITY_REQUIRED)",
-        "cash_gap[t]": "дефицит денег сверх лимита кредита"
+        "limit": "лимит кредита (F.FIN.LIMIT)",
+        "draw[τ]": "выдачи кредита до месяца t (F.FIN.DRAW)",
+        "t_release_last": "месяц раскрытия эскроу последней очереди (F.TIME.FLAG_ESCROW_RELEASE): в этот месяц выдача ещё возможна и гасится из раскрытого эскроу",
+        "gap[t]": "дефицит денег сверх лимита кредита, руб"
       },
       "plain": {
         "title": "Взнос собственных средств, руб",
-        "how": "Сначала застройщик вносит свои деньги до требуемого собственного участия. Дальше — только если месяцу не хватает денег сверх лимита кредита."
+        "how": "Сначала застройщик вносит свои деньги до требуемого собственного участия. Дальше — только если месяцу не хватает денег сверх лимита кредита или кредит уже закрыт.",
+        "example": "В проекте за весь срок — {=.total|руб}."
       },
       "depends_on": [
         "F.FIN.FUNDING_NEED",
-        "F.FIN.EQUITY_REQUIRED"
+        "F.FIN.EQUITY_REQUIRED",
+        "F.FIN.LIMIT",
+        "F.FIN.DRAW",
+        "F.FIN.FEES",
+        "F.TIME.FLAG_ESCROW_RELEASE",
+        "FIN.EQUITY_SHARE",
+        "F.TIME.DATE"
+      ],
+      "lag_depends_on": [
+        "F.FIN.DRAW"
       ],
       "rationale": "Очерёдность: собственные средства → кредит",
-      "rejected": [],
+      "rejected": [
+        "10% расходов каждого квартала (исходник CF1!G132) — банк требует внести собственное участие до выдач"
+      ],
       "source_ids": [
         "S_BANK_TERMSHEET"
       ],
       "legacy": {
         "cells": "CF1!F132:AS132",
         "verdict": "replace"
-      },
-      "status": "verified"
-    },
-    {
-      "id": "F.FIN.LIMIT",
-      "module": "FIN",
-      "name": "Лимит проектного финансирования",
-      "unit": "руб",
-      "dims": [],
-      "expr": "limit = capex_total_financeable − equity_req",
-      "note": "Капитализированные проценты в лимит не входят — они учитываются отдельно (PIK).",
-      "terms": {
-        "limit": "результат: лимит проектного финансирования, руб",
-        "capex_total_financeable": "затраты проекта, принимаемые банком к финансированию, руб",
-        "equity_req": "требуемое собственное участие (F.FIN.EQUITY_REQUIRED)"
-      },
-      "plain": {
-        "title": "Лимит проектного кредита, руб",
-        "how": "Бюджет, который можно финансировать кредитом, минус собственное участие."
-      },
-      "depends_on": [
-        "F.CAPEX.TOTAL",
-        "F.FIN.EQUITY_REQUIRED"
-      ],
-      "rationale": "Лимит покрывает бюджет за вычетом собственного участия; проценты капитализируются и гасятся при раскрытии эскроу — как в исходнике (строки 107–110)",
-      "rejected": [
-        "Лимит = СМР + ПИР + участок + коммерческие + налоги (исходник Бюджет!F67) — включает участок, уже оплаченный собственными средствами"
-      ],
-      "source_ids": [
-        "S_BANK_TERMSHEET"
-      ],
-      "legacy": {
-        "cells": "Бюджет!F67, CF1!C98",
-        "verdict": "fix"
       },
       "status": "verified"
     },
@@ -11420,26 +11556,29 @@
       "dims": [
         "t"
       ],
-      "expr": "draw[t] = MIN(need[t] − equity_in[t], limit − Σ_{τ<t} draw[τ]) × 1{ Σ equity_in >= equity_req } × 1{ t < t_release_last }",
+      "expr": "draw[t] = need[t] − equity_in[t]\n«Как в исходном Excel»: draw = (расходы квартала + собственные средства квартала) × флаг продаж на эскроу (CF1!F98 = −(F18 + F132) × F8)\n",
+      "note": "Ограничения лимитом, собственным участием и датой раскрытия эскроу считаются в F.FIN.EQUITY_IN: всё, что не покрыл кредит, вносит застройщик.",
       "terms": {
-        "draw[t]": "результат: выборка кредита в месяце t, руб",
+        "draw[t]": "результат: выдача кредита в месяце t, руб",
         "need[t]": "потребность в финансировании (F.FIN.FUNDING_NEED)",
-        "equity_in[t]": "взнос акционера (F.FIN.EQUITY_IN)",
-        "limit": "лимит кредита (F.FIN.LIMIT)",
-        "equity_req": "требуемое собственное участие",
-        "t_release_last": "месяц раскрытия эскроу последней очереди"
+        "equity_in[t]": "взнос застройщика (F.FIN.EQUITY_IN)"
       },
       "plain": {
         "title": "Выдача кредита в месяце, руб",
-        "how": "После собственного участия банк покрывает потребность месяца в пределах лимита. После раскрытия эскроу последней очереди выдач нет."
+        "how": "Потребность месяца минус взнос застройщика. Банк выдаёт кредит только после собственного участия, в пределах лимита и до раскрытия эскроу последней очереди.",
+        "example": "В проекте за весь срок — {=|руб}."
       },
       "depends_on": [
         "F.FIN.FUNDING_NEED",
         "F.FIN.EQUITY_IN",
-        "F.FIN.LIMIT"
+        "F.FIN.LIMIT",
+        "TIME.LEGACY_ESCROW_DEPOSIT_END",
+        "F.TIME.DATE"
       ],
       "rationale": "Выборка после внесения собственного участия и в пределах лимита",
-      "rejected": [],
+      "rejected": [
+        "Выдача на все расходы квартала плюс собственные средства и погашение в том же квартале (исходник CF1!F98:F100) — долг всегда 0"
+      ],
       "source_ids": [
         "S_BANK_TERMSHEET"
       ],
@@ -11458,29 +11597,29 @@
       "dims": [
         "t"
       ],
-      "expr": "K1[t]        = MIN( coverage[t−1], 1 )\nK2[t]        = 1 − K1[t]\nbase_rate[t] = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD\nSkR[t]       = MAX( (esc − (debt + accr)) / (debt + accr) × FIN.RATE_DISCOUNT_COEF, 0 )\nrate[t]      = MAX( FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN )\n",
+      "expr": "K1[t]          = MIN( coverage[t−1], 1 ), 0 если покрытия нет\nK2[t]          = 1 − K1[t]\nbase_rate[t]   = FIN.KEY_RATE_PATH[t] + FIN.RATE_BASE_SPREAD\nSkR[t]         = MAX( (coverage[t−1] − 1) × (FIN.KEY_RATE_PATH[t] + FIN.RATE_DISCOUNT_COEF), 0 ), если FIN.RATE_DISCOUNT_COEF задан; иначе 0\nrate[t]        = MAX( FIN.RATE_PREFERENTIAL × K1 + base_rate × K2 − SkR, FIN.RATE_MIN )\n",
+      "note": "(esc − (debt + accr)) / (debt + accr) = coverage − 1. Ставка скидки = ключевая + FIN.RATE_DISCOUNT_COEF, как в исходнике (CF1!F118 = ключевая − 2 п.п.). «Как в исходном Excel» — поквартально, покрытие за прошлый квартал; ключевая 14,25% на весь срок (FIN.LEGACY_KEY_RATE), базовая = ключевая + спред = 20% (CF1!D117).",
       "terms": {
         "rate[t]": "результат: ставка проектного финансирования в месяце t, % год.",
         "K1[t]": "доля долга, покрытая эскроу (льготная ставка)",
         "K2[t]": "доля долга, не покрытая эскроу (базовая ставка)",
         "coverage[t−1]": "покрытие долга эскроу за прошлый месяц (F.ESC.COVERAGE)",
         "base_rate[t]": "базовая ставка: ключевая + спред",
-        "SkR[t]": "скидка к ставке при избыточном покрытии эскроу",
-        "esc": "остаток на эскроу",
-        "debt": "основной долг",
-        "accr": "накопленные проценты"
+        "SkR[t]": "скидка к ставке при избыточном покрытии эскроу"
       },
       "plain": {
         "title": "Ставка проектного кредита, % годовых",
-        "how": "Часть долга, покрытая эскроу, идёт по льготной ставке, остальная — по ключевой ставке плюс надбавка банка. Ставка не ниже минимальной по договору."
+        "how": "Часть долга, покрытая эскроу за прошлый месяц, идёт по льготной ставке, остальная — по ключевой ставке плюс надбавка банка. Если эскроу больше долга, банк даёт скидку. Ставка не ниже минимальной по договору."
       },
       "depends_on": [
         "F.ESC.COVERAGE",
         "FIN.KEY_RATE_PATH",
+        "FIN.LEGACY_KEY_RATE",
         "FIN.RATE_BASE_SPREAD",
         "FIN.RATE_PREFERENTIAL",
         "FIN.RATE_DISCOUNT_COEF",
-        "FIN.RATE_MIN"
+        "FIN.RATE_MIN",
+        "F.TIME.DATE"
       ],
       "lag_depends_on": [
         "F.ESC.COVERAGE"
@@ -11519,27 +11658,35 @@
       "dims": [
         "t"
       ],
-      "expr": "interest[t] = ( (debt[t−1] + (debt[t−1] + draw[t])) / 2 + accrued[t−1] ) × rate[t] × days[t] / 365\naccrued[t]  = accrued[t−1] + interest[t] − interest_paid[t]\n",
+      "expr": "interest[t] = ( debt[t−1] + draw[t] / 2 + accrued[t−1] ) × rate[t] × days[t] / 365\n«Как в исходном Excel»: поквартально, interest[q] = ( debt[q−1] + draw[q] / 2 + interest[q−1] ) × rate[q] × days[q] / 365 (CF1!F107; в первом квартале — draw целиком: ячейка F97 пустая)\n",
+      "note": "Накопленные проценты accrued[t] = accrued[t−1] + interest[t] − interest_paid[t] считаются в F.FIN.DEBT.",
       "terms": {
         "interest[t]": "результат: проценты, начисленные за месяц t, руб",
-        "accrued[t]": "накопленные неоплаченные проценты на конец месяца",
-        "debt[t]": "основной долг (F.FIN.DEBT)",
+        "debt[t−1]": "основной долг на конец прошлого месяца (F.FIN.DEBT)",
+        "accrued[t−1]": "накопленные неоплаченные проценты на конец прошлого месяца (F.FIN.DEBT)",
         "draw[t]": "выборка (F.FIN.DRAW)",
         "rate[t]": "ставка (F.FIN.RATE)",
-        "days[t]": "дней в месяце (F.TIME.DAYS)",
-        "interest_paid[t]": "проценты, погашенные в месяце (F.FIN.REPAYMENT)"
+        "days[t]": "дней в месяце (F.TIME.DAYS)"
       },
       "plain": {
         "title": "Проценты по кредиту, руб",
-        "how": "Средний долг месяца с начисленными процентами × ставка × дни месяца ÷ 365. Проценты прибавляются к долгу до раскрытия эскроу."
+        "how": "Средний долг месяца с начисленными процентами × ставка × дни месяца ÷ 365. Проценты прибавляются к долгу до раскрытия эскроу.",
+        "example": "В проекте за весь срок — {=|руб}."
       },
       "depends_on": [
         "F.FIN.RATE",
         "F.FIN.DRAW",
-        "F.TIME.DAYS"
+        "F.FIN.DEBT",
+        "F.TIME.DAYS",
+        "F.TIME.DATE"
+      ],
+      "lag_depends_on": [
+        "F.FIN.DEBT"
       ],
       "rationale": "Методика исходника (строка 107) сохранена: проценты на средний долг + начисленные ранее (сложный процент при капитализации)",
-      "rejected": [],
+      "rejected": [
+        "Проценты прошлого квартала вместо накопленных (исходник CF1!F107: + E107)"
+      ],
       "source_ids": [
         "S_BANK_TERMSHEET"
       ],
@@ -11557,31 +11704,40 @@
       "dims": [
         "t"
       ],
-      "expr": "from_escrow[t] = MIN( Σ_p release[p,t], debt[t−1] + draw[t] + accrued[t] )\nfrom_dkp[t]    = MIN( dkp_cash[t], debt_left[t] ) × 1{ t > t_release }\ndebt[t]        = debt[t−1] + draw[t] − principal_repaid[t]\n",
-      "note": "Из раскрытого эскроу сначала гасятся проценты, затем основной долг. После раскрытия эскроу поступления по ДКП полностью идут на погашение (100% sweep). Месяц раскрытия t_release — тот же флаг F.TIME.FLAG_ESCROW_RELEASE (РНВ + TIME.ESCROW_RELEASE_LAG_M), что и в F.ESC.BALANCE: погашение и конец начисления процентов сдвигаются вместе с раскрытием.",
+      "expr": "owed_int[t]    = accrued[t−1] + interest[t]\nowed_debt[t]   = debt[t−1] + draw[t]\nint_esc[t]     = MIN( Σ_p release[p,t], owed_int[t] )\ndebt_esc[t]    = MIN( Σ_p release[p,t] − int_esc[t], owed_debt[t] )\nint_dkp[t]     = MIN( dkp_cash[t], owed_int[t] − int_esc[t] ) × 1{ t > t_release }\ndebt_dkp[t]    = MIN( dkp_cash[t] − int_dkp[t], owed_debt[t] − debt_esc[t] ) × 1{ t > t_release }\ninterest_paid  = int_esc + int_dkp;  principal = debt_esc + debt_dkp\n«Как в исходном Excel»: principal[q] = MAX( release[q] − Σ_{τ≤q} interest[τ], debt[q−1] + draw[q] ) (CF1!F100, со знаками CF1); interest_paid[q] = Σ_{τ≤q} interest[τ] в квартале раскрытия (CF1!F108); из ДКП — 0 (CF1!F101 × F9)\n",
+      "note": "Из раскрытого эскроу сначала гасятся проценты, затем основной долг. После раскрытия эскроу поступления по ДКП полностью идут на погашение (100% sweep). Месяц раскрытия t_release — первый месяц раскрытия эскроу по F.TIME.FLAG_ESCROW_RELEASE (РНВ + TIME.ESCROW_RELEASE_LAG_M), тот же, что в F.ESC.BALANCE: погашение и конец начисления процентов сдвигаются вместе с раскрытием.",
       "terms": {
-        "from_escrow[t]": "погашение за счёт раскрытого эскроу, руб",
-        "from_dkp[t]": "погашение за счёт поступлений по ДКП, руб",
+        "interest_paid[t]": "результат: погашенные проценты, руб",
+        "principal[t]": "результат: погашенный основной долг, руб",
         "release[p,t]": "раскрытие эскроу (F.ESC.BALANCE)",
-        "dkp_cash[t]": "поступления по ДКП",
-        "debt_left[t]": "остаток долга с процентами после погашения из эскроу",
-        "t_release": "месяц раскрытия эскроу (F.TIME.FLAG_ESCROW_RELEASE)",
-        "principal_repaid[t]": "погашенный основной долг"
+        "dkp_cash[t]": "поступления по договорам купли-продажи (F.SALES.CASH_IN)",
+        "debt[t−1], accrued[t−1]": "основной долг и накопленные проценты на конец прошлого месяца (F.FIN.DEBT)",
+        "interest[t]": "проценты месяца (F.FIN.INTEREST)",
+        "draw[t]": "выдача кредита (F.FIN.DRAW)",
+        "t_release": "первый месяц раскрытия эскроу (F.TIME.FLAG_ESCROW_RELEASE)"
       },
       "plain": {
         "title": "Погашение кредита, руб",
-        "how": "Раскрытое эскроу идёт сначала на проценты, затем на основной долг. После раскрытия на погашение идут и поступления по ДКП."
+        "how": "Раскрытое эскроу идёт сначала на проценты, затем на основной долг. После раскрытия на погашение идут и поступления по договорам купли-продажи.",
+        "example": "В проекте из эскроу — {=.from_escrow|руб}, из договоров купли-продажи — {=.from_dkp|руб}."
       },
       "depends_on": [
         "F.ESC.BALANCE",
         "F.TIME.FLAG_ESCROW_RELEASE",
         "F.FIN.DRAW",
         "F.FIN.INTEREST",
-        "F.SALES.CASH_IN"
+        "F.FIN.DEBT",
+        "F.SALES.CASH_IN",
+        "FIN.ESCROW_RESERVE_RATE",
+        "F.TIME.DATE"
+      ],
+      "lag_depends_on": [
+        "F.FIN.DEBT"
       ],
       "rationale": "ч.6 ст.15.5 214-ФЗ позволяет направлять средства эскроу в погашение кредита; остаток долга гасится из ДКП",
       "rejected": [
-        "Погашение по залоговой стоимости (исходник строки 102–105) не доведено до формул"
+        "Погашение по залоговой стоимости (исходник строки 102–105) не доведено до формул",
+        "Погашение всей выдачи в том же квартале (исходник CF1!F100 = MAX(…; −F97 − F98)) — долг всегда 0"
       ],
       "source_ids": [
         "S_214_ART15_5",
@@ -11602,22 +11758,22 @@
       "dims": [
         "t"
       ],
-      "expr": "debt[t]     = debt[t−1] + draw[t] − principal_repaid[t]\ndebt_avg[t] = (debt[t−1] + debt[t−1] + draw[t]) / 2\n",
+      "expr": "debt[t]    = debt[t−1] + draw[t] − principal[t]\naccrued[t] = accrued[t−1] + interest[t] − interest_paid[t]\n",
+      "note": "Проверка: на конец расчёта debt = 0 и accrued = 0, иначе — предупреждение «кредит не погашен».",
       "terms": {
         "debt[t]": "результат: остаток основного долга на конец месяца, руб",
-        "debt_avg[t]": "средний долг за месяц (выборка — в середине месяца)",
+        "accrued[t]": "результат: начисленные и не оплаченные проценты на конец месяца, руб",
         "draw[t]": "выборка (F.FIN.DRAW)",
-        "principal_repaid[t]": "погашение основного долга (F.FIN.REPAYMENT)"
+        "interest[t]": "проценты месяца (F.FIN.INTEREST)",
+        "principal[t], interest_paid[t]": "погашение основного долга и процентов (F.FIN.REPAYMENT)"
       },
       "plain": {
         "title": "Остаток основного долга, руб",
-        "how": "Долг прошлого месяца плюс выдача минус погашение основного долга."
+        "how": "Долг прошлого месяца плюс выдача минус погашение основного долга. Отдельно — проценты, начисленные и ещё не оплаченные."
       },
       "depends_on": [
         "F.FIN.DRAW",
-        "F.FIN.REPAYMENT"
-      ],
-      "lag_depends_on": [
+        "F.FIN.INTEREST",
         "F.FIN.REPAYMENT"
       ],
       "rationale": "Баланс долга BoP → EoP",
@@ -11626,48 +11782,8 @@
         "S_BANK_TERMSHEET"
       ],
       "legacy": {
-        "cells": "CF1!F97:AS97, F106:AS106",
+        "cells": "CF1!F97:AS97, F106:AS106, F110:AS110",
         "verdict": "keep"
-      },
-      "status": "verified"
-    },
-    {
-      "id": "F.FIN.FEES",
-      "module": "FIN",
-      "name": "Комиссии банка",
-      "unit": "руб",
-      "dims": [
-        "t"
-      ],
-      "expr": "fee_arr[t]    = FIN.FEE_ARRANGEMENT × limit × 1{ t = t_first_draw }\nfee_commit[t] = FIN.FEE_COMMIT × (limit − Σ draw) × days[t] / 365 × 1{ availability }\n",
-      "terms": {
-        "fee_arr[t]": "комиссия за выдачу — в месяц первой выборки, руб",
-        "fee_commit[t]": "комиссия за неиспользованный лимит, руб",
-        "limit": "лимит кредита (F.FIN.LIMIT)",
-        "t_first_draw": "месяц первой выборки",
-        "availability": "месяц t входит в период доступности лимита",
-        "days[t]": "дней в месяце (F.TIME.DAYS)"
-      },
-      "plain": {
-        "title": "Комиссии банка, руб",
-        "how": "Комиссия за организацию — один раз при первой выдаче, процент от лимита. Комиссия за резервирование — на невыбранную часть лимита."
-      },
-      "depends_on": [
-        "F.FIN.LIMIT",
-        "F.FIN.DRAW",
-        "FIN.FEE_ARRANGEMENT",
-        "FIN.FEE_COMMITMENT"
-      ],
-      "rationale": "Стандартные комиссии кредитного договора",
-      "rejected": [
-        "«Банковские расходы 15% от ПФ» (исходник Бюджет!F68) — дублирует проценты"
-      ],
-      "source_ids": [
-        "S_BANK_TERMSHEET"
-      ],
-      "legacy": {
-        "cells": "CF1!F111:AS112, Бюджет!D68:F68",
-        "verdict": "fix"
       },
       "status": "verified"
     },
@@ -11677,8 +11793,8 @@
       "name": "Эффективная стоимость кредита",
       "unit": "%годовых",
       "dims": [],
-      "expr": "bank_flow[t] = draw[t] − repaid_principal[t] − interest_paid[t] − fees[t]\neff_rate     = XIRR( bank_flow[t], date[t] )\n",
-      "note": "С позиции банка знак потока обратный.",
+      "expr": "bank_flow[t] = draw[t] − principal[t] − interest_paid[t] − fees[t]\neff_rate     = XIRR( bank_flow[t], date[t] )\n«Как в исходном Excel»: (1 + IRR(поток по кредиту для банка по кварталам))^4 − 1 (CF1!D128), поток = −(F98 + F99 − F108 − F109)\n",
+      "note": "С позиции банка знак потока обратный. Если в потоке нет платежей разного знака, ставка не считается (в исходнике CF1!D128 = #NUM!).",
       "terms": {
         "eff_rate": "результат: эффективная стоимость кредита, % год.",
         "bank_flow[t]": "денежный поток по кредиту в месяце t",
@@ -11686,12 +11802,14 @@
       },
       "plain": {
         "title": "Полная стоимость кредита, % годовых",
-        "how": "Ставка, при которой выдачи кредита и все платежи банку с учётом дат уравновешивают друг друга. Показывает стоимость кредита вместе с комиссиями."
+        "how": "Ставка, при которой выдачи кредита и все платежи банку с учётом дат уравновешивают друг друга. Показывает стоимость кредита вместе с комиссиями.",
+        "example": "В проекте — {=|доля}."
       },
       "depends_on": [
         "F.FIN.DRAW",
         "F.FIN.REPAYMENT",
-        "F.FIN.FEES"
+        "F.FIN.FEES",
+        "F.TIME.DATE"
       ],
       "rationale": "XIRR по датам — корректен при неравных периодах",
       "rejected": [
@@ -12435,7 +12553,7 @@
       "unit": "bool",
       "dims": [],
       "expr": "PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9\nSCHEDULE_SUM      : |Σ_t w[i,t] − 1| < 1e-9 для каждой статьи i\nSOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]\nUNSOLD_AT_END     : remaining[k,T] > 0 → предупреждение\nREVENUE_EQ_CF     : Σ value = Σ поступлений (эскроу + ДКП) + дебиторка на конец\nBUDGET_EQ_CF      : Σ бюджета по статьям = Σ затрат в CF\nESCROW_NONNEG     : esc_bal >= 0\nDEBT_LE_LIMIT     : Σ draw <= limit\nDEBT_REPAID       : debt[T] + accrued[T] = 0\nCASH_NONNEG       : cash[t] >= 0, иначе cash gap\nSOURCES_PRESENT   : source_ids ≠ ∅ у каждого параметра и формулы; level 5 → автор и диапазон заданы\nPARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) ИЛИ override с документом\nNCS_DEVIATION     : |deviation| <= CAPEX.NCS_BENCH_TOLERANCE ИЛИ есть обоснование\nAPT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE, иначе предупреждение\nSTAGE_INPUTS      : обязательные входы TEP для GEN.PROJECT_STAGE заполнены и с документом\nGPZU_LIMITS       : F.CHECK.GPZU_LIMITS без превышений (или есть решение об отклонении)\nAPART_ALLOWED     : F.TEP.APART_AREA > 0 → GPZU.APART_ALLOWED = да\nGFA_SHARES_SUM    : стадия «оценка участка» → TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1\nUNDERGROUND_CAP   : F.CHECK.UNDERGROUND_CAPACITY (стадия «концепция»)\nBENCH_MIN_COMPS   : число аналогов >= BENCH.MARKET_MIN_COMPS ИЛИ экспертное обоснование\nAPT_MIX_SHARE_SUM : стадия «оценка участка» → |Σ_k area_share[k] − 1| < 1e-9\nPARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA\nVRI_DATE_REQUIRED : LAND.CADASTRAL_VALUE_AFTER_VRI задана → vri_change_date заполнена\nLESSOR_REQUIRED   : LAND.TENURE = аренда → LAND.LESSOR_TYPE задан\nHORIZON_LONG      : F.CF.HORIZON > TIME.HORIZON_WARN_M → предупреждение\n",
-      "note": "Свод проверок модели. APART_ALLOWED проверяется по вложенному ГПЗУ; если апартаменты не допускаются, продукт «апартаменты» недоступен. BENCH_MIN_COMPS: если пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS, скидка апартаментов — экспертная (уровень 5), без блокировки расчёта. UNDERGROUND_CAP даёт ошибку или предупреждение по вместимости подземной части. T — последний месяц модели.",
+      "note": "Свод проверок модели. APART_ALLOWED проверяется по вложенному ГПЗУ; если апартаменты не допускаются, продукт «апартаменты» недоступен. BENCH_MIN_COMPS: если пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS, скидка апартаментов — экспертная (уровень 5), без блокировки расчёта. UNDERGROUND_CAP даёт ошибку или предупреждение по вместимости подземной части. Проверка, у которой не заполнены входы, не запускается: статус «ждёт данных», в число ошибок не входит (решение владельца продукта 28.09.2026). Незаполненные обязательные поля — метка «Заполните» и счётчик на своей вкладке, не ошибка проверки. T — последний месяц модели.",
       "terms": {
         "T": "последний месяц модели",
         "w[i,t]": "вес месяца в графике статьи (F.CAPEX.SCHEDULE_WEIGHT)",
@@ -13320,12 +13438,13 @@
         {
           "param": "FIN.RATE_DISCOUNT_COEF",
           "group": "fin",
-          "value": -0.02,
+          "value": null,
           "status": "unverified",
           "from": {
             "text": "Исходный Excel, лист «CF1»: скидка к ставке −2 п.п. при избыточном покрытии эскроу",
             "url": null
-          }
+          },
+          "note": "Стандарта нет: скидка считается, только если она есть в договоре банка (решение владельца продукта 28.09.2026)"
         },
         {
           "param": "FIN.RATE_MIN",

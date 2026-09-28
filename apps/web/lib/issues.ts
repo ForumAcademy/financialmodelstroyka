@@ -5,8 +5,7 @@
  * Пункт, у которого есть статус, но которого больше нет в списке, остаётся с пометкой «не воспроизводится».
  * Стандартные значения компании сюда не входят: они подтверждаются на полях (lib/standard.ts).
  */
-import type { DataQuestion } from "@fm/engine";
-import { plural } from "./format";
+import { FORMULAS, type DataQuestion } from "@fm/engine";
 import { auditItems, type AuditGroup } from "./legacy-audit";
 import type { InputTab } from "./tab-inputs";
 import type { DemoProject, IssueState, IssueStatus } from "./types";
@@ -37,6 +36,8 @@ export interface IssueItem {
   question: string | null;
   /** Вопросы расчёта «как в исходном Excel», относящиеся к пункту. */
   questions: DataQuestion[];
+  /** Исправлено в «Расчёте сервиса»: формулы, которые заменяют место файла, реализованы в ядре (статус из кода). */
+  fixed: boolean;
   status: IssueStatus;
   state: IssueState | null;
   /** Пункта больше нет в списке: он есть только в статусах проекта. */
@@ -47,6 +48,9 @@ const GROUP_OFFSET: Record<AuditGroup, number> = { distorts: 0, method: 100, aut
 const BLOCK_TAB: Record<DataQuestion["block"], InputTab> = { sales: "sales", budget: "budget", cf: "cf", escrow: "escrow", fin: "cf" };
 /** Ключи статусов подтверждения стандартных значений компании — не пункты расхождений. */
 const STANDARD_PREFIX = "STANDARD:";
+
+/** Все формулы, которые заменяют место файла, реализованы в ядре. */
+export const fixedInCode = (formulas: readonly string[]): boolean => formulas.every((f) => f in FORMULAS);
 
 export function issueItems(project: DemoProject, questions: DataQuestion[]): IssueItem[] {
   if (!project.legacyCase) return [];
@@ -70,17 +74,18 @@ export function issueItems(project: DemoProject, questions: DataQuestion[]): Iss
       fix: a.fix,
       question: a.question ?? null,
       questions: a.keys.flatMap((key) => excel.filter((q) => q.key === key)),
+      fixed: fixedInCode(a.formulas),
     }),
   );
   const extra = excel
     .filter((q) => !linked.has(q.key))
     .map((q) =>
-      item(q.key, { no: GROUP_OFFSET.distorts + audit.length + q.no, label: String(q.no), group: "distorts", tab: BLOCK_TAB[q.block], where: "", title: q.question, effect: "", fix: q.recommendation, question: null, questions: [q] }),
+      item(q.key, { no: GROUP_OFFSET.distorts + audit.length + q.no, label: String(q.no), group: "distorts", tab: BLOCK_TAB[q.block], where: "", title: q.question, effect: "", fix: q.recommendation, question: null, questions: [q], fixed: fixedInCode([q.formulaId]) }),
     );
   const live = new Set([...fromAudit, ...extra].map((i) => i.key));
   const stale = Object.entries(states)
     .filter(([key]) => !live.has(key) && !key.startsWith(STANDARD_PREFIX))
-    .map(([key, state]): IssueItem => ({ key, no: 1000 + state.no, label: "—", group: "distorts", tab: "cf", where: "", title: state.question, effect: "", fix: "", question: null, questions: [], status: state.status, state, stale: true }));
+    .map(([key, state]): IssueItem => ({ key, no: 1000 + state.no, label: "—", group: "distorts", tab: "cf", where: "", title: state.question, effect: "", fix: "", question: null, questions: [], fixed: true, status: state.status, state, stale: true }));
   return [...fromAudit, ...extra, ...stale];
 }
 
@@ -101,6 +106,10 @@ export interface IssueSummary {
   questions: number;
   /** Нерешённые по группам. */
   byGroup: Record<AuditGroup, number>;
+  /** Ошибок в исходном файле (группы «Искажают результат» и «Методика»): показывается в «Как в исходном Excel». */
+  inFile: number;
+  /** Не исправлено в «Расчёте сервиса» по коду (без пунктов со статусом «Решено»): показывается в «Расчёте сервиса». */
+  notFixed: number;
 }
 
 /** Один подсчёт для заголовка вкладки «Расхождения» и плашки над вкладками — одинаковый в обоих расчётах. */
@@ -114,18 +123,32 @@ export function issueSummary(project: DemoProject, questions: DataQuestion[]): I
     total: counted.length,
     questions: open("author"),
     byGroup: { distorts: open("distorts"), method: open("method"), author: open("author") },
+    inFile: counted.length,
+    notFixed: counted.filter((i) => !i.fixed && i.status !== "done").length,
   };
 }
 
-/** Заголовок вкладки: «Расхождения · N не решено» или «Расхождения ✓». */
-export const issuesTabLabel = (s: IssueSummary): string => (s.open ? `Расхождения · ${s.open} не решено` : "Расхождения ✓");
+/** Число у пункта «Расхождения с Excel»: n — число на экране, title — подсказка, ok — всё исправлено. */
+export interface IssuesCount {
+  n: number;
+  ok: boolean;
+  title: string;
+}
 
-/** Текст плашки над вкладками; null — плашки нет (всё решено или вкладки нет). */
+/**
+ * В «Как в исходном Excel» — ошибок в файле («34», подсказка «В файле: 34»); в «Расчёте сервиса» — сколько
+ * не исправлено («7», подсказка «Не исправлено: 7. В файле: 34») или ✓. Статус «исправлено» — из кода (fixedInCode).
+ */
+export function issuesCount(project: DemoProject, s: IssueSummary): IssuesCount {
+  const asked = s.questions ? `. Вопросов автору файла: ${s.questions}` : "";
+  if (project.input.mode === "legacy") return { n: s.inFile, ok: s.inFile === 0, title: `В файле: ${s.inFile}${asked}` };
+  return { n: s.notFixed, ok: s.notFixed === 0, title: s.notFixed ? `Не исправлено: ${s.notFixed}. В файле: ${s.inFile}${asked}` : `Всё исправлено. В файле: ${s.inFile}${asked}` };
+}
+
+/** Текст плашки: только в «Расчёте сервиса» и только если есть неисправленное; null — плашки нет. */
 export function issuesBannerText(project: DemoProject, s: IssueSummary): string | null {
-  if (!s.shown || s.open === 0) return null;
-  return project.input.mode === "legacy"
-    ? `Ошибки исходного файла сохранены намеренно: не исправлено ${s.open}. В режиме «Расчёт сервиса» они исправлены.`
-    : `Не решено ${s.open} ${plural(s.open, ["расхождение", "расхождения", "расхождений"])}.`;
+  if (!s.shown || s.notFixed === 0 || project.input.mode === "legacy") return null;
+  return `Не исправлено: ${s.notFixed}.`;
 }
 
 /** Заголовок вкладки с вводными: «ТЭП · 7 не заполнено · 3 не подтверждено». */

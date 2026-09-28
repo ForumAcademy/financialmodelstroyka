@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { spec } from "@fm/spec";
 import { latest, SPEC_ASSUMPTIONS } from "../lib/assumptions";
 import { computeProject, projectQuestions } from "../lib/model";
-import { issueItems, issueSummary, issuesBannerText, issuesTabLabel } from "../lib/issues";
+import { issueItems, issueSummary, issuesBannerText, issuesCount } from "../lib/issues";
 import { loadSeed } from "../lib/seed";
 import { standardInUse, unconfirmedStandard } from "../lib/standard";
 import { reducer } from "../lib/store";
@@ -56,24 +56,38 @@ describe("Расхождения: пункты аудита исходного E
 });
 
 describe("Расхождения: один подсчёт для вкладки и плашки", () => {
-  it("всё решено — «Расхождения ✓», плашки нет", () => {
-    const s = { shown: true, open: 0, total: 3, questions: 1, byGroup: { distorts: 0, method: 0, author: 1 } };
-    expect(issuesTabLabel(s)).toBe("Расхождения ✓");
-    expect(issuesBannerText(demo, s)).toBeNull();
+  it("всё исправлено — в «Расчёте сервиса» ✓, плашки нет", () => {
+    const s = { shown: true, open: 0, total: 3, questions: 1, byGroup: { distorts: 0, method: 0, author: 1 }, inFile: 3, notFixed: 0 };
+    const normal = { ...demo, input: { ...demo.input, mode: "normal" as const } };
+    expect(issuesCount(normal, s).ok).toBe(true);
+    expect(issuesBannerText(normal, s)).toBeNull();
   });
 
   for (const p of modes(demo)) {
     const name = p.input.mode === "legacy" ? "«Как в исходном Excel»" : "«Расчёт сервиса»";
-    it(`Дербеневская, ${name}: число на вкладке равно числу в плашке; 23 + 11 не решено, 4 вопроса автору`, () => {
+    it(`Дербеневская, ${name}: 34 в файле (23 + 11), 4 вопроса автору; в расчёте сервиса не исправлено 7`, () => {
       const s = issueSummary(p, projectQuestions(p, computeProject(p)));
       expect(s.byGroup).toEqual({ distorts: 23, method: 11, author: 4 });
       expect(s.open).toBe(34);
-      const tab = issuesTabLabel(s);
+      expect(s.inFile).toBe(34);
+      expect(s.notFixed).toBe(7);
+      const c = issuesCount(p, s);
       const banner = issuesBannerText(p, s);
-      expect(count(tab)).toBe(s.open);
-      expect(count(banner)).toBe(count(tab));
-      expect(tab).not.toMatch(/ из /);
-      expect(banner).not.toMatch(/ из /);
+      if (p.input.mode === "legacy") {
+        // в «Как в исходном Excel» — сколько ошибок в файле, плашки нет
+        expect(c.n).toBe(34);
+        expect(c.title).toMatch(/^В файле: 34/);
+        expect(banner).toBeNull();
+      } else {
+        expect(c.n).toBe(7);
+        expect(count(c.title)).toBe(7);
+        expect(banner).toBe("Не исправлено: 7.");
+      }
+    });
+
+    it(`Дербеневская, ${name}: статус «исправлено» — из кода ядра`, () => {
+      const items = issueItems(p, projectQuestions(p, computeProject(p))).filter((i) => i.group !== "author");
+      expect(items.filter((i) => !i.fixed).map((i) => i.label)).toEqual(["3", "9", "10", "11", "17", "18", "М5"]);
     });
   }
 });

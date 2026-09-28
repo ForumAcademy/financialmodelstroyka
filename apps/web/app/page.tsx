@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type Decimal from "decimal.js";
 import { housingClass, num, plural, regionName } from "@/lib/format";
 import { exportProject } from "@/lib/excel-export";
-import { issueSummary } from "@/lib/issues";
+import { issuesCount, issueSummary } from "@/lib/issues";
 import { projectQuestions, type ProjectModel } from "@/lib/model";
 import { inputsMissing } from "@/lib/project-nav";
 import { NewProjectDialog } from "@/components/NewProject";
@@ -81,6 +81,8 @@ function ProjectCard({ project }: { project: DemoProject }) {
   const m = model(project);
   const missing = inputsMissing(project, m);
   const issues = issueSummary(project, projectQuestions(project, m));
+  const issueCount = issuesCount(project, issues);
+  const showIssues = issues.shown && !issueCount.ok;
   const meta = [project.input.values["GEN.REGION_CODE"] ? regionName(project) : null, housingClass(project)].filter(Boolean);
   const size = scale(m);
   return (
@@ -120,14 +122,18 @@ function ProjectCard({ project }: { project: DemoProject }) {
         <Kpi value={null} label="Пиковый долг" />
       </div>
       <div className="pc-foot">
-        {missing || (issues.shown && issues.open) ? (
+        {missing || showIssues ? (
           <div className="pc-tags">
             {missing ? (
               <span className="chip warn">
                 Не хватает {missing} {plural(missing, ["значения", "значений", "значений"])}
               </span>
             ) : null}
-            {issues.shown && issues.open ? <span className="chip bad">Расхождений: {issues.open}</span> : null}
+            {showIssues ? (
+              <span className="chip bad" title={issueCount.title}>
+                {project.input.mode === "legacy" ? `В файле: ${issueCount.n}` : `Не исправлено: ${issueCount.n}`}
+              </span>
+            ) : null}
           </div>
         ) : null}
         <span className="pc-meta sm">Обновлено {updated(project.updatedAt)}</span>

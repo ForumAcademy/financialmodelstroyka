@@ -17,6 +17,8 @@ export interface NavItem {
   title: string;
   /** Статус справа: «✓», «нет 3», «2 проверки», «1 из 8». */
   status?: string | undefined;
+  /** Подсказка к статусу по наведению. */
+  hint?: string | undefined;
   tone?: Tone | undefined;
 }
 
@@ -58,7 +60,7 @@ export function useCollapsed(): [boolean, (v: boolean) => void] {
 
 function Step({ item, on, go }: { item: NavItem; on: boolean; go: (id: string) => void }) {
   return (
-    <button className={`nav-step tone-${item.tone ?? "none"} ${on ? "on" : ""}`} onClick={() => go(item.id)} aria-current={on ? "page" : undefined}>
+    <button className={`nav-step tone-${item.tone ?? "none"} ${on ? "on" : ""}`} onClick={() => go(item.id)} aria-current={on ? "page" : undefined} title={item.hint}>
       <span className="n">{item.mark}</span>
       <span className="t">{item.title}</span>
       {item.status ? <span className="st">{item.status}</span> : <span />}

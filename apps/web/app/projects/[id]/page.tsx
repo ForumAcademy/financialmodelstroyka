@@ -12,7 +12,7 @@ import { TepCalc } from "@/components/tabs/TepTab";
 import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
 import { NavLayout, type NavEntry, type Tone } from "@/components/ProjectNav";
-import { issueSummary } from "@/lib/issues";
+import { issuesCount, issueSummary } from "@/lib/issues";
 import { firstMissing, inputSteps, inputsMissing, placeOfParam, SECTION_OF_TAB, sectionHref, SHEETS, stepChecks, stepMissing, tabChecks, type SectionId } from "@/lib/project-nav";
 import { DraftProvider } from "@/components/Draft";
 import { exportProject } from "@/lib/excel-export";
@@ -83,6 +83,8 @@ function ProjectPage() {
   const m = model(project);
   const questions = projectQuestions(project, m);
   const summary = issueSummary(project, questions);
+  // «Как в исходном Excel» — ошибок в файле, «Расчёт сервиса» — сколько не исправлено (статус из кода)
+  const issueCount = issuesCount(project, summary);
   const steps = inputSteps(project);
   const missing = inputsMissing(project, m);
   const first = firstMissing(project, m);
@@ -115,7 +117,7 @@ function ProjectPage() {
     { item: { id: "dashboard", mark: "★", title: "Дашборд", icon: "★", short: "Дашборд" } },
     { item: { id: "docs", mark: "▤", title: "Документы проекта", icon: "▤", short: "Документы" } },
     ...(summary.shown
-      ? [{ item: { id: "issues", mark: "⇄", title: "Расхождения с Excel", status: summary.open ? String(summary.open) : "✓", tone: (summary.open ? "bad" : "done") as Tone, icon: "⇄", short: "Расхождения" } }]
+      ? [{ item: { id: "issues", mark: "⇄", title: "Расхождения с Excel", status: issueCount.ok ? "✓" : String(issueCount.n), hint: issueCount.title, tone: (issueCount.ok ? "done" : "bad") as Tone, icon: "⇄", short: "Расхождения" } }]
       : []),
   ];
 

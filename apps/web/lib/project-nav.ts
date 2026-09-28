@@ -41,7 +41,7 @@ const PREP_COLUMNS = ["phase", "land_acquired", "vri_change_date", "design_start
 const BUILD_COLUMNS = ["phase", "sales_start", "construction_start", "construction_end", "rnv_date", "handover_start", "handover_end"];
 
 /** Вкладки шага «Затраты» и группы статей бюджета в них (раздел 3.3 задания). */
-const COST_TABS: { title: string; groups: string[]; extra: ParameterId[] }[] = [
+export const COST_TABS: { title: string; groups: string[]; extra: ParameterId[] }[] = [
   { title: "Участок и права", groups: ["правообладание"], extra: ["LAND.RENT_ANNUAL", "LAND.VRI_FEE", "LAND.CADASTRAL_VALUE_AFTER_VRI", "TAX.LAND_RATE"] },
   { title: "ПИР и ИРД", groups: ["ПИР"], extra: [] },
   { title: "Строительство", groups: ["СМР", "сети", "благоустройство", "соцобъекты"], extra: ["CAPEX.COST_INDEX"] },

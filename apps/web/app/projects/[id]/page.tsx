@@ -5,21 +5,23 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useHow } from "@/components/HowPanel";
 import { Inputs } from "@/components/Sheet";
-import { BudgetTab } from "@/components/tabs/BudgetTab";
-import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tabs/FlowTabs";
+import { CalcSheetView, PeriodSwitch } from "@/components/CalcSheet";
+import { DashboardTab } from "@/components/tabs/FlowTabs";
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { TepCalc } from "@/components/tabs/TepTab";
 import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
 import { NavLayout, type NavEntry, type Tone } from "@/components/ProjectNav";
 import { issueSummary } from "@/lib/issues";
-import { firstMissing, inputSteps, inputsMissing, placeOfParam, SECTION_OF_TAB, sectionHref, SHEETS, stepChecks, stepMissing, tabChecks, type SectionId } from "@/lib/project-nav";
+import { firstMissing, inputSteps, inputsMissing, placeOfParam, SECTION_OF_TAB, sectionHref, SHEETS, stepChecks, stepMissing, tabChecks, type SectionId, type SheetId } from "@/lib/project-nav";
 import { DraftProvider } from "@/components/Draft";
 import { exportProject } from "@/lib/excel-export";
 import { housingClass, plural, regionName } from "@/lib/format";
-import { projectQuestions } from "@/lib/model";
+import { buildSheet, type CalcSheet } from "@/lib/calc-sheets";
+import { projectQuestions, type Period } from "@/lib/model";
 import { useStore } from "@/lib/store";
 import type { InputTab } from "@/lib/tab-inputs";
+import type { DemoProject } from "@/lib/types";
 import type { ParameterId } from "@fm/spec";
 
 /** Прежние адреса «?tab=…&view=…» (ссылки из панелей «Как посчитано») ведут в новый раздел. */
@@ -39,6 +41,7 @@ function ProjectPage() {
   const { projects, model, sourceChecks } = useStore();
   const { setProject } = useHow();
   const [exporting, setExporting] = useState(false);
+  const [period, setPeriod] = usePeriod();
   const project = projects.find((p) => p.id === id);
   useEffect(() => {
     setProject(project ? project.id : null);
@@ -184,19 +187,7 @@ function ProjectPage() {
             )}
           </>
         ) : null}
-        {SHEETS.some((s) => s.id === section) ? (
-          <>
-            <div className="work-head">
-              <h2>{SHEETS.find((s) => s.id === section)!.title}</h2>
-            </div>
-            <div className="sheet-page" data-view="calc">
-              {section === "sales" ? <SalesTab project={project} model={m} /> : null}
-              {section === "budget" ? <BudgetTab project={project} model={m} /> : null}
-              {section === "escrow" ? <EscrowTab project={project} model={m} /> : null}
-              {section === "cf" ? <CashflowTab project={project} model={m} /> : null}
-            </div>
-          </>
-        ) : null}
+        {SHEETS.some((s) => s.id === section) ? <SheetSection project={project} sheet={buildSheet(section as SheetId, project, m)} period={period} setPeriod={setPeriod} /> : null}
         {section === "dashboard" ? (
           <>
             <div className="work-head">
@@ -226,6 +217,42 @@ function ProjectPage() {
         ) : null}
       </NavLayout>
     </div>
+  );
+}
+
+/** Период листов «Расчёта»: один на все листы, запоминается в браузере. */
+const PERIOD_KEY = "fm.calc.period";
+function usePeriod(): [Period, (p: Period) => void] {
+  const [period, set] = useState<Period>("year");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PERIOD_KEY);
+      if (saved === "year" || saved === "quarter" || saved === "month") set(saved);
+    } catch {
+      // без хранилища — по годам
+    }
+  }, []);
+  const setPeriod = (p: Period) => {
+    set(p);
+    try {
+      localStorage.setItem(PERIOD_KEY, p);
+    } catch {
+      // без хранилища выбор живёт до перезагрузки
+    }
+  };
+  return [period, setPeriod];
+}
+
+function SheetSection({ project, sheet, period, setPeriod }: { project: DemoProject; sheet: CalcSheet; period: Period; setPeriod: (p: Period) => void }) {
+  return (
+    <>
+      <div className="work-head">
+        <h2>{sheet.title}</h2>
+        <p>{sheet.hint}</p>
+      </div>
+      {sheet.ready ? <PeriodSwitch period={period} setPeriod={setPeriod} /> : null}
+      <CalcSheetView key={sheet.id} sheet={sheet} period={period} projectId={project.id} />
+    </>
   );
 }
 

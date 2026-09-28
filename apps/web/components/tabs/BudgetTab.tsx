@@ -3,22 +3,13 @@
 import Decimal from "decimal.js";
 import { getFormula, getParameter, isFormulaId, isParameterId, spec, type ParameterId } from "@fm/spec";
 import { useHow } from "../HowPanel";
-import { Inputs, val, type InputGroup } from "../Sheet";
+import { Inputs, val } from "../Sheet";
+import { BUDGET_GROUPS, budgetGroups } from "@/lib/tab-inputs";
 import { modePair, type ProjectModel } from "@/lib/model";
 import type { DemoProject } from "@/lib/types";
 import * as fmt from "@/lib/format";
 
-/** Группы бюджета в порядке листа «Бюджет» исходного Excel. */
-export const BUDGET_GROUPS: [string, string][] = [
-  ["правообладание", "Правообладание"],
-  ["ПИР", "ПИР"],
-  ["СМР", "СМР"],
-  ["сети", "Сети"],
-  ["благоустройство", "Благоустройство"],
-  ["соцобъекты", "Соцобъекты"],
-  ["управление", "Управление"],
-  ["коммерческие", "Коммерческие"],
-];
+export { BUDGET_GROUPS };
 
 type Series = Partial<Record<string, Decimal[]>>;
 
@@ -64,12 +55,7 @@ export function BudgetTab({ project, model }: { project: DemoProject; model: Pro
   const cashSum = (id: string) => cash[id]?.reduce((a, b) => a.add(b), new Decimal(0));
   const pct = (x: Decimal | undefined) => (x && grand && !grand.isZero() ? fmt.share(x.div(grand).toNumber()) : "—");
   const money = (x: Decimal | undefined) => (x ? fmt.num(x, 0) : "—");
-  const groups: InputGroup[] = BUDGET_GROUPS.map(([key, title]) => {
-    const params = [...new Set(spec.capexItems.filter((c) => c.group === key && c.rate_param).map((c) => c.rate_param as ParameterId))];
-    if (key === "правообладание") params.push("TAX.LAND_RATE", "LAND.CADASTRAL_VALUE_AFTER_VRI");
-    return { title, params };
-  }).filter((g) => g.params.length > 0);
-  groups.push({ title: "Индексация затрат", params: ["CAPEX.COST_INDEX", "CAPEX.OPEX_INDEX"] });
+  const groups = budgetGroups();
 
   const volume = (base: string): string => {
     if (isParameterId(base)) {

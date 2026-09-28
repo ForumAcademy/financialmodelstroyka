@@ -4,8 +4,9 @@ import { useState } from "react";
 import { fmtRub, type DataQuestion, type QuestionBlock } from "@fm/engine";
 import { savedAuthor } from "./Change";
 import { useHow } from "./HowPanel";
-import { BLOCKS, impactSize, issueItems, type IssueItem } from "@/lib/issues";
+import { BLOCKS, GROUPS, groupOf, impactSize, issueItems, scopeQuestions, type IssueItem } from "@/lib/issues";
 import { exportIssues } from "@/lib/issues-export";
+import { plural } from "@/lib/format";
 import { useStore } from "@/lib/store";
 import { ISSUE_STATUS_LABEL, type DemoProject, type IssueStatus } from "@/lib/types";
 
@@ -40,12 +41,11 @@ export function ModeSwitch({ project }: { project: DemoProject }) {
   );
 }
 
-/** Строка над вкладками в расчёте «как в исходном Excel»: сколько расхождений не решено и где их список. */
-export function CompatBanner({ open, total, go }: { open: number; total: number; go: () => void }) {
-  if (total === 0) return null;
+/** Плашка над вкладками: сколько расхождений не решено (тот же подсчёт, что в заголовке вкладки) и где их список. */
+export function CompatBanner({ text, go }: { text: string; go: () => void }) {
   return (
     <div className="compat-warnings">
-      Расчёт как в исходном Excel повторяет файл один в один. Не решено {open} из {total} расхождений.{" "}
+      {text}{" "}
       <button className="linklike" onClick={go}>
         Открыть список
       </button>
@@ -254,12 +254,12 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   const [sort, setSort] = useState<"impact" | "no">("impact");
   const [filter, setFilter] = useState<Filter>("all");
   const [exporting, setExporting] = useState(false);
-  if (!project.legacyCase && questions.length === 0 && !Object.keys(project.issues ?? {}).length) {
-    return <p className="muted discrepancies">Вопросов нет: проект не загружен из Excel и не использует неподтверждённых стандартных значений компании.</p>;
-  }
-  const all = issueItems(project, questions);
+  const all = issueItems(project, scopeQuestions(project, questions));
   const active = all.filter((i) => i.status !== "done");
   const archive = all.filter((i) => i.status === "done");
+  // Вопросы автору файла — не ошибки: в скобках отдельно, чтобы число совпадало с заголовком вкладки
+  const asked = active.filter((i) => groupOf(i) === "author").length;
+  const activeLabel = `${active.length - asked}${asked ? ` + ${asked} ${plural(asked, ["вопрос", "вопроса", "вопросов"])} автору` : ""}`;
   const shown = (sub === "active" ? active.filter((i) => filter === "all" || i.status === filter) : archive).sort((a, b) =>
     sort === "impact" ? impactSize(b) - impactSize(a) || a.no - b.no : a.no - b.no,
   );
@@ -267,15 +267,16 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
   return (
     <div className="discrepancies">
       <p className="small muted">
-        {project.legacyCase
-          ? "Ошибки и нестыковки, найденные в исходном Excel: расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше. "
-          : ""}
-        Стандартные значения компании, которые проект использует без подтверждения, тоже здесь: статус «Решено» отмечает значение как подтверждённое финансистами.
+        Ошибки и нестыковки, найденные в исходном Excel: расчёт «как в исходном Excel» повторяет их как есть, в расчёте сервиса они исправлены. Влияние — разница между значением Excel и исправленным: «+» — в Excel больше, «−» — меньше.{" "}
+        {project.input.mode === "legacy"
+          ? "Стандартные значения компании, которые проект использует без подтверждения, показаны в расчёте сервиса."
+          : "Стандартные значения компании, которые проект использует без подтверждения, — в группе «Методика»: статус «Решено» отмечает значение как подтверждённое финансистами."}
+        {" "}Вопросы автору файла — отдельно: это не ошибки, в число нерешённых они не входят.
       </p>
       <div className="issues-toolbar">
         <div className="seg">
           <button className={sub === "active" ? "on" : ""} onClick={() => setSub("active")}>
-            Активные ({active.length})
+            Активные ({activeLabel})
           </button>
           <button className={sub === "archive" ? "on" : ""} onClick={() => setSub("archive")}>
             Архив ({archive.length})
@@ -316,14 +317,24 @@ export function DiscrepanciesTab({ project, questions, go }: { project: DemoProj
       {shown.length === 0 ? (
         <p className="muted">{sub === "archive" ? "Решённых пунктов пока нет." : "Активных пунктов нет."}</p>
       ) : (
-        BLOCKS.filter((b) => shown.some((i) => blockOf(i) === b.id)).map((b) => (
-          <section key={b.id}>
-            <h2>
-              {b.title} <span className="muted small">{shown.filter((i) => blockOf(i) === b.id).length}</span>
-            </h2>
-            <Rows project={project} items={shown.filter((i) => blockOf(i) === b.id)} go={go} />
-          </section>
-        ))
+        GROUPS.filter((g) => shown.some((i) => groupOf(i) === g.id)).map((g) => {
+          const inGroup = shown.filter((i) => groupOf(i) === g.id);
+          return (
+            <section key={g.id} className="issue-group">
+              <h2>
+                {g.id === "author" ? `${g.title}: открытые вопросы` : g.title} <span className="muted small">{inGroup.length}</span>
+              </h2>
+              {BLOCKS.filter((b) => inGroup.some((i) => blockOf(i) === b.id)).map((b) => (
+                <section key={b.id}>
+                  <h3>
+                    {b.title} <span className="muted small">{inGroup.filter((i) => blockOf(i) === b.id).length}</span>
+                  </h3>
+                  <Rows project={project} items={inGroup.filter((i) => blockOf(i) === b.id)} go={go} />
+                </section>
+              ))}
+            </section>
+          );
+        })
       )}
     </div>
   );

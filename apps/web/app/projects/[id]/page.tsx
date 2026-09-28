@@ -9,7 +9,8 @@ import { CashflowTab, DashboardTab, EscrowTab, SalesTab } from "@/components/tab
 import { DocumentsTab } from "@/components/tabs/DocumentsTab";
 import { AssumptionsUpdate } from "@/components/AssumptionsUpdate";
 import { CompatBanner, DiscrepanciesTab, ModeSwitch } from "@/components/CompatWarnings";
-import { issueCounts } from "@/lib/issues";
+import { inputTabLabel, issueSummary, issuesBannerText, issuesTabLabel } from "@/lib/issues";
+import { tabMissing, type InputTab } from "@/lib/tab-inputs";
 import { TepTab } from "@/components/tabs/TepTab";
 import { exportProject } from "@/lib/excel-export";
 import { regionName } from "@/lib/format";
@@ -65,10 +66,13 @@ function ProjectPage() {
   }
   const m = model(project);
   const questions = projectQuestions(project, m);
-  const counts = issueCounts(project, questions);
-  // Строка над вкладками в расчёте «как в исходном Excel» — только расхождения Excel, без стандартных значений компании
-  const excelCounts = issueCounts(project, questions.filter((q) => !q.parameterId));
-  const tab = (TABS.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
+  // Одна сводка для заголовка вкладки «Расхождения» и плашки над вкладками
+  const summary = issueSummary(project, questions);
+  const banner = issuesBannerText(project, summary);
+  const tabs = TABS.filter((t) => t.id !== "issues" || summary.shown);
+  const tab = (tabs.find((t) => t.id === search.get("tab"))?.id ?? "tep") as TabId;
+  const label = (t: (typeof TABS)[number]) =>
+    t.id === "issues" ? issuesTabLabel(summary) : t.id === "docs" ? t.label : inputTabLabel(t.label, tabMissing(t.id as InputTab, project, m));
   const view = search.get("view") === "calc" ? "calc" : "inputs";
   const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
 
@@ -98,12 +102,11 @@ function ProjectPage() {
       </div>
       {project.legacyCase ? <ModeSwitch project={project} /> : null}
       <AssumptionsUpdate project={project} />
-      {tab === "issues" || project.input.mode !== "legacy" ? null : <CompatBanner open={excelCounts.open} total={excelCounts.total} go={() => go("issues", view)} />}
+      {tab === "issues" || !banner ? null : <CompatBanner text={banner} go={() => go("issues", view)} />}
       <nav className="tabs">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t.id} className={tab === t.id ? "on" : ""} onClick={() => go(t.id, view)}>
-            {t.label}
-            {t.id === "issues" && counts.total ? <span className="tab-count">{`${counts.open} из ${counts.total}`}</span> : null}
+            {label(t)}
           </button>
         ))}
       </nav>

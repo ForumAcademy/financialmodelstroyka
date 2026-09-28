@@ -101,9 +101,10 @@ versions:
         note: "В исходном Excel базовая ставка задана целиком, без привязки к ключевой"
       - param: FIN.RATE_DISCOUNT_COEF
         group: fin
-        value: -0.02
+        value: null
         status: unverified
         from: {text: "Исходный Excel, лист «CF1»: скидка к ставке −2 п.п. при избыточном покрытии эскроу", url: null}
+        note: "Стандарта нет: скидка считается, только если она есть в договоре банка (решение владельца продукта 28.09.2026)"
       - param: FIN.RATE_MIN
         group: fin
         value: 0.001

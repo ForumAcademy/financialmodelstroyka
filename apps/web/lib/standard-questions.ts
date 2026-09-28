@@ -159,6 +159,7 @@ export function standardQuestions(project: DemoProject, input: ProjectInput, res
         key: standardKey(item.param),
         no: offset + order.indexOf(item.param) + 1,
         block: item.group as QuestionBlock,
+        group: "method",
         question,
         summary: [compared, threat, question].join(" "),
         compared,

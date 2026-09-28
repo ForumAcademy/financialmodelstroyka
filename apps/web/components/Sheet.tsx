@@ -10,14 +10,11 @@ import { aggregate, PERIOD_LABEL, stageOf, type Period, type ProjectModel } from
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
 import * as fmt from "@/lib/format";
+import { missingCount, type InputGroup } from "@/lib/tab-inputs";
 
 // ---------------------------------------------------------------- Вводные
 
-export interface InputGroup {
-  title: string;
-  params: ParameterId[];
-  note?: string | undefined;
-}
+export type { InputGroup };
 
 const COLUMN_LABEL: Record<string, string> = {
   phase: "Очередь",
@@ -172,7 +169,7 @@ export function needHint(id: ParameterId): string {
 }
 
 export function Inputs({ project, model, groups }: { project: DemoProject; model: ProjectModel; groups: InputGroup[] }) {
-  const missing = groups.flatMap((g) => g.params).filter((id) => model.missing.has(id)).length;
+  const missing = missingCount(groups, model);
   // Раскладка в две колонки: блоки с редактируемой таблицей — на всю ширину; простые ставятся парами,
   // блок без соседа в строке тоже растягивается на всю ширину.
   const hasTable = (g: InputGroup) => g.params.some((id) => getParameter(id).kind === "table" && getParameter(id).scope !== "template");

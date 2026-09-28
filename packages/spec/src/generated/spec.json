@@ -1,5 +1,5 @@
 {
-  "specVersion": "3df5b5b9392f",
+  "specVersion": "a448bb434a49",
   "actualizedAt": "2026-09-27",
   "sources": [
     {
@@ -12554,7 +12554,7 @@
       "unit": "bool",
       "dims": [],
       "expr": "PAYMENT_MIX_SUM   : |mortgage + full + installment − 1| < 1e-9\nSCHEDULE_SUM      : |Σ_t w[i,t] − 1| < 1e-9 для каждой статьи i\nSOLD_LE_STOCK     : Σ_t sold[k,t] <= stock[k]\nUNSOLD_AT_END     : remaining[k,T] > 0 → предупреждение\nREVENUE_EQ_CF     : Σ value = Σ поступлений (эскроу + ДКП) + дебиторка на конец\nBUDGET_EQ_CF      : Σ бюджета по статьям = Σ затрат в CF\nESCROW_NONNEG     : esc_bal >= 0\nDEBT_LE_LIMIT     : Σ draw <= limit\nDEBT_REPAID       : debt[T] + accrued[T] = 0\nCASH_NONNEG       : cash[t] >= 0, иначе cash gap\nSOURCES_PRESENT   : source_ids ≠ ∅ у каждого параметра и формулы; level 5 → автор и диапазон заданы\nPARKING_NORM      : parking >= MAX(parking_required, TEP.PARKING_GPZU_COUNT) ИЛИ override с документом\nNCS_DEVIATION     : |deviation| <= CAPEX.NCS_BENCH_TOLERANCE ИЛИ есть обоснование\nAPT_AREA_MATCH    : |apt_check| <= TEP.APT_AREA_TOLERANCE, иначе предупреждение\nSTAGE_INPUTS      : обязательные входы TEP для GEN.PROJECT_STAGE заполнены и с документом\nGPZU_LIMITS       : F.CHECK.GPZU_LIMITS без превышений (или есть решение об отклонении)\nAPART_ALLOWED     : F.TEP.APART_AREA > 0 → GPZU.APART_ALLOWED = да\nGFA_SHARES_SUM    : стадия «оценка участка» → TEP.RES_GFA_SHARE + TEP.APART_GFA_SHARE <= 1\nUNDERGROUND_CAP   : F.CHECK.UNDERGROUND_CAPACITY (стадия «концепция»)\nBENCH_MIN_COMPS   : число аналогов >= BENCH.MARKET_MIN_COMPS ИЛИ экспертное обоснование\nAPT_MIX_SHARE_SUM : стадия «оценка участка» → |Σ_k area_share[k] − 1| < 1e-9\nPARKING_AREA_MIN  : TEP.PARKING_AREA_PER_SPACE >= F.TEP.PARKING_SPACE_MIN_AREA\nVRI_DATE_REQUIRED : LAND.CADASTRAL_VALUE_AFTER_VRI задана → vri_change_date заполнена\nLESSOR_REQUIRED   : LAND.TENURE = аренда → LAND.LESSOR_TYPE задан\nHORIZON_LONG      : F.CF.HORIZON > TIME.HORIZON_WARN_M → предупреждение\n",
-      "note": "Свод проверок модели. APART_ALLOWED проверяется по вложенному ГПЗУ; если апартаменты не допускаются, продукт «апартаменты» недоступен. BENCH_MIN_COMPS: если пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS, скидка апартаментов — экспертная (уровень 5), без блокировки расчёта. UNDERGROUND_CAP даёт ошибку или предупреждение по вместимости подземной части. T — последний месяц модели.",
+      "note": "Свод проверок модели. APART_ALLOWED проверяется по вложенному ГПЗУ; если апартаменты не допускаются, продукт «апартаменты» недоступен. BENCH_MIN_COMPS: если пар «квартиры / апартаменты» меньше BENCH.MIN_PAIRS, скидка апартаментов — экспертная (уровень 5), без блокировки расчёта. UNDERGROUND_CAP даёт ошибку или предупреждение по вместимости подземной части. Проверка, у которой не заполнены входы, не запускается: статус «ждёт данных», в число ошибок не входит (решение владельца продукта 28.09.2026). Незаполненные обязательные поля — метка «Заполните» и счётчик на своей вкладке, не ошибка проверки. T — последний месяц модели.",
       "terms": {
         "T": "последний месяц модели",
         "w[i,t]": "вес месяца в графике статьи (F.CAPEX.SCHEDULE_WEIGHT)",
@@ -13439,12 +13439,13 @@
         {
           "param": "FIN.RATE_DISCOUNT_COEF",
           "group": "fin",
-          "value": -0.02,
+          "value": null,
           "status": "unverified",
           "from": {
             "text": "Исходный Excel, лист «CF1»: скидка к ставке −2 п.п. при избыточном покрытии эскроу",
             "url": null
-          }
+          },
+          "note": "Стандарта нет: скидка считается, только если она есть в договоре банка (решение владельца продукта 28.09.2026)"
         },
         {
           "param": "FIN.RATE_MIN",

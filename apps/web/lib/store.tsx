@@ -51,6 +51,8 @@ export function reducer(state: DemoProject[], a: Action): DemoProject[] {
     case "value":
       return map((p) =>
         touch(p, {
+          // значение введено заново — ячейка загруженного файла больше не его источник
+          ...(p.fromFile?.[a.param] ? { fromFile: Object.fromEntries(Object.entries(p.fromFile).filter(([k]) => k !== a.param)) } : {}),
           ...(a.param === "GEN.PROJECT_NAME" && typeof a.value === "string" && a.value.trim() ? { name: a.value.trim() } : {}),
           input: { ...p.input, values: { ...p.input.values, [a.param]: a.value } },
         }),

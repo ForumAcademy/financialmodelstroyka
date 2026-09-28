@@ -30,3 +30,30 @@ function read(path) {
   }
 }
 if (read(out) !== text) writeFileSync(out, text);
+
+// Карта исходного Excel для загрузки файла в новый проект: legacy/legacy_values_map.csv → lib/generated/legacy-map.json.
+// Ячейки с вердиктом remove (дубли, вычисляемые значения) не читаются.
+const csv = readFileSync(resolve(root, "../../legacy/legacy_values_map.csv"), "utf8").trim().split("\n");
+const cols = (line) => {
+  const out = [];
+  let cur = "";
+  let quoted = false;
+  for (const ch of line) {
+    if (ch === '"') quoted = !quoted;
+    else if (ch === "," && !quoted) {
+      out.push(cur);
+      cur = "";
+    }
+    else cur += ch;
+  }
+  return [...out, cur];
+};
+const head = cols(csv[0]);
+const map = csv
+  .slice(1)
+  .map((line) => Object.fromEntries(cols(line).map((v, i) => [head[i], v])))
+  .filter((r) => r.verdict !== "remove")
+  .map((r) => ({ sheet: r.sheet.trim(), cell: r.cell, target: r.target_id, verdict: r.verdict, label: r.row_label.trim() }));
+const mapOut = resolve(root, "lib/generated/legacy-map.json");
+const mapText = JSON.stringify(map, null, 1) + "\n";
+if (read(mapOut) !== mapText) writeFileSync(mapOut, mapText);

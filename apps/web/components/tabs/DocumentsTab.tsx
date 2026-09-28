@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { getParameter, type ParameterId } from "@fm/spec";
 import { savedAuthor } from "../Change";
 import { useHow } from "../HowPanel";
+import { DownloadSource, ImportReport, Modal } from "../NewProject";
 import { useStore } from "@/lib/store";
 import type { DemoProject, ProjectSource } from "@/lib/types";
 import * as fmt from "@/lib/format";
@@ -28,6 +29,7 @@ export function DocumentsTab({ project }: { project: DemoProject }) {
   const [author, setAuthor] = useState(savedAuthor);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
+  const [report, setReport] = useState(false);
 
   const upload = (files: FileList | null) => {
     if (!files?.length) return;
@@ -124,6 +126,13 @@ export function DocumentsTab({ project }: { project: DemoProject }) {
                       <span className="muted">—</span>
                     )}
                     {s.file ? <span className="muted small"> · {size(s.file.size)}</span> : null}
+                    {s.id === project.fileImport?.sourceId ? (
+                      <div>
+                        <button className="link small" onClick={() => setReport(true)}>
+                          Что загружено из файла
+                        </button>
+                      </div>
+                    ) : null}
                   </td>
                   <td className="small">
                     {s.author}, {fmt.date(s.date)}
@@ -162,6 +171,23 @@ export function DocumentsTab({ project }: { project: DemoProject }) {
           </tbody>
         </table>
       )}
+      {report && project.fileImport ? (
+        <Modal
+          title="Что загружено из файла"
+          wide
+          onClose={() => setReport(false)}
+          foot={
+            <>
+              <DownloadSource project={project} />
+              <button className="btn primary" onClick={() => setReport(false)}>
+                Закрыть
+              </button>
+            </>
+          }
+        >
+          <ImportReport report={project.fileImport} />
+        </Modal>
+      ) : null}
     </section>
   );
 }

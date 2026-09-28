@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { spec } from "@fm/spec";
 import type Decimal from "decimal.js";
 import { num, regionName } from "@/lib/format";
 import type { ProjectModel } from "@/lib/model";
-import { latest } from "@/lib/assumptions";
+import { NewProjectDialog } from "@/components/NewProject";
 import { useStore } from "@/lib/store";
 import type { DemoProject } from "@/lib/types";
 
@@ -59,26 +58,17 @@ function RowMenu({ project }: { project: DemoProject }) {
 }
 
 export default function ProjectsPage() {
-  const { projects, dispatch, model, assumptions } = useStore();
+  const { projects, model } = useStore();
   const router = useRouter();
   const [archived, setArchived] = useState(false);
+  const [creating, setCreating] = useState(false);
   const list = projects.filter((p) => p.archived === archived).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-
-  const create = () => {
-    const id = `p-${Date.now()}`;
-    const name = `Новый проект ${projects.length + 1}`;
-    dispatch({
-      type: "create",
-      project: { id, name, archived: false, sources: [], paramSources: {}, specVersion: spec.specVersion, assumptionsVersion: latest(assumptions).version, updatedAt: new Date().toISOString(), input: { values: { "GEN.PROJECT_NAME": name } } },
-    });
-    router.push(`/projects/${id}`);
-  };
 
   return (
     <main className="page">
       <div className="page-head">
         <h1>Проекты</h1>
-        <button className="btn primary" onClick={create}>
+        <button className="btn primary" onClick={() => setCreating(true)}>
           + Новый проект
         </button>
       </div>
@@ -125,6 +115,7 @@ export default function ProjectsPage() {
         ))}
         {list.length === 0 ? <p className="muted">{archived ? "В архиве пусто" : "Проектов нет"}</p> : null}
       </div>
+      {creating ? <NewProjectDialog onClose={() => setCreating(false)} /> : null}
       <p className="footnote">Демо-режим: проекты и изменения хранятся до перезагрузки страницы (хранение — этап 7). Выручка, NPV и IRR появятся после этапов 4–6.</p>
     </main>
   );

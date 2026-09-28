@@ -137,7 +137,7 @@ function Field({ project, model, id }: { project: DemoProject; model: ProjectMod
   }
 
   return (
-    <div className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
+    <div id={`field-${id}`} className={`field ${p.kind === "table" && !readonly ? "wide" : ""} ${readonly ? "readonly" : ""} ${need ? "is-need" : ""}`} title={need ? needHint(id) : undefined}>
       <div className="field-head">
         <button className="field-label" onClick={() => open({ kind: "param", id })} title={need ? needHint(id) : "Как посчитано / источник"}>
           {p.name}

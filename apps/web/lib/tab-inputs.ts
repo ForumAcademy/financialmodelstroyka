@@ -97,7 +97,7 @@ export function cfGroups(project: DemoProject): InputGroup[] {
         }
       : {
           title: "Проектное финансирование",
-          params: ["FIN.EQUITY_SHARE", "FIN.RATE_PREFERENTIAL", "FIN.RATE_BASE_SPREAD", "FIN.KEY_RATE_PATH", "FIN.RATE_DISCOUNT_COEF", "FIN.RATE_MIN", "FIN.FEE_ARRANGEMENT", "FIN.FEE_COMMITMENT"],
+          params: ["FIN.EQUITY_SHARE", "FIN.RATE_PREFERENTIAL", "FIN.RATE_BASE_SPREAD", "FIN.KEY_RATE_PATH", "FIN.RATE_DISCOUNT_COEF", "FIN.RATE_MIN", "FIN.FEE_ARRANGEMENT", "FIN.FEE_COMMITMENT", "FIN.COLLATERAL_DISCOUNT"],
           note: "Налоги в потребность в финансировании войдут, когда появится их расчёт.",
         },
     { title: "Налоги", params: ["TAX.VAT_RATE", "TAX.VAT_REGIME", "TAX.INPUT_VAT_RECOVERABLE", "TAX.PROFIT_RATE", "TAX.LOSS_CARRYFORWARD_LIMIT"] },
@@ -133,3 +133,15 @@ export function missingCount(groups: InputGroup[], model: ProjectModel): number 
 
 /** Счётчик незаполненных обязательных полей на вкладке. */
 export const tabMissing = (tab: InputTab, project: DemoProject, model: ProjectModel): number => missingCount(tabGroups(tab, project), model);
+
+export const INPUT_TABS: InputTab[] = ["tep", "budget", "sales", "escrow", "cf", "dashboard"];
+
+/** Сколько параметров из списка стоит на вкладке. */
+export const tabCount = (tab: InputTab, project: DemoProject, ids: ParameterId[]): number => {
+  const on = new Set(tabGroups(tab, project).flatMap((g) => g.params));
+  return ids.filter((id) => on.has(id)).length;
+};
+
+/** Первая вкладка, где стоит поле параметра; null — поля на вкладках нет. */
+export const tabOfParam = (project: DemoProject, id: ParameterId): InputTab | null =>
+  INPUT_TABS.find((t) => tabGroups(t, project).some((g) => g.params.includes(id))) ?? null;

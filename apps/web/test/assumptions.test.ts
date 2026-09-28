@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { calculate, legacyCaseInput } from "@fm/engine";
 import { checkAssumptions, spec } from "@fm/spec";
 import { diffVersions, latest, SPEC_ASSUMPTIONS, standardValues, valueSource } from "../lib/assumptions";
-import { computeProject, effectiveInput, effectiveValue, projectQuestions, provisionalHorizon } from "../lib/model";
+import { computeProject, effectiveInput, effectiveValue, provisionalHorizon } from "../lib/model";
+import { standardInUse, unconfirmedStandard } from "../lib/standard";
 import { loadSeed } from "../lib/seed";
 import { assumptionsReducer, reducer } from "../lib/store";
 import type { DemoProject } from "../lib/types";
@@ -58,12 +59,16 @@ describe("справочник допущений компании", () => {
     expect(whence("OPEX.MARKETING_RATE", p!).text).toContain("Подтверждение финансистов: по бюджету 2027");
   });
 
-  it("вопрос по стандартному значению: что используется, влияние в рублях, что сделать", () => {
-    const q = projectQuestions(demo, computeProject(demo)).find((x) => x.key === "STANDARD:TIME.ESCROW_RELEASE_LAG_M")!;
-    expect(q.question).toBe("Лаг раскрытия эскроу после РНВ 3 мес. — подходит для этого проекта?");
-    expect(q.compared).toContain("стандартное значение компании");
-    expect(q.impact.amount?.gt(0)).toBe(true);
-    expect(q.recommendation).toContain("«Решено»");
+  it("стандартное значение без подтверждения — на поле «не подтверждено»; «Подтвердить» убирает его из списка", () => {
+    const normal: DemoProject = { ...demo, input: { ...demo.input, mode: "normal" } };
+    expect(unconfirmedStandard(normal, SPEC_ASSUMPTIONS)).toContain("TIME.ESCROW_RELEASE_LAG_M");
+    // статьи бюджета демо-проекта заданы суммами Excel — ставка маркетинга в расчёте не участвует и подтверждения не ждёт
+    expect(standardInUse(normal, SPEC_ASSUMPTIONS)).not.toContain("OPEX.MARKETING_RATE");
+    const [p] = reducer([normal], { type: "issue", id: normal.id, key: "STANDARD:TIME.ESCROW_RELEASE_LAG_M", no: 0, question: "q", event: { status: "done", author: "Финансист", at } });
+    expect(unconfirmedStandard(p!, SPEC_ASSUMPTIONS)).not.toContain("TIME.ESCROW_RELEASE_LAG_M");
+    expect(p!.issues?.["STANDARD:TIME.ESCROW_RELEASE_LAG_M"]?.history).toEqual([{ status: "done", author: "Финансист", at }]);
+    // «Как в исходном Excel» берёт значения из Excel — стандарта нет
+    expect(unconfirmedStandard(demo, SPEC_ASSUMPTIONS)).toEqual([]);
   });
 
   it("«Как в исходном Excel» берёт значения из Excel, даже если справочник изменился", () => {

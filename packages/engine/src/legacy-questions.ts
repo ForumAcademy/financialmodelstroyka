@@ -15,11 +15,6 @@ import { fmt, fmtQuarter, fmtRub, fmtShare } from "./lib/format";
 import type { CalcMessage, ProjectInput, ResultSet } from "./types";
 
 export type QuestionBlock = "sales" | "budget" | "cf" | "escrow" | "fin";
-/**
- * Группа пункта: «искажает результат» — ошибка файла меняет числа; «методика» — подход, который в расчёте сервиса
- * заменён или требует подтверждения; «уточнить у автора» — открытый вопрос, а не ошибка.
- */
-export type QuestionGroup = "distorts" | "method" | "author";
 /** «зависит» — сумма, которая зависит от значения (для стандартных значений компании), без знака «Excel − исправленное». */
 export type ImpactKind = "выручка" | "расходы" | "поступления" | "расходы в CF" | "сроки денег" | "зависит" | "нет";
 
@@ -36,7 +31,6 @@ export interface DataQuestion {
   /** Постоянный номер пункта. */
   no: number;
   block: QuestionBlock;
-  group: QuestionGroup;
   question: string;
   /**
    * Пояснение простым языком (2–3 предложения, без формул): что с чем сравнивалось и где (лист!ячейка), на сколько
@@ -82,13 +76,6 @@ const NUMBERS: Record<string, number> = {
   "LEGACY.FIN_EQUITY": 17,
   "LEGACY.FIN_FEE_BASE": 18,
   "LEGACY.FIN_EFF_RATE": 19,
-};
-
-/** Группы пунктов по исходному Excel; не указанные — «искажает результат». */
-const GROUPS: Record<string, QuestionGroup> = {
-  "LEGACY.PSN_STOCK": "author",
-  "LEGACY.CF1_LAG": "author",
-  "LEGACY.FIN_EFF_RATE": "method",
 };
 
 /** Последний постоянный номер пункта по исходному Excel: номера следующих вопросов (стандарт компании) идут после него. */
@@ -164,7 +151,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
   const itemName = (id: string) => (isCapexItemId(id) ? getCapexItem(id).name : id);
   const lag = Number(input.values["TIME.ESCROW_RELEASE_LAG_M"] ?? input.standard?.["TIME.ESCROW_RELEASE_LAG_M"] ?? getParameter("TIME.ESCROW_RELEASE_LAG_M").default ?? 0) || null;
 
-  type Built = Omit<DataQuestion, "key" | "no" | "group" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
+  type Built = Omit<DataQuestion, "key" | "no" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
   const build = (m: CalcMessage): Built => {
     const key = m.key as string;
     const [kind, arg = ""] = key.split(":");
@@ -350,7 +337,6 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
       return {
         key: m.key as string,
         no: NUMBERS[m.key as string] ?? known + 1 + extra.indexOf(m.key as string),
-        group: GROUPS[m.key as string] ?? "distorts",
         formulaId: m.formulaId,
         warning: m.text,
         ...b,
@@ -361,7 +347,7 @@ export function dataQuestions(c: LegacyCase, input: ProjectInput, result: Result
     .sort((a, b) => a.no - b.no);
 }
 
-type FinBuilt = Omit<DataQuestion, "key" | "no" | "group" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
+type FinBuilt = Omit<DataQuestion, "key" | "no" | "formulaId" | "warning" | "summary" | "threat"> & { threat?: string };
 
 /** Вопросы по кредиту CF1 (строки 98–132): числа — из расчёта «как в исходном Excel», который повторяет CF1. */
 function finQuestion(kind: string, c: LegacyCase, result: ResultSet): FinBuilt | null {

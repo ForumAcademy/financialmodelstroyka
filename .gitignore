@@ -5,4 +5,3 @@ node_modules/
 .env*
 next-env.d.ts
 *.tsbuildinfo
-apps/web/lib/generated/legacy-map.json

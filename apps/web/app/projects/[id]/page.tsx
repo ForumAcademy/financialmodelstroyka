@@ -91,7 +91,7 @@ function ProjectPage() {
   const unconfirmed = unconfirmedStandard(project, assumptions);
   // Счётчик на вкладке — только число с цветом («ТЭП 7»), подробности — в подсказке
   const count = (t: (typeof TABS)[number]): TabCount | null =>
-    t.id === "issues" ? issuesTabCount(summary) : t.id === "docs" ? null : inputTabCount(tabMissing(t.id as InputTab, project, m), tabCount(t.id as InputTab, project, unconfirmed));
+    t.id === "issues" ? issuesTabCount(project, summary) : t.id === "docs" ? null : inputTabCount(tabMissing(t.id as InputTab, project, m), tabCount(t.id as InputTab, project, unconfirmed));
   const view = search.get("view") === "calc" ? "calc" : "inputs";
   const go = (t: TabId, v: string) => router.replace(`/projects/${project.id}?tab=${t}${v === "calc" ? "&view=calc" : ""}`, { scroll: false });
 

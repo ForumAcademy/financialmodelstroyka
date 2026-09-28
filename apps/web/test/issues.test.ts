@@ -56,28 +56,38 @@ describe("Расхождения: пункты аудита исходного E
 });
 
 describe("Расхождения: один подсчёт для вкладки и плашки", () => {
-  it("всё решено — на вкладке ✓, плашки нет", () => {
-    const s = { shown: true, open: 0, total: 3, questions: 1, byGroup: { distorts: 0, method: 0, author: 1 } };
-    expect(issuesTabCount(s).tone).toBe("ok");
-    expect(issuesBannerText(demo, s)).toBeNull();
+  it("всё исправлено — в «Расчёте сервиса» на вкладке ✓, плашки нет", () => {
+    const s = { shown: true, open: 0, total: 3, questions: 1, byGroup: { distorts: 0, method: 0, author: 1 }, inFile: 3, notFixed: 0 };
+    const normal = { ...demo, input: { ...demo.input, mode: "normal" as const } };
+    expect(issuesTabCount(normal, s).tone).toBe("ok");
+    expect(issuesBannerText(normal, s)).toBeNull();
   });
 
   for (const p of modes(demo)) {
     const name = p.input.mode === "legacy" ? "«Как в исходном Excel»" : "«Расчёт сервиса»";
-    it(`Дербеневская, ${name}: на вкладке — число 34; 23 + 11 не решено, 4 вопроса автору`, () => {
+    it(`Дербеневская, ${name}: 34 в файле (23 + 11), 4 вопроса автору; в расчёте сервиса не исправлено 7`, () => {
       const s = issueSummary(p, projectQuestions(p, computeProject(p)));
       expect(s.byGroup).toEqual({ distorts: 23, method: 11, author: 4 });
       expect(s.open).toBe(34);
-      const tab = issuesTabCount(s);
-      expect(tab.n).toBe(s.open);
-      expect(count(tab.title)).toBe(s.open);
+      expect(s.inFile).toBe(34);
+      expect(s.notFixed).toBe(7);
+      const tab = issuesTabCount(p, s);
       const banner = issuesBannerText(p, s);
       if (p.input.mode === "legacy") {
-        // в «Как в исходном Excel» вместо плашки — метка у переключателя режима
+        // в «Как в исходном Excel» — сколько ошибок в файле; вместо плашки — метка у переключателя режима
+        expect(tab.n).toBe(34);
+        expect(tab.title).toMatch(/^В файле: 34/);
         expect(banner).toBeNull();
       } else {
-        expect(banner).toBe("Не исправлено: 34.");
+        expect(tab.n).toBe(7);
+        expect(count(tab.title)).toBe(7);
+        expect(banner).toBe("Не исправлено: 7.");
       }
+    });
+
+    it(`Дербеневская, ${name}: статус «исправлено» — из кода ядра`, () => {
+      const items = issueItems(p, projectQuestions(p, computeProject(p))).filter((i) => i.group !== "author");
+      expect(items.filter((i) => !i.fixed).map((i) => i.label)).toEqual(["3", "9", "10", "11", "17", "18", "М5"]);
     });
   }
 });

@@ -220,7 +220,10 @@ function Rows({ project, items, go }: { project: DemoProject; items: IssueItem[]
                 <Explanation project={project} item={i} />
               </td>
               <td data-label="Влияние">{i.questions.some((x) => x.impact.amount) ? i.questions.map((x) => <Impact key={x.key} q={x} />) : "—"}</td>
-              <td data-label="В расчёте сервиса">{i.fix || "—"}</td>
+              <td data-label="В расчёте сервиса">
+                {i.group === "author" || i.stale ? null : <span className={`fix-badge ${i.fixed ? "fix-yes" : "fix-no"}`}>{i.fixed ? "Исправлено" : "Не исправлено"}</span>}
+                <div>{i.fix || "—"}</div>
+              </td>
               <td data-label="Статус">
                 <StatusCell project={project} item={i} />
               </td>
